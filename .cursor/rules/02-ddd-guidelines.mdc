@@ -1,0 +1,30 @@
+---
+description: DDD guidelines (bounded contexts, aggregates, domain events)
+alwaysApply: true
+---
+
+# DDD Guidelines
+
+## Strategic Design
+- **Bounded context** — modules under `apps/api/src/modules/*` (chat, feed, comments, auth, …)
+- **Context mapping** — integrate via application use cases, domain events, and ports — not cross-module repository calls
+
+## Tactical Design
+- **Entities** — identity (e.g. `Message`, `Conversation`, `Comment`)
+- **Value objects** — immutable, compared by value (e.g. `MessageContent`)
+- **Aggregates / aggregate root** — protect invariants; single entry point
+- **Domain services** — rules that don’t belong on one entity
+- **Repositories** — persistence abstraction only (`domain/repositories`, `infrastructure/prisma-*.repository.ts`)
+- **Domain events** — past-tense facts (`chat.message_sent`, `comment.created`)
+
+## Ubiquitous Language
+Code names must match business language used in product (inbox, match, feed, conversation, …).
+
+## Anti-patterns (forbidden)
+- Anemic domain model with all logic in use cases
+- Business logic in controllers or DTOs
+- Fat repositories with business rules
+- God services spanning unrelated contexts
+
+## Domain Modeling Process
+1. Identify actors → 2. Commands → 3. Events → 4. Invariants → 5. Aggregate boundaries

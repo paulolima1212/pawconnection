@@ -1,0 +1,86 @@
+---
+description: Git Flow, Conventional Commits, PRs, and agent commit protocol (canonical)
+alwaysApply: true
+---
+
+# Git Workflow & Commit Standards
+
+## Branching (Git Flow)
+- **main** — production. NEVER commit or push directly to main.
+- **develop** — integration; features and bugfixes merge here first.
+- **feature/<ID>-<desc>** — new features (base: `develop`)
+- **bugfix/<ID>-<desc>** — bugs (base: `develop`)
+- **release/vX.Y.Z** — release prep (base: `develop`)
+- **hotfix/<date>-<desc>** — production fixes (base: `main`)
+
+Prefer **rebase** over merge when updating feature branches from `develop`.
+
+## Commit message format (canonical — resolves all commit style conflicts)
+
+**Always use Conventional Commits:**
+
+```
+type(scope): imperative summary [Refs #ID]
+```
+
+| Part | Rule |
+|------|------|
+| **type** | `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore` |
+| **scope** | `api`, `app`, or module: `chat`, `inbox`, `feed`, `auth`, … |
+| **summary** | One line, imperative, **outcome-focused** (why / what it fixes) |
+| **Refs** | Include `[Refs #ID]` when issue/ticket exists; omit if unknown |
+
+**Examples:**
+```
+fix(app): return to inbox after leaving chat
+feat(api): notify reader on conversation read [Refs #42]
+refactor(chat): extract applyPageIndex in tab navigation
+```
+
+Informal one-line-only messages without `type(scope):` are **not allowed** when the agent creates commits.
+
+## Agent commit protocol
+
+**Only commit when the user explicitly asks.**
+
+Before committing, run in parallel:
+- `git status`
+- `git diff` (staged + unstaged)
+- `git log` (recent messages — match this format)
+
+Then sequentially:
+1. Stage relevant files (never secrets: `.env`, credentials)
+2. Commit via HEREDOC:
+
+```bash
+git commit -m "$(cat <<'EOF'
+fix(app): short outcome-focused summary [Refs #ID]
+
+EOF
+)"
+```
+
+3. `git status` to verify success
+
+**Never:** update git config; force push to main; skip hooks unless user asks; push unless user asks; amend unless strict amend rules apply; commit empty changes.
+
+If pre-commit hook fails → fix and create a **new** commit (do not amend unless allowed).
+
+## Starting a task
+1. Classify as feature or bugfix
+2. If not on `develop`: `git checkout develop && git pull origin develop`
+3. Create branch: `git checkout -b feature/<ID>-<desc>`
+
+## Completing a task
+1. Rebase on `develop` if needed
+2. Run lint/tests for touched areas
+3. Push only when user asks: `git push -u origin HEAD`
+4. Open PR to **develop** via `gh pr create` (Summary + Test plan)
+
+## Releases & hotfixes
+- Release from `develop` → TST before production
+- Hotfix from `main` → merge to **both** `main` and `develop`
+
+## Code quality before commit
+- `cd apps/api && npm test` when API changed
+- Typecheck/lint affected packages when applicable

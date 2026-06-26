@@ -1,0 +1,46 @@
+---
+description: Supreme engineering guideline (SDD, DDD, TDD, SOLID, DoR/DoD)
+alwaysApply: true
+---
+
+# Engineering Constitution
+
+## Objective
+Supreme engineering guideline for Paw Connection.
+
+## Mandatory Methodologies
+- SDD (Specification Driven Development)
+- DDD (Domain Driven Design)
+- TDD (Test Driven Development)
+- SOLID
+- Clean Architecture
+- Event-Driven Architecture (when applicable — backend modules)
+- Security by Design
+- Observability by Design
+
+## Development Workflow
+1. Understand business problem
+2. Produce specification / acceptance criteria
+3. Identify business rules and domain model
+4. Create tests (backend domain/application first)
+5. Implement with minimal scope
+6. Refactor
+7. Document when behavior or architecture changes
+
+## Definition of Ready
+- Business goal and acceptance criteria defined
+- Edge cases and non-functional requirements identified
+
+## Definition of Done
+- Tests passing (`apps/api`: unit/integration; `apps/app`: when tests exist or were added for the change)
+- Logging for non-trivial flows (API)
+- Security validated (auth, input validation, no secrets)
+- Architecture layers respected
+- ADR for significant architectural decisions
+
+## Code Review Checklist
+- SOLID respected
+- No business logic in controllers (API) or route screens (app)
+- No duplicated code
+- Proper naming (ubiquitous language)
+- Tests for business rules and edge cases

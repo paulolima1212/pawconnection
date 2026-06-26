@@ -1,0 +1,40 @@
+---
+description: API design standards (NestJS, REST, controller boundaries)
+globs: apps/api/**/*
+alwaysApply: false
+---
+
+# API Guidelines
+
+## Architecture flow
+`presentation/*.controller.ts` → `application/*.use-cases.ts` → `domain/*` → `infrastructure/*`
+
+## Controllers — allowed
+- Validation (DTOs + class-validator)
+- Authentication / authorization guards
+- Request/response mapping
+
+## Controllers — forbidden
+- Business logic
+- Direct Prisma/database access
+
+## REST standards
+- Consistent error shape (see shared errors in API)
+- Pagination, filtering, sorting where lists are exposed
+
+## Error pattern
+```json
+{
+  "code": "BUSINESS_RULE_VIOLATION",
+  "message": "Description",
+  "details": []
+}
+```
+
+## Security
+- OWASP Top 10 awareness
+- Rate limiting (Throttler), input validation, secrets via env only
+- Swagger disabled or restricted in production
+
+## Realtime (chat)
+- WebSocket events immutable, past-tense; idempotent handlers where applicable

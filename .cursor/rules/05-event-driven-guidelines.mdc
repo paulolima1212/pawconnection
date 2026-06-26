@@ -1,0 +1,28 @@
+---
+description: Event-driven architecture (naming, immutability, handlers)
+globs: apps/api/**/*
+alwaysApply: false
+---
+
+# Event Driven Guidelines
+
+## Event naming
+Past tense only. Examples: `UserCreated`, `MessageSent`, `MessageRead`.
+
+## Rules
+- Events represent facts that already happened
+- Events are immutable
+- Consumers/handlers must be idempotent when processing side effects
+
+## Structure (domain events)
+- EventId / type, OccurredAt, aggregate id, payload, version where applicable
+- Publish via shared event bus; handle in `infrastructure/handlers/*`
+
+## Patterns in this codebase
+- Domain event → `ChatRealtimeBroadcastHandler`, analytics, notifications
+- Prefer outbox-style reliability for critical cross-system delivery (when introducing new integrations)
+
+## Anti-patterns
+- Using events as commands
+- Mutating event payloads in handlers
+- Synchronous cross-module coupling instead of events or explicit ports

@@ -1,0 +1,27 @@
+---
+description: Database standards (Prisma, migrations, integrity)
+globs: apps/api/**/*
+alwaysApply: false
+---
+
+# Database Guidelines
+
+## Stack
+- PostgreSQL via **Prisma** (`apps/api/prisma`)
+- Migrations mandatory for schema changes — never edit production DB by hand
+
+## Principles
+- Data integrity first; explicit constraints and foreign keys
+- Normalize before denormalizing
+- Index intentionally for query paths used in repositories
+
+## Auditing fields
+Prefer `createdAt`, `updatedAt`; add `createdBy` / `updatedBy` when audit trail is required.
+
+## Migrations workflow
+1. Change `schema.prisma`
+2. `npx prisma migrate dev` (local) with descriptive migration name
+3. Never commit secrets or connection strings
+
+## Supabase / storage
+- Media paths documented in ops; DB object rows must match files on disk

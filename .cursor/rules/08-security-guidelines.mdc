@@ -1,0 +1,29 @@
+---
+description: Security by design (auth, secrets, validation)
+alwaysApply: true
+---
+
+# Security Guidelines
+
+## Mandatory controls
+- Authentication (JWT / session as implemented in `apps/api` auth module)
+- Authorization on every protected route and use case
+- Encryption in transit (HTTPS / WSS in production)
+- Encryption at rest for sensitive data stores
+
+## Secrets — never commit
+- Passwords, tokens, API keys, `.env`, credentials JSON
+- Use `.env.example` for documented keys only
+
+## Logging
+- Never log secrets, full tokens, or passwords
+
+## Validation
+- Validate all external input (DTOs, query params, WebSocket payloads)
+- Mobile: sanitize user content length and types before API calls
+
+## Mobile
+- Production API URLs via `EXPO_PUBLIC_*` env — not hardcoded LAN IPs in release builds
+
+## Docker / deploy
+- Non-root user, health checks, minimal exposed ports (see `apps/api/Dockerfile`)

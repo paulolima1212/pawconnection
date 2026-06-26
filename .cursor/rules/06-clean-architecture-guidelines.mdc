@@ -1,0 +1,31 @@
+---
+description: Clean Architecture layer boundaries and dependency rule
+alwaysApply: true
+---
+
+# Clean Architecture
+
+## Layers (backend — `apps/api`)
+| Layer | Path pattern |
+|-------|----------------|
+| Presentation | `modules/*/presentation/` |
+| Application | `modules/*/application/` |
+| Domain | `modules/*/domain/` |
+| Infrastructure | `modules/*/infrastructure/`, `shared/` |
+
+## Dependency rule
+Dependencies point **inward**. Domain must not import NestJS, Prisma, or HTTP.
+
+## Domain layer must not depend on
+- Frameworks, ORMs, external HTTP clients, env/config
+
+## Application layer
+Orchestrates use cases; injects repositories and ports via tokens/interfaces.
+
+## Infrastructure layer
+Implements repositories and adapters; maps Prisma models to domain.
+
+## Mobile app (`apps/app`)
+- **Screens/routes** — UI and navigation only
+- **Hooks / context / lib/api** — data fetching and client-side state
+- **components/paw** — reusable UI; no direct API business rules

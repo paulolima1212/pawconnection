@@ -1,0 +1,37 @@
+---
+description: Testing standards (TDD, pyramid, coverage, naming)
+alwaysApply: true
+---
+
+# Testing Guidelines
+
+## TDD Cycle
+Red → Green → Refactor (required for new backend domain/application logic).
+
+## Testing Pyramid
+1. Unit (domain, value objects, specifications)
+2. Integration (repositories, use cases with test DB when applicable)
+3. Contract / E2E (when present)
+
+## Coverage Targets (backend)
+- Domain: 95%
+- Application: 90%
+- Infrastructure: 70%
+- Global API: 80%
+
+## Test location & naming
+- Backend: `*.spec.ts` colocated with source (`apps/api`)
+- Naming: `Given_When_Then` or descriptive `describe/it`
+- Example: `GivenActiveStudent_WhenScheduleClass_ThenClassIsCreated`
+
+## What must be tested
+- Business rules, edge cases, domain events, authorization, validation
+
+## When to add app tests
+- Add or update tests when changing non-trivial logic in `apps/app` hooks, utils, or mappers — not for purely visual tweaks
+
+## Forbidden
+- Flaky tests, sleep-based sync, shared mutable test state
+
+## Before commit (when user requests commit)
+Run relevant tests: `cd apps/api && npm test` (and app tests if touched).

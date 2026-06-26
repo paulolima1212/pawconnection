@@ -1,0 +1,32 @@
+---
+description: Mobile app conventions (Expo Router, components, navigation)
+globs: apps/app/**/*
+alwaysApply: false
+---
+
+# Mobile App Guidelines
+
+## Stack
+- Expo Router (`apps/app/app/`)
+- Tab shell: `MainTabShell` + `MainTabNavProvider` — tab state must stay in sync with route path
+- API client: `lib/api/*` — no raw fetch scattered in screens
+
+## Structure
+- `components/screens/` — tab/page screens
+- `components/paw/` — design-system UI
+- `context/` — global React context providers
+- `hooks/` — reusable logic
+- `lib/navigation/` — navigation helpers (e.g. `open-chat.ts`)
+
+## Rules
+- Minimal diffs; match existing styling (`constants/paw-styles`)
+- Unread/state shared via context when multiple surfaces need it (tab bar + inbox)
+- Opening chat: use `openChat(router, id, origin)`; exiting must restore correct tab route
+- Env: `EXPO_PUBLIC_*` for API URL; production builds must not depend on Metro/LAN
+
+## Forbidden in screens
+- Business rules that belong in API
+- Duplicate WebSocket connections when a provider already handles events
+
+## Tests
+- Add tests for non-trivial hooks/utils when changing behavior (see 03-testing)

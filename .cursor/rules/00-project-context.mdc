@@ -1,0 +1,33 @@
+---
+description: Paw Connection monorepo context — stack, paths, and rule precedence
+alwaysApply: true
+---
+
+# Paw Connection — Project Context
+
+## Repository layout
+- `apps/api` — NestJS backend (Clean Architecture, DDD, Prisma, domain events)
+- `apps/app` — Expo / React Native mobile app (Expo Router, tab pager)
+
+## Where rules apply
+| Area | Path | Primary rules |
+|------|------|---------------|
+| Backend | `apps/api/**` | 02-ddd, 04-api, 05-event-driven, 06-clean-architecture, 07-database, 08-security |
+| Mobile | `apps/app/**` | 01-constitution, 03-testing, 08-security; follow existing component/hook patterns |
+| Git / PR | whole repo | 09-git-flow |
+
+## Rule precedence
+1. **Project rules** in `.cursor/rules/` (this repo)
+2. **User rules** in Cursor settings — unless they conflict with project git/commit standards; then **09-git-flow** wins for format and branching
+3. Global `~/.cursor/rules` — superseded by project copies here for this workspace
+
+## Before any change
+1. Read applicable `.cursor/rules/*.mdc` for the files you will touch
+2. Read surrounding code and match conventions
+3. Keep diffs minimal and scoped to the request
+
+## Commit scopes (Conventional Commits)
+Use `api`, `app`, or module name: `chat`, `inbox`, `feed`, `auth`, `profile`, `media`, `infra`
+
+## ADRs
+Significant architectural decisions → add `docs/adr/NNNN-title.md` (see `docs/adr/README.md`)
