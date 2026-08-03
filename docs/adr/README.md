@@ -31,3 +31,8 @@ Positive, negative, and follow-up work.
 | ADR | Title | Status |
 |-----|-------|--------|
 | — | (none yet) | — |
+
+## Related backlog
+
+- [Pet birthday notifications](../backlog/pet-birthday-notifications.md) — planned; depends on `Pet.birthDate`
+
