@@ -1,0 +1,367 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Gender {
+  Male
+  Female
+}
+
+enum Temperament {
+  Happy
+  Calm
+  Playful
+  Energetic
+  Shy
+  Friendly
+}
+
+enum Vaccinated {
+  Yes
+  No
+}
+
+enum Desexed {
+  Yes
+  No
+}
+
+enum Interest {
+  Friendship
+  DogFriendlyLocations
+  DogServices
+  DogPlaydates
+  AllTheAbove
+}
+
+enum ConnectionIntent {
+  Friendship
+  Relationship
+  CasualDating
+  MeetPeople
+}
+
+enum ConnectionType {
+  romance
+  friendship
+  request
+}
+
+enum CommentStatus {
+  ACTIVE
+  EDITED
+  DELETED
+  HIDDEN
+  BLOCKED
+}
+
+enum RequestStatus {
+  pending
+  accepted
+  rejected
+}
+
+enum ConversationStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  FILE
+  SYSTEM
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+  DELETED
+  FAILED
+}
+
+model User {
+  id                 String   @id @default(cuid())
+  email              String?  @unique
+  passwordHash       String?
+  fullName           String
+  handle             String   @unique
+  age                Int?
+  gender             Gender   @default(Male)
+  location           String?
+  latitude           Float?
+  longitude          Float?
+  locationUpdatedAt  DateTime?
+  bio                String?
+  photoUrl           String?
+  phone              String?
+  onboardingComplete Boolean  @default(false)
+  verified           Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  interests        UserInterest[]
+  connectionIntents UserConnectionIntent[]
+  pet              Pet?
+  sentRequests     ConnectionRequest[] @relation("SentRequests")
+  receivedRequests ConnectionRequest[] @relation("ReceivedRequests")
+  posts            Post[]
+  likes            PostLike[]
+  comments         Comment[]
+  matchPasses      MatchPass[]         @relation("MatchPassUser")
+  matchWavesSent   MatchWave[]         @relation("WaveSender")
+  conversationsOne Conversation[]      @relation("ConversationParticipantOne")
+  conversationsTwo Conversation[]      @relation("ConversationParticipantTwo")
+  messagesSent     Message[]
+  messageReactions MessageReaction[]
+  blocksInitiated  UserBlock[]         @relation("BlocksInitiated")
+  blocksReceived   UserBlock[]         @relation("BlocksReceived")
+  photos           UserPhoto[]
+
+  @@index([latitude, longitude])
+}
+
+model UserBlock {
+  id        String   @id @default(cuid())
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker User @relation("BlocksInitiated", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("BlocksReceived", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
+}
+
+model UserInterest {
+  userId   String
+  interest Interest
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, interest])
+}
+
+model UserConnectionIntent {
+  userId String
+  intent ConnectionIntent
+  user   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, intent])
+}
+
+model Pet {
+  id              String      @id @default(cuid())
+  userId          String      @unique
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  age             Int?
+  /// ISO calendar date of birth (time ignored). Prefer this over age for birthday features.
+  birthDate       DateTime?
+  breed           String?
+  bio             String?
+  photoUrl        String?
+  temperament     Temperament[] @default([Happy])
+  vaccinated      Vaccinated  @default(Yes)
+  desexed         Desexed     @default(No)
+  gender          Gender      @default(Male)
+  favoritesThings String?
+  favoriteMeal    String?
+  enjoysPark      Boolean     @default(true)
+  enjoysWater     Boolean     @default(true)
+  enjoysWalks     Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  photos          PetPhoto[]
+}
+
+model PetPhoto {
+  id        String   @id @default(cuid())
+  petId     String
+  url       String
+  sortOrder Int
+  createdAt DateTime @default(now())
+
+  pet Pet @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@unique([petId, sortOrder])
+  @@index([petId])
+}
+
+model UserPhoto {
+  id        String   @id @default(cuid())
+  userId    String
+  url       String
+  sortOrder Int
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sortOrder])
+  @@index([userId])
+}
+
+model ConnectionRequest {
+  id          String         @id @default(cuid())
+  senderId    String
+  recipientId String
+  type        ConnectionType
+  status      RequestStatus  @default(pending)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  sender    User @relation("SentRequests", fields: [senderId], references: [id])
+  recipient User @relation("ReceivedRequests", fields: [recipientId], references: [id])
+
+  @@unique([senderId, recipientId, type])
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  authorId  String
+  body      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author   User        @relation(fields: [authorId], references: [id])
+  images   PostImage[]
+  likes    PostLike[]
+  comments Comment[]
+}
+
+model PostImage {
+  id        String @id @default(cuid())
+  postId    String
+  url       String
+  sortOrder Int
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, sortOrder])
+}
+
+model PostLike {
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+}
+
+model Comment {
+  id              String        @id @default(cuid())
+  postId          String
+  authorId        String
+  parentCommentId String?
+  content         String
+  status          CommentStatus @default(ACTIVE)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?
+
+  post    Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author  User      @relation(fields: [authorId], references: [id])
+  parent  Comment?  @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies Comment[] @relation("CommentReplies")
+
+  @@index([postId])
+  @@index([authorId])
+  @@index([parentCommentId])
+  @@index([createdAt])
+  @@index([postId, parentCommentId, createdAt])
+}
+
+model MatchPass {
+  userId    String
+  targetId  String
+  createdAt DateTime @default(now())
+
+  user User @relation("MatchPassUser", fields: [userId], references: [id])
+
+  @@id([userId, targetId])
+}
+
+model MatchWave {
+  id        String   @id @default(cuid())
+  senderId  String
+  targetId  String
+  createdAt DateTime @default(now())
+
+  sender User @relation("WaveSender", fields: [senderId], references: [id])
+}
+
+model Conversation {
+  id               String             @id @default(cuid())
+  participantOneId String
+  participantTwoId String
+  status           ConversationStatus @default(ACTIVE)
+  lastMessageId    String?
+  lastMessageAt    DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  participantOne User      @relation("ConversationParticipantOne", fields: [participantOneId], references: [id])
+  participantTwo User      @relation("ConversationParticipantTwo", fields: [participantTwoId], references: [id])
+  messages       Message[]
+
+  @@unique([participantOneId, participantTwoId])
+  @@index([participantOneId])
+  @@index([participantTwoId])
+  @@index([lastMessageAt])
+}
+
+model Message {
+  id               String        @id @default(cuid())
+  conversationId   String
+  senderId         String
+  content          String
+  type             MessageType   @default(TEXT)
+  status           MessageStatus @default(SENT)
+  clientMessageId    String?
+  replyToMessageId String?
+  readAt           DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  deletedAt        DateTime?
+
+  conversation Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User              @relation(fields: [senderId], references: [id])
+  replyTo      Message?          @relation("MessageReplies", fields: [replyToMessageId], references: [id], onDelete: SetNull)
+  replies      Message[]         @relation("MessageReplies")
+  reactions    MessageReaction[]
+
+  @@unique([conversationId, clientMessageId])
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([replyToMessageId])
+  @@index([createdAt])
+  @@index([readAt])
+  @@index([conversationId, createdAt])
+}
+
+model MessageReaction {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@index([messageId])
+}

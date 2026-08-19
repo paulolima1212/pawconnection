@@ -1,0 +1,97 @@
+{
+  "expo": {
+    "name": "paw-connection",
+    "slug": "paw-connection",
+    "version": "1.0.2",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "pawconnection",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true
+        },
+        "NSPhotoLibraryUsageDescription": "Paw Connection needs access to your photos for profile pictures and post images.",
+        "NSPhotoLibraryAddUsageDescription": "To save profile images when you choose that option.",
+        "NSCameraUsageDescription": "Paw Connection needs camera access to take profile pictures.",
+        "NSLocationWhenInUseUsageDescription": "Paw Connection uses your location for the discovery map, nearby suburbs, and distance filters on the feed."
+      }
+    },
+    "android": {
+      "package": "online.lzplima1212.pawconnection",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
+      "softwareKeyboardLayoutMode": "resize",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Paw Connection uses your location for the discovery map, nearby suburbs, and distance filters on the feed."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Paw Connection needs access to your photos for profile pictures and post images.",
+          "cameraPermission": "Paw Connection needs camera access to take profile pictures.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff",
+          "dark": {
+            "backgroundColor": "#000000"
+          }
+        }
+      ],
+      "expo-font",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true,
+            "enablePngCrunchInReleaseBuilds": false
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "appUrl": "https://paw-app.lz-plima1212.online",
+      "apiUrl": "https://paw-backend.lz-plima1212.online",
+      "supabaseUrl": "https://supabase.lz-plima1212.online",
+      "supabaseStorageBucket": "paw-media",
+      "eas": {
+        "projectId": "b94e430c-05db-4d51-a3ae-55752968efa6"
+      }
+    },
+    "owner": "plima1212"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_APP_URL": "https://paw-app.lz-plima1212.online",
+        "EXPO_PUBLIC_API_URL": "https://paw-backend.lz-plima1212.online",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://supabase.lz-plima1212.online",
+        "EXPO_PUBLIC_SUPABASE_STORAGE_BUCKET": "paw-media",
+        "EXPO_PUBLIC_USE_REMOTE_API": "true"
+      }
+    },
+    "production": {
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_APP_URL": "https://paw-app.lz-plima1212.online",
+        "EXPO_PUBLIC_API_URL": "https://paw-backend.lz-plima1212.online",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://supabase.lz-plima1212.online",
+        "EXPO_PUBLIC_SUPABASE_STORAGE_BUCKET": "paw-media",
+        "EXPO_PUBLIC_USE_REMOTE_API": "true"
+      }
+    }
+  }
+}
