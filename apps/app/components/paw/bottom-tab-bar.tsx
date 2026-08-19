@@ -23,7 +23,7 @@ const INACTIVE_ICON_OPACITY = 0.52;
 
 const TAB_ITEMS: TabItem[] = [
   { id: 'home', label: 'Home', icon: 'dog-side', route: '/social-feed' },
-  { id: 'find', label: 'Find', icon: 'account-group-outline', route: '/match-feed' as Href },
+  { id: 'find', label: 'Connect', icon: 'account-group-outline', route: '/match-feed' as Href },
   { id: 'discover', label: 'Discover', icon: 'magnify', route: '/discover' as Href },
   { id: 'inbox', label: 'Inbox', icon: 'message-text-outline', route: '/inbox' as Href },
   { id: 'profile', label: 'Profile', icon: 'account-circle-outline', route: '/profile' as Href },

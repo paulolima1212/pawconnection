@@ -34,7 +34,7 @@ export function MatchWaveComposeModal({
           <KeyboardAwareFormScroll contentContainerStyle={styles.sheetScroll}>
           <Text style={styles.title}>Say hi to {recipientName}</Text>
           <Text style={styles.subtitle}>
-            Sends your message and a friend request — you stay on Find
+            Sends your message and a friend request — you stay on Connect
           </Text>
           <TextInput
             value={message}
