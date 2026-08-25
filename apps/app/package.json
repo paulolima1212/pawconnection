@@ -1,7 +1,7 @@
 {
   "name": "paw-connection",
   "main": "index.js",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
@@ -10,7 +10,9 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "build:apk:preview": "eas build --platform android --profile preview --non-interactive",
-    "build:apk:local": "bash scripts/build-apk-local.sh"
+    "build:apk:local": "bash scripts/build-apk-local.sh",
+    "build:aab:production": "eas build --platform android --profile production --non-interactive",
+    "submit:android:production": "eas submit --platform android --profile production --latest --non-interactive"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
