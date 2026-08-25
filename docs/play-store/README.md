@@ -44,15 +44,31 @@ After the first manual upload and service-account setup:
 npm run submit:android:production
 ```
 
+## Public legal pages
+
+- Privacy policy: https://paw-app.lz-plima1212.online/privacy.html
+- Account deletion: https://paw-app.lz-plima1212.online/account-deletion.html
+- Support: plima12121984@gmail.com
+
+Static files live in `apps/app/public/` and are served from `/var/www/paw-app` on **port 3013** (Cloudflare Tunnel hostname `paw-app.lz-plima1212.online`).
+
 ## Publication blockers
 
 Do not promote beyond internal testing until all items are complete:
 
-- in-app account deletion and an external deletion-request URL;
-- public privacy-policy URL and in-app link;
-- reviewed Data safety declarations;
-- content rating and target-audience declarations;
-- support email and developer identity verification;
-- phone screenshots, 512x512 store icon and 1024x500 feature graphic;
-- end-to-end tests against the production API;
-- Google Maps key restricted to the Play signing certificate.
+- [x] in-app account deletion (`Profile → Delete account`, `DELETE /profile/me`) and external deletion URL;
+- [x] public privacy-policy URL and in-app link;
+- [ ] reviewed Data safety declarations in Play Console;
+- [ ] content rating and target-audience declarations;
+- [ ] Google Play developer account, support email and identity verification;
+- [ ] phone screenshots, 512x512 store icon and 1024x500 feature graphic;
+- [ ] end-to-end tests against the production API;
+- [ ] Google Maps key restricted to the Play signing certificate;
+- [ ] closed test with at least 12 testers for 14 days (new personal Play accounts).
+
+## Dependency audit (issue #3)
+
+`npx expo-doctor` passes on Expo SDK 54 (`expo@~54.0.37`, `expo-constants@~18.0.14`).
+
+Remaining `npm audit --omit=dev` findings are transitive (PostCSS, `uuid` via `@expo/config-plugins`, Metro `ws`). Resolving them with `npm audit fix --force` would install Expo 57 and break this SDK. They are not production network/auth CVEs in app code; do not force-upgrade until the next Expo SDK bump.
+

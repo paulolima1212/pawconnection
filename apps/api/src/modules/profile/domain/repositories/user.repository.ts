@@ -40,4 +40,5 @@ export interface IUserRepository {
     userId: string,
     options?: { excludeIds?: string[] },
   ): Promise<UserEntity[]>;
+  deleteById(userId: string): Promise<void>;
 }

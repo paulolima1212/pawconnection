@@ -20,7 +20,7 @@ This is a technical inventory, not a final legal declaration. The app owner must
 - Whether data is shared with hosting, storage, maps, monitoring, analytics or other providers.
 - Which data types are required and which are optional.
 - Retention periods for active accounts, deleted accounts, backups and security logs.
-- The account deletion operation removes related database records and stored media.
+- Account deletion (`DELETE /profile/me`) removes the user row and related chat, posts, comments, connections, match records, then attempts to delete stored profile/pet media. Media cleanup failure does not roll back the account delete; it is logged.
 - No advertising or analytics SDK is added indirectly to the final AAB.
 - The selected target audience is consistent with the app experience and policy.
 

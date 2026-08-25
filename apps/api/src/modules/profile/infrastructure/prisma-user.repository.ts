@@ -143,4 +143,67 @@ export class PrismaUserRepository implements IUserRepository {
     });
     return users.map(mapUserToDomain);
   }
+
+  async deleteById(userId: string): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      const conversations = await tx.conversation.findMany({
+        where: {
+          OR: [{ participantOneId: userId }, { participantTwoId: userId }],
+        },
+        select: { id: true },
+      });
+      const conversationIds = conversations.map((row) => row.id);
+
+      if (conversationIds.length > 0) {
+        await tx.messageReaction.deleteMany({
+          where: { message: { conversationId: { in: conversationIds } } },
+        });
+        await tx.message.deleteMany({
+          where: { conversationId: { in: conversationIds } },
+        });
+        await tx.conversation.deleteMany({
+          where: { id: { in: conversationIds } },
+        });
+      }
+
+      await tx.messageReaction.deleteMany({ where: { userId } });
+      await tx.message.deleteMany({ where: { senderId: userId } });
+
+      const posts = await tx.post.findMany({
+        where: { authorId: userId },
+        select: { id: true },
+      });
+      const postIds = posts.map((row) => row.id);
+      if (postIds.length > 0) {
+        for (let depth = 0; depth < 16; depth += 1) {
+          const nested = await tx.comment.deleteMany({
+            where: { postId: { in: postIds }, parentCommentId: { not: null } },
+          });
+          if (nested.count === 0) break;
+        }
+        await tx.comment.deleteMany({ where: { postId: { in: postIds } } });
+      }
+      for (let depth = 0; depth < 16; depth += 1) {
+        const nested = await tx.comment.deleteMany({
+          where: { authorId: userId, parentCommentId: { not: null } },
+        });
+        if (nested.count === 0) break;
+      }
+      await tx.comment.deleteMany({ where: { authorId: userId } });
+      await tx.postLike.deleteMany({ where: { userId } });
+      await tx.post.deleteMany({ where: { authorId: userId } });
+
+      await tx.connectionRequest.deleteMany({
+        where: { OR: [{ senderId: userId }, { recipientId: userId }] },
+      });
+      await tx.matchPass.deleteMany({
+        where: { OR: [{ userId }, { targetId: userId }] },
+      });
+      await tx.matchWave.deleteMany({
+        where: { OR: [{ senderId: userId }, { targetId: userId }] },
+      });
+
+      await tx.user.delete({ where: { id: userId } });
+    });
+  }
 }

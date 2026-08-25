@@ -89,4 +89,32 @@ export class SupabaseService {
     }
     return this.getPublicUrl(path);
   }
+
+  /** Object key inside the configured bucket, or null if the URL is not ours. */
+  objectPathFromPublicUrl(url: string): string | null {
+    const marker = '/storage/v1/object/public/';
+    const idx = url.indexOf(marker);
+    if (idx < 0) return null;
+    let key = url.slice(idx + marker.length).replace(/^\//, '');
+    const prefix = `${this.storageBucket}/`;
+    if (key.startsWith(prefix)) key = key.slice(prefix.length);
+    return key || null;
+  }
+
+  async removePublicUrls(urls: string[]): Promise<void> {
+    const paths = [
+      ...new Set(
+        urls
+          .map((url) => this.objectPathFromPublicUrl(url))
+          .filter((path): path is string => Boolean(path)),
+      ),
+    ];
+    if (paths.length === 0) return;
+    const { error } = await this.client.storage
+      .from(this.storageBucket)
+      .remove(paths);
+    if (error) {
+      throw new Error(`Supabase remove failed: ${error.message}`);
+    }
+  }
 }

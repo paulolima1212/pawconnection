@@ -33,6 +33,7 @@ yarn-error.*
 # local env files
 .env*.local
 .env
+.env.production
 
 # typescript
 *.tsbuildinfo
@@ -45,3 +46,9 @@ app-example
 
 # local APK artifacts
 *.apk
+
+# Play Console service account (never commit)
+play-service-account.json
+google-play-service-account.json
+*-play-service-account.json
+

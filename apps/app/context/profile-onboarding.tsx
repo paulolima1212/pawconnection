@@ -223,6 +223,7 @@ type ProfileOnboardingContextValue = {
   toggleLookingFor: (id: InterestId) => void;
   completeOnboarding: () => Promise<void>;
   resetOnboardingForDev: () => Promise<void>;
+  clearLocalProfile: () => Promise<void>;
   syncInterestsToApi: () => Promise<void>;
   /** @deprecated Use syncInterestsToApi */
   syncLookingForToApi: () => Promise<void>;
@@ -541,6 +542,7 @@ export function ProfileOnboardingProvider({ children }: { children: ReactNode })
       toggleLookingFor: toggleInterest,
       completeOnboarding,
       resetOnboardingForDev,
+      clearLocalProfile: resetOnboardingForDev,
       syncInterestsToApi,
       syncLookingForToApi: syncInterestsToApi,
       registerAndSyncOwner,
