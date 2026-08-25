@@ -20,17 +20,15 @@ const plugins = (appJson.expo.plugins ?? []).map((plugin) => {
 });
 
 module.exports = {
-  expo: {
-    ...appJson.expo,
-    android: {
-      ...appJson.expo.android,
-      config: {
-        ...appJson.expo.android?.config,
-        googleMaps: {
-          apiKey: googleMapsAndroidApiKey,
-        },
+  ...appJson.expo,
+  android: {
+    ...appJson.expo.android,
+    config: {
+      ...appJson.expo.android?.config,
+      googleMaps: {
+        apiKey: googleMapsAndroidApiKey,
       },
     },
-    plugins: [...plugins, './plugins/with-google-maps.js'],
   },
+  plugins: [...plugins, './plugins/with-google-maps.js'],
 };
