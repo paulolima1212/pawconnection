@@ -12,4 +12,17 @@ config.resolver = {
   sourceExts: [...config.resolver.sourceExts, 'svg'],
 };
 
+// react-native-maps is native-only; the components that use it already guard
+// on Platform.OS === 'web' at runtime. Resolve it to an empty module on web so
+// the web bundle does not fail on its native-only internal imports.
+const defaultResolveRequest = config.resolver.resolveRequest;
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (platform === 'web' && moduleName === 'react-native-maps') {
+    return { type: 'empty' };
+  }
+  return defaultResolveRequest
+    ? defaultResolveRequest(context, moduleName, platform)
+    : context.resolveRequest(context, moduleName, platform);
+};
+
 module.exports = config;
