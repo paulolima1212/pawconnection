@@ -32,12 +32,16 @@ Social
 ## URLs
 
 - Website: https://paw-app.lz-plima1212.online
-- Privacy policy: pending publication
-- External account deletion: pending implementation
+- Privacy policy: https://paw-app.lz-plima1212.online/privacy.html
+- External account deletion: https://paw-app.lz-plima1212.online/account-deletion.html
+- Support: plima12121984@gmail.com
 
-## Assets still required
+## Assets
 
-- Store icon: 512x512 PNG, up to 1 MB.
-- Feature graphic: 1024x500.
-- At least two real phone screenshots; profile, feed, discovery, map and chat are recommended.
-- Screenshots must not expose real personal data.
+- [x] Store icon: 512x512 PNG — `docs/play-store/assets/store-icon-512.png`
+- [x] Feature graphic: 1024x500 — `docs/play-store/assets/feature-graphic-1024x500.png`
+- [x] Phone screenshots (seeded fake users only):
+  - `docs/play-store/assets/screenshot-feed.png`
+  - `docs/play-store/assets/screenshot-profile.png`
+  - `docs/play-store/assets/screenshot-discover.png`
+- [ ] Optional: map and chat screenshots on a physical device / emulator.

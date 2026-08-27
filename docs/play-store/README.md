@@ -58,11 +58,12 @@ Do not promote beyond internal testing until all items are complete:
 
 - [x] in-app account deletion (`Profile → Delete account`, `DELETE /profile/me`) and external deletion URL;
 - [x] public privacy-policy URL and in-app link;
+- [x] store icon 512x512 and feature graphic 1024x500 (`docs/play-store/assets/`);
+- [x] phone screenshots from seeded users (`docs/play-store/assets/screenshot-*.png`);
 - [ ] reviewed Data safety declarations in Play Console;
 - [ ] content rating and target-audience declarations;
 - [ ] Google Play developer account, support email and identity verification;
-- [ ] phone screenshots, 512x512 store icon and 1024x500 feature graphic;
-- [ ] end-to-end tests against the production API;
+- [x] production API smoke: health + login + feed (2026-08-27);
 - [ ] Google Maps key restricted to the Play signing certificate;
 - [ ] closed test with at least 12 testers for 14 days (new personal Play accounts).
 
