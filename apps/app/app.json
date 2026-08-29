@@ -21,7 +21,7 @@
       }
     },
     "android": {
-      "package": "online.lzplima1212.pawconnection",
+      "package": "com.plima1212.pawconnection",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION"

@@ -2,7 +2,7 @@
 
 ## Current Android release configuration
 
-- Application ID: `online.lzplima1212.pawconnection`
+- Application ID: `com.plima1212.pawconnection`
 - Release version: `1.0.3`
 - Expo SDK 54 / Android target API 36
 - Production artifact: Android App Bundle
