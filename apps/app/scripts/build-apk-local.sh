@@ -27,7 +27,7 @@ if [ -z "${GOOGLE_MAPS_ANDROID_API_KEY:-}" ]; then
   echo ""
   echo "ERRO: GOOGLE_MAPS_ANDROID_API_KEY não definida."
   echo "Adicione em .env.production (build local) ou exporte antes do build."
-  echo "Veja .env.example — Maps SDK for Android + package online.lzplima1212.pawconnection"
+  echo "Veja .env.example — Maps SDK for Android + package com.plima1212.pawconnection"
   exit 1
 fi
 
