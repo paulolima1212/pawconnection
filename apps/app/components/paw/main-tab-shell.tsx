@@ -25,14 +25,13 @@ export function MainTabShell() {
   const contentWidth = useContentWidth();
   const { pageWidth, translateX } = useMainTabNav();
   const width = pageWidth > 0 ? pageWidth : contentWidth;
+  const stripStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
 
   if (width <= 0) {
     return <View style={styles.root} />;
   }
-
-  const stripStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
-  }));
 
   return (
     <View style={styles.root}>

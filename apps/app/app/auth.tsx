@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { KeyboardAwareFormScroll } from '@/components/paw/keyboard-aware-form-scroll';
 import { PawLogo } from '@/components/paw/paw-logo';
 import { useAuth } from '@/context/auth';
 import { tooltipMessageFromError, usePawTooltip } from '@/context/paw-tooltip';
@@ -59,48 +60,60 @@ export default function AuthScreen() {
     router.replace('/interests');
   };
 
+  const onForgotPassword = () => {
+    router.push('/forgot-password');
+  };
+
   return (
     <View style={[styles.root, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <View style={styles.logoWrap}>
-        <PawLogo variant="mark" />
-      </View>
-      <Text style={styles.title}>Welcome back</Text>
-      <Text style={styles.subtitle}>Sign in to continue with Paw Connection</Text>
+      <KeyboardAwareFormScroll
+        contentContainerStyle={styles.scroll}
+        keyboardVerticalOffset={insets.top}>
+        <View style={styles.logoWrap}>
+          <PawLogo variant="mark" />
+        </View>
+        <Text style={styles.title}>Welcome back</Text>
+        <Text style={styles.subtitle}>Sign in to continue with Paw Connection</Text>
 
-      <View style={styles.form}>
-        <TextInput
-          value={email}
-          onChangeText={setEmail}
-          placeholder="Email"
-          placeholderTextColor={PawColors.textMuted}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          style={styles.input}
-        />
-        <TextInput
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Password"
-          placeholderTextColor={PawColors.textMuted}
-          secureTextEntry
-          style={styles.input}
-        />
-      </View>
+        <View style={styles.form}>
+          <TextInput
+            value={email}
+            onChangeText={setEmail}
+            placeholder="Email"
+            placeholderTextColor={PawColors.textMuted}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            style={styles.input}
+          />
+          <TextInput
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Password"
+            placeholderTextColor={PawColors.textMuted}
+            secureTextEntry
+            style={styles.input}
+          />
+        </View>
 
-      <Pressable
-        onPress={onLogin}
-        disabled={loading}
-        style={[styles.primaryBtn, loading && styles.btnDisabled]}>
-        {loading ? (
-          <ActivityIndicator color={PawColors.black} />
-        ) : (
-          <Text style={styles.primaryText}>Sign in</Text>
-        )}
-      </Pressable>
+        <Pressable onPress={onForgotPassword} style={styles.forgotBtn}>
+          <Text style={styles.forgotText}>Forgot password?</Text>
+        </Pressable>
 
-      <Pressable onPress={onCreateAccount} style={styles.secondaryBtn}>
-        <Text style={styles.secondaryText}>Create a new account</Text>
-      </Pressable>
+        <Pressable
+          onPress={onLogin}
+          disabled={loading}
+          style={[styles.primaryBtn, loading && styles.btnDisabled]}>
+          {loading ? (
+            <ActivityIndicator color={PawColors.black} />
+          ) : (
+            <Text style={styles.primaryText}>Sign in</Text>
+          )}
+        </Pressable>
+
+        <Pressable onPress={onCreateAccount} style={styles.secondaryBtn}>
+          <Text style={styles.secondaryText}>Create a new account</Text>
+        </Pressable>
+      </KeyboardAwareFormScroll>
     </View>
   );
 }
@@ -113,6 +126,10 @@ const styles = StyleSheet.create({
     maxWidth: PawLayout.screenMaxWidth,
     alignSelf: 'center',
     width: '100%',
+  },
+  scroll: {
+    flexGrow: 1,
+    paddingBottom: 24,
   },
   logoWrap: {
     alignItems: 'center',
@@ -146,8 +163,19 @@ const styles = StyleSheet.create({
     fontSize: PawFontSize.body,
     color: PawColors.black,
   },
+  forgotBtn: {
+    alignSelf: 'flex-end',
+    marginTop: 8,
+    paddingVertical: 4,
+  },
+  forgotText: {
+    fontSize: PawFontSize.body,
+    fontWeight: '600',
+    color: PawColors.navLabelActive,
+    textDecorationLine: 'underline',
+  },
   primaryBtn: {
-    marginTop: 24,
+    marginTop: 16,
     backgroundColor: PawColors.peachBorder,
     borderWidth: 3,
     borderColor: PawColors.black,

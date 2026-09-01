@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -15,6 +18,7 @@ import {
   AuthUserPayload,
 } from '../../../shared/presentation/decorators/current-user.decorator';
 import { SupabaseService } from '../../../shared/infrastructure/supabase/supabase.service';
+import { DeleteAccountUseCase } from '../application/delete-account.use-case';
 import {
   CompleteOnboardingUseCase,
   GetMyProfileUseCase,
@@ -43,6 +47,7 @@ export class ProfileController {
     private readonly setInterests: SetUserInterestsUseCase,
     private readonly setLookingFor: SetUserLookingForUseCase,
     private readonly completeOnboarding: CompleteOnboardingUseCase,
+    private readonly deleteAccount: DeleteAccountUseCase,
     private readonly supabase: SupabaseService,
   ) {}
 
@@ -136,5 +141,13 @@ export class ProfileController {
   async postCompleteOnboarding(@CurrentUser() user: AuthUserPayload) {
     const profile = await this.completeOnboarding.execute(user.userId);
     return this.withPublicMediaUrls(profile);
+  }
+
+  @Delete('me')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async deleteMe(@CurrentUser() user: AuthUserPayload) {
+    await this.deleteAccount.execute(user.userId);
   }
 }

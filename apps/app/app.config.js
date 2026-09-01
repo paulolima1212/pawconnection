@@ -1,20 +1,34 @@
-/** @type {import('expo/config').ExpoConfig} */
-const appJson = require('./app.json');
-
 const googleMapsAndroidApiKey = process.env.GOOGLE_MAPS_ANDROID_API_KEY?.trim() ?? '';
+const isProductionBuild = process.env.EAS_BUILD_PROFILE === 'production';
 
-module.exports = {
-  expo: {
-    ...appJson.expo,
+/** @param {{ config: import('expo/config').ExpoConfig }} params */
+module.exports = ({ config }) => {
+  const plugins = (config.plugins ?? []).map((plugin) => {
+    if (!Array.isArray(plugin) || plugin[0] !== 'expo-build-properties') return plugin;
+
+    return [
+      plugin[0],
+      {
+        ...(plugin[1] ?? {}),
+        android: {
+          ...(plugin[1]?.android ?? {}),
+          usesCleartextTraffic: !isProductionBuild,
+        },
+      },
+    ];
+  });
+
+  return {
+    ...config,
     android: {
-      ...appJson.expo.android,
+      ...config.android,
       config: {
-        ...appJson.expo.android?.config,
+        ...config.android?.config,
         googleMaps: {
           apiKey: googleMapsAndroidApiKey,
         },
       },
     },
-    plugins: [...(appJson.expo.plugins ?? []), './plugins/with-google-maps.js'],
-  },
+    plugins: [...plugins, './plugins/with-google-maps.js'],
+  };
 };

@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,7 +15,9 @@ import { ProfileFieldInput } from '@/components/paw/profile-field-input';
 import { ProfileInfoSwitch, type ProfileInfoTab } from '@/components/paw/profile-info-switch';
 import { ProfileLabeledField } from '@/components/paw/profile-labeled-field';
 import { ProfileTipBanner } from '@/components/paw/profile-tip-banner';
+import { DeleteAccountConfirmSheet } from '@/components/paw/delete-account-confirm-sheet';
 import { SignOutConfirmSheet } from '@/components/paw/sign-out-confirm-sheet';
+import { ACCOUNT_DELETION_INFO_URL, PRIVACY_POLICY_URL } from '@/constants/legal';
 import { PROFILE_FIGMA } from '@/constants/profile-figma-assets';
 import { PawColors, PawFontSize, PawLayout, PawLineHeight } from '@/constants/paw-styles';
 import { useAuth } from '@/context/auth';
@@ -28,6 +31,7 @@ import {
   useProfileOnboarding,
 } from '@/context/profile-onboarding';
 import { ApiError } from '@/lib/api/client';
+import * as profileApi from '@/lib/api/profile';
 import { profileMeToDraft } from '@/lib/api/profile-mapper';
 import { extractStorageObjectPath, resolveMediaUrl } from '@/lib/api/media';
 import { ageFromBirthdayIso } from '@/lib/pet-birthday';
@@ -69,7 +73,7 @@ export function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { logout } = useAuth();
-  const { draft, setDraft, setDraftPhoto, hydrated, syncOwnerToApi, syncPetToApi, syncPhotoToApi } =
+  const { draft, setDraft, setDraftPhoto, hydrated, syncOwnerToApi, syncPetToApi, syncPhotoToApi, clearLocalProfile } =
     useProfileOnboarding();
   const [photoUploading, setPhotoUploading] = useState(false);
   const [infoTab, setInfoTab] = useState<ProfileInfoTab>('owner');
@@ -77,6 +81,8 @@ export function ProfileScreen() {
   const [saving, setSaving] = useState(false);
   const [signOutSheetOpen, setSignOutSheetOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [deleteSheetOpen, setDeleteSheetOpen] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const { showTooltip } = usePawTooltip();
 
   useEffect(() => {
@@ -144,6 +150,44 @@ export function ProfileScreen() {
     }
   };
 
+  const openLegalUrl = async (url: string) => {
+    try {
+      await openBrowserAsync(url, { presentationStyle: WebBrowserPresentationStyle.AUTOMATIC });
+    } catch {
+      showTooltip({
+        title: 'Could not open page',
+        message: 'Please try again or visit the link from a browser.',
+        variant: 'error',
+      });
+    }
+  };
+
+  const onConfirmDeleteAccount = async () => {
+    setDeletingAccount(true);
+    try {
+      await profileApi.deleteMyAccount();
+      await clearLocalProfile();
+      await logout();
+      setDeleteSheetOpen(false);
+      router.replace('/auth');
+      showTooltip({
+        title: 'Account deleted',
+        message: 'Your Paw Connection account and data have been removed.',
+        variant: 'success',
+      });
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'Could not delete account.';
+      showTooltip({
+        title: 'Delete failed',
+        message,
+        variant: 'error',
+        durationMs: 4200,
+      });
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
+
   const onPhotoChange = useCallback(
     async (field: 'dog' | 'human', uri: string) => {
       const draftField = field === 'dog' ? 'dogPhotoUri' : 'humanPhotoUri';
@@ -190,6 +234,14 @@ export function ProfileScreen() {
           if (!signingOut) setSignOutSheetOpen(false);
         }}
         onConfirmSignOut={() => void onConfirmSignOut()}
+      />
+      <DeleteAccountConfirmSheet
+        visible={deleteSheetOpen}
+        deleting={deletingAccount}
+        onClose={() => {
+          if (!deletingAccount) setDeleteSheetOpen(false);
+        }}
+        onConfirmDelete={() => void onConfirmDeleteAccount()}
       />
       <View style={styles.header}>
         <Pressable
@@ -238,6 +290,20 @@ export function ProfileScreen() {
         <View style={styles.accountSection}>
           <Text style={styles.accountTitle}>Account</Text>
           <Pressable
+            onPress={() => void openLegalUrl(PRIVACY_POLICY_URL)}
+            style={({ pressed }) => [styles.legalBtn, pressed && styles.legalBtnPressed]}
+            accessibilityRole="link"
+            accessibilityLabel="Privacy policy">
+            <Text style={styles.legalBtnText}>Privacy policy</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => void openLegalUrl(ACCOUNT_DELETION_INFO_URL)}
+            style={({ pressed }) => [styles.legalBtn, pressed && styles.legalBtnPressed]}
+            accessibilityRole="link"
+            accessibilityLabel="How to delete your account">
+            <Text style={styles.legalBtnText}>How to delete your account</Text>
+          </Pressable>
+          <Pressable
             onPress={() => setSignOutSheetOpen(true)}
             style={({ pressed }) => [styles.signOutBtn, pressed && styles.signOutBtnPressed]}
             accessibilityRole="button"
@@ -245,6 +311,16 @@ export function ProfileScreen() {
             <Text style={styles.signOutText}>Sign out</Text>
           </Pressable>
           <Text style={styles.signOutHint}>Sign in with a different email to switch accounts.</Text>
+          <Pressable
+            onPress={() => setDeleteSheetOpen(true)}
+            style={({ pressed }) => [styles.deleteAccountBtn, pressed && styles.signOutBtnPressed]}
+            accessibilityRole="button"
+            accessibilityLabel="Delete account">
+            <Text style={styles.signOutText}>Delete account</Text>
+          </Pressable>
+          <Text style={styles.signOutHint}>
+            Permanently removes your profile, photos, posts, and chats from Paw Connection.
+          </Text>
         </View>
 
         {isDirty || saving ? <View style={styles.saveScrollSpacer} /> : <View style={{ height: 24 }} />}
@@ -624,6 +700,32 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: PawColors.destructive,
     backgroundColor: PawColors.destructiveMuted,
+  },
+  deleteAccountBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+    borderRadius: PawLayout.borderRadiusField,
+    borderWidth: 2,
+    borderColor: PawColors.destructive,
+    backgroundColor: PawColors.fieldWhite,
+  },
+  legalBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+    borderRadius: PawLayout.borderRadiusField,
+    borderWidth: 2,
+    borderColor: PawColors.black,
+    backgroundColor: PawColors.fieldWhite,
+  },
+  legalBtnPressed: {
+    opacity: 0.85,
+  },
+  legalBtnText: {
+    fontSize: PawFontSize.body,
+    fontWeight: '700',
+    color: PawColors.black,
   },
   signOutBtnPressed: {
     opacity: 0.85,

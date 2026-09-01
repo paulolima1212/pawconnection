@@ -1,0 +1,39 @@
+name: App quality
+
+on:
+  pull_request:
+    paths:
+      - 'apps/app/**'
+      - '.github/workflows/app-quality.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Lint and Expo Doctor
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/app
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: apps/app/.nvmrc
+          cache: npm
+          cache-dependency-path: apps/app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint app
+        run: npm run lint
+
+      - name: Validate Expo project
+        run: npx expo-doctor

@@ -50,3 +50,9 @@ export function completeOnboardingRemote() {
     method: 'POST',
   });
 }
+
+export function deleteMyAccount() {
+  return apiRequest<null>('/profile/me', {
+    method: 'DELETE',
+  });
+}

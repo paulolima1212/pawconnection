@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "paw-connection",
+    "name": "Paw Connection",
     "slug": "paw-connection",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "pawconnection",
@@ -21,14 +21,14 @@
       }
     },
     "android": {
-      "package": "online.lzplima1212.pawconnection",
+      "package": "com.plima1212.pawconnection",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION"
       ],
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#fffdd2",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -88,6 +88,8 @@
       "apiUrl": "https://paw-backend.lz-plima1212.online",
       "supabaseUrl": "https://supabase.lz-plima1212.online",
       "supabaseStorageBucket": "paw-media",
+      "privacyPolicyUrl": "https://paw-app.lz-plima1212.online/privacy.html",
+      "supportEmail": "plima12121984@gmail.com",
       "eas": {
         "projectId": "b94e430c-05db-4d51-a3ae-55752968efa6"
       }

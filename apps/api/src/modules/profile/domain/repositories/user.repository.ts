@@ -36,8 +36,10 @@ export interface IUserRepository {
   setInterests(userId: string, interests: string[]): Promise<UserEntity>;
   setLookingFor(userId: string, lookingFor: string[]): Promise<UserEntity>;
   completeOnboarding(userId: string): Promise<UserEntity>;
+  updatePasswordHash(userId: string, passwordHash: string): Promise<void>;
   listCandidates(
     userId: string,
     options?: { excludeIds?: string[] },
   ): Promise<UserEntity[]>;
+  deleteById(userId: string): Promise<void>;
 }
