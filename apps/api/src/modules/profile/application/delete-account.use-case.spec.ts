@@ -73,6 +73,9 @@ class InMemoryUserRepository implements IUserRepository {
   async completeOnboarding(): Promise<UserEntity> {
     throw new Error('not used');
   }
+  async updatePasswordHash(): Promise<void> {
+    throw new Error('not used');
+  }
   async listCandidates(): Promise<UserEntity[]> {
     return [];
   }

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { ProfileModule } from '../profile/profile.module';
 import { JwtStrategy } from './infrastructure/jwt.strategy';
 import {
@@ -9,11 +10,19 @@ import {
   LoginUseCase,
   RegisterUseCase,
 } from './application/auth.use-cases';
+import {
+  RequestPasswordResetUseCase,
+  ResetPasswordUseCase,
+} from './application/password-reset.use-cases';
 import { AuthController } from './presentation/auth.controller';
+import { PASSWORD_RESET_TOKEN_REPOSITORY } from './domain/repositories/password-reset-token.repository';
+import { PrismaPasswordResetTokenRepository } from './infrastructure/prisma-password-reset-token.repository';
+import { emailSenderProvider } from './infrastructure/email-sender.provider';
 
 @Module({
   imports: [
     ProfileModule,
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -27,7 +36,19 @@ import { AuthController } from './presentation/auth.controller';
     }),
   ],
   controllers: [AuthController],
-  providers: [JwtStrategy, RegisterUseCase, LoginUseCase, GetAuthMeUseCase],
+  providers: [
+    JwtStrategy,
+    RegisterUseCase,
+    LoginUseCase,
+    GetAuthMeUseCase,
+    RequestPasswordResetUseCase,
+    ResetPasswordUseCase,
+    emailSenderProvider,
+    {
+      provide: PASSWORD_RESET_TOKEN_REPOSITORY,
+      useClass: PrismaPasswordResetTokenRepository,
+    },
+  ],
   exports: [JwtModule, PassportModule],
 })
 export class AuthModule {}

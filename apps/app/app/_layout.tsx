@@ -48,6 +48,8 @@ export default function RootLayout() {
               <Stack.Screen name="index" />
               <Stack.Screen name="(main)" options={{ animation: 'none' }} />
               <Stack.Screen name="auth" />
+              <Stack.Screen name="forgot-password" />
+              <Stack.Screen name="reset-password" />
               <Stack.Screen name="interests" />
               <Stack.Screen name="splash" />
               <Stack.Screen name="setup-you" />

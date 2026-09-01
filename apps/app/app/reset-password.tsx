@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -12,41 +12,68 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { KeyboardAwareFormScroll } from '@/components/paw/keyboard-aware-form-scroll';
 import { PawLogo } from '@/components/paw/paw-logo';
-import { useAuth } from '@/context/auth';
-import { tooltipMessageFromError, usePawTooltip } from '@/context/paw-tooltip';
 import { PawColors, PawFontSize, PawLayout } from '@/constants/paw-styles';
+import { tooltipMessageFromError, usePawTooltip } from '@/context/paw-tooltip';
 import { ApiError } from '@/lib/api/client';
+import { resetPassword } from '@/lib/api/auth';
 import { getApiBaseUrl } from '@/lib/api/config';
 
-export default function AuthScreen() {
+export default function ResetPasswordScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { login } = useAuth();
+  const params = useLocalSearchParams<{ token?: string }>();
   const { showTooltip } = usePawTooltip();
-  const [email, setEmail] = useState('');
+  const [token, setToken] = useState(
+    typeof params.token === 'string' ? params.token : '',
+  );
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const onLogin = async () => {
-    if (!email.trim() || password.length < 6) {
+  const onSubmit = async () => {
+    if (!token.trim()) {
       showTooltip({
-        title: 'Invalid credentials',
-        message: 'Enter your email and password (min 6 characters).',
+        title: 'Reset token required',
+        message: 'Open the link from your email or paste the reset token here.',
         variant: 'info',
       });
       return;
     }
+    if (password.length < 6) {
+      showTooltip({
+        title: 'Password too short',
+        message: 'Use at least 6 characters.',
+        variant: 'info',
+      });
+      return;
+    }
+    if (password !== confirmPassword) {
+      showTooltip({
+        title: 'Passwords do not match',
+        message: 'Confirm your new password.',
+        variant: 'info',
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      await login(email.trim(), password);
-      router.replace('/');
+      await resetPassword({ token: token.trim(), password });
+      showTooltip({
+        title: 'Password updated',
+        message: 'You can now sign in with your new password.',
+        variant: 'success',
+        durationMs: 5000,
+      });
+      router.replace('/auth');
     } catch (err) {
-      let message = err instanceof ApiError ? err.message : 'Could not sign in.';
+      let message =
+        err instanceof ApiError ? err.message : 'Could not reset your password.';
       if (__DEV__ && message.includes('Could not reach')) {
         message += `\n\n(API: ${getApiBaseUrl()})`;
       }
       showTooltip({
-        title: 'Sign in failed',
+        title: 'Reset failed',
         message: tooltipMessageFromError(err, message),
         variant: 'error',
         durationMs: 5000,
@@ -54,14 +81,6 @@ export default function AuthScreen() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const onCreateAccount = () => {
-    router.replace('/interests');
-  };
-
-  const onForgotPassword = () => {
-    router.push('/forgot-password');
   };
 
   return (
@@ -72,46 +91,52 @@ export default function AuthScreen() {
         <View style={styles.logoWrap}>
           <PawLogo variant="mark" />
         </View>
-        <Text style={styles.title}>Welcome back</Text>
-        <Text style={styles.subtitle}>Sign in to continue with Paw Connection</Text>
+        <Text style={styles.title}>Choose a new password</Text>
+        <Text style={styles.subtitle}>
+          Enter the reset token from your email and your new password.
+        </Text>
 
         <View style={styles.form}>
           <TextInput
-            value={email}
-            onChangeText={setEmail}
-            placeholder="Email"
+            value={token}
+            onChangeText={setToken}
+            placeholder="Reset token"
             placeholderTextColor={PawColors.textMuted}
             autoCapitalize="none"
-            keyboardType="email-address"
+            autoCorrect={false}
             style={styles.input}
           />
           <TextInput
             value={password}
             onChangeText={setPassword}
-            placeholder="Password"
+            placeholder="New password"
+            placeholderTextColor={PawColors.textMuted}
+            secureTextEntry
+            style={styles.input}
+          />
+          <TextInput
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            placeholder="Confirm new password"
             placeholderTextColor={PawColors.textMuted}
             secureTextEntry
             style={styles.input}
           />
         </View>
 
-        <Pressable onPress={onForgotPassword} style={styles.forgotBtn}>
-          <Text style={styles.forgotText}>Forgot password?</Text>
-        </Pressable>
-
         <Pressable
-          onPress={onLogin}
+          onPress={onSubmit}
           disabled={loading}
           style={[styles.primaryBtn, loading && styles.btnDisabled]}>
           {loading ? (
             <ActivityIndicator color={PawColors.black} />
           ) : (
-            <Text style={styles.primaryText}>Sign in</Text>
+            <Text style={styles.primaryText}>Update password</Text>
           )}
         </Pressable>
 
-        <Pressable onPress={onCreateAccount} style={styles.secondaryBtn}>
-          <Text style={styles.secondaryText}>Create a new account</Text>
+        <Pressable onPress={() => router.replace('/auth')} style={styles.secondaryBtn}>
+          <Text style={styles.secondaryText}>Back to sign in</Text>
         </Pressable>
       </KeyboardAwareFormScroll>
     </View>
@@ -163,19 +188,8 @@ const styles = StyleSheet.create({
     fontSize: PawFontSize.body,
     color: PawColors.black,
   },
-  forgotBtn: {
-    alignSelf: 'flex-end',
-    marginTop: 8,
-    paddingVertical: 4,
-  },
-  forgotText: {
-    fontSize: PawFontSize.body,
-    fontWeight: '600',
-    color: PawColors.navLabelActive,
-    textDecorationLine: 'underline',
-  },
   primaryBtn: {
-    marginTop: 16,
+    marginTop: 24,
     backgroundColor: PawColors.peachBorder,
     borderWidth: 3,
     borderColor: PawColors.black,

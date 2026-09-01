@@ -127,6 +127,13 @@ export class PrismaUserRepository implements IUserRepository {
     return mapUserToDomain(user);
   }
 
+  async updatePasswordHash(userId: string, passwordHash: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+  }
+
   async listCandidates(
     userId: string,
     options?: { excludeIds?: string[] },

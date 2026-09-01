@@ -12,41 +12,48 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { KeyboardAwareFormScroll } from '@/components/paw/keyboard-aware-form-scroll';
 import { PawLogo } from '@/components/paw/paw-logo';
-import { useAuth } from '@/context/auth';
-import { tooltipMessageFromError, usePawTooltip } from '@/context/paw-tooltip';
 import { PawColors, PawFontSize, PawLayout } from '@/constants/paw-styles';
+import { tooltipMessageFromError, usePawTooltip } from '@/context/paw-tooltip';
 import { ApiError } from '@/lib/api/client';
+import { requestPasswordReset } from '@/lib/api/auth';
 import { getApiBaseUrl } from '@/lib/api/config';
 
-export default function AuthScreen() {
+export default function ForgotPasswordScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { login } = useAuth();
   const { showTooltip } = usePawTooltip();
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
 
-  const onLogin = async () => {
-    if (!email.trim() || password.length < 6) {
+  const onSubmit = async () => {
+    if (!email.trim()) {
       showTooltip({
-        title: 'Invalid credentials',
-        message: 'Enter your email and password (min 6 characters).',
+        title: 'Email required',
+        message: 'Enter the email address for your account.',
         variant: 'info',
       });
       return;
     }
+
     setLoading(true);
     try {
-      await login(email.trim(), password);
-      router.replace('/');
+      const response = await requestPasswordReset({ email: email.trim() });
+      setSent(true);
+      showTooltip({
+        title: 'Check your email',
+        message: response.message,
+        variant: 'success',
+        durationMs: 6000,
+      });
     } catch (err) {
-      let message = err instanceof ApiError ? err.message : 'Could not sign in.';
+      let message =
+        err instanceof ApiError ? err.message : 'Could not request a password reset.';
       if (__DEV__ && message.includes('Could not reach')) {
         message += `\n\n(API: ${getApiBaseUrl()})`;
       }
       showTooltip({
-        title: 'Sign in failed',
+        title: 'Request failed',
         message: tooltipMessageFromError(err, message),
         variant: 'error',
         durationMs: 5000,
@@ -54,14 +61,6 @@ export default function AuthScreen() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const onCreateAccount = () => {
-    router.replace('/interests');
-  };
-
-  const onForgotPassword = () => {
-    router.push('/forgot-password');
   };
 
   return (
@@ -72,8 +71,10 @@ export default function AuthScreen() {
         <View style={styles.logoWrap}>
           <PawLogo variant="mark" />
         </View>
-        <Text style={styles.title}>Welcome back</Text>
-        <Text style={styles.subtitle}>Sign in to continue with Paw Connection</Text>
+        <Text style={styles.title}>Forgot password?</Text>
+        <Text style={styles.subtitle}>
+          Enter your account email and we&apos;ll send reset instructions.
+        </Text>
 
         <View style={styles.form}>
           <TextInput
@@ -83,35 +84,24 @@ export default function AuthScreen() {
             placeholderTextColor={PawColors.textMuted}
             autoCapitalize="none"
             keyboardType="email-address"
-            style={styles.input}
-          />
-          <TextInput
-            value={password}
-            onChangeText={setPassword}
-            placeholder="Password"
-            placeholderTextColor={PawColors.textMuted}
-            secureTextEntry
+            editable={!sent}
             style={styles.input}
           />
         </View>
 
-        <Pressable onPress={onForgotPassword} style={styles.forgotBtn}>
-          <Text style={styles.forgotText}>Forgot password?</Text>
-        </Pressable>
-
         <Pressable
-          onPress={onLogin}
-          disabled={loading}
-          style={[styles.primaryBtn, loading && styles.btnDisabled]}>
+          onPress={onSubmit}
+          disabled={loading || sent}
+          style={[styles.primaryBtn, (loading || sent) && styles.btnDisabled]}>
           {loading ? (
             <ActivityIndicator color={PawColors.black} />
           ) : (
-            <Text style={styles.primaryText}>Sign in</Text>
+            <Text style={styles.primaryText}>{sent ? 'Email sent' : 'Send reset link'}</Text>
           )}
         </Pressable>
 
-        <Pressable onPress={onCreateAccount} style={styles.secondaryBtn}>
-          <Text style={styles.secondaryText}>Create a new account</Text>
+        <Pressable onPress={() => router.replace('/auth')} style={styles.secondaryBtn}>
+          <Text style={styles.secondaryText}>Back to sign in</Text>
         </Pressable>
       </KeyboardAwareFormScroll>
     </View>
@@ -163,19 +153,8 @@ const styles = StyleSheet.create({
     fontSize: PawFontSize.body,
     color: PawColors.black,
   },
-  forgotBtn: {
-    alignSelf: 'flex-end',
-    marginTop: 8,
-    paddingVertical: 4,
-  },
-  forgotText: {
-    fontSize: PawFontSize.body,
-    fontWeight: '600',
-    color: PawColors.navLabelActive,
-    textDecorationLine: 'underline',
-  },
   primaryBtn: {
-    marginTop: 16,
+    marginTop: 24,
     backgroundColor: PawColors.peachBorder,
     borderWidth: 3,
     borderColor: PawColors.black,
