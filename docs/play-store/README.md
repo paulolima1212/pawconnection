@@ -3,7 +3,7 @@
 ## Current Android release configuration
 
 - Application ID: `com.plima1212.pawconnection`
-- Release version: `1.0.3`
+- Release version: `1.0.4`
 - Expo SDK 54 / Android target API 36
 - Production artifact: Android App Bundle
 - EAS production version code: remote and automatically incremented
