@@ -13,11 +13,13 @@ import {
   PublicProfileSectionCard,
 } from '@/components/paw/public-profile-parts';
 import { PublicProfileHero } from '@/components/paw/public-profile-hero';
+import { BlockUserConfirmSheet } from '@/components/paw/block-user-confirm-sheet';
 import { PawColors, PawFontSize, PawLayout } from '@/constants/paw-styles';
 import { useAuth } from '@/context/auth';
 import { tooltipMessageFromError, usePawTooltip } from '@/context/paw-tooltip';
 import * as chatApi from '@/lib/api/chat';
 import * as profileApi from '@/lib/api/profile';
+import * as moderationApi from '@/lib/api/moderation';
 import type { ProfileMeResponse } from '@/lib/api/types';
 
 type PublicProfileTab = 'pet' | 'owner';
@@ -34,7 +36,7 @@ function formatAge(years: number | null | undefined): string {
 export function PublicProfileScreen({ handle }: PublicProfileScreenProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, userId } = useAuth();
   const { showTooltip } = usePawTooltip();
   const showTooltipRef = useRef(showTooltip);
   showTooltipRef.current = showTooltip;
@@ -42,6 +44,8 @@ export function PublicProfileScreen({ handle }: PublicProfileScreenProps) {
   const [loading, setLoading] = useState(true);
   const [startingChat, setStartingChat] = useState(false);
   const [tab, setTab] = useState<PublicProfileTab>('pet');
+  const [blockOpen, setBlockOpen] = useState(false);
+  const [blocking, setBlocking] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -119,6 +123,32 @@ export function PublicProfileScreen({ handle }: PublicProfileScreenProps) {
     }
   };
 
+  const isOwnProfile = Boolean(profile?.id && userId && profile.id === userId);
+  const blockName = ownerFirst;
+
+  const confirmBlock = async () => {
+    if (!profile?.id) return;
+    setBlocking(true);
+    try {
+      await moderationApi.blockUser(profile.id);
+      setBlockOpen(false);
+      showTooltip({
+        title: 'User blocked',
+        message: `${blockName} can no longer see or interact with you.`,
+        variant: 'success',
+      });
+      router.back();
+    } catch (err) {
+      showTooltip({
+        title: 'Could not block',
+        message: tooltipMessageFromError(err, 'Please try again.'),
+        variant: 'error',
+      });
+    } finally {
+      setBlocking(false);
+    }
+  };
+
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.header}>
@@ -135,21 +165,37 @@ export function PublicProfileScreen({ handle }: PublicProfileScreenProps) {
         <Text style={styles.headerTitle} numberOfLines={1}>
           Profile
         </Text>
-        <Pressable
-          onPress={() => void startChat()}
-          disabled={startingChat || loading}
-          hitSlop={12}
-          style={styles.headerBtn}
-          accessibilityRole="button"
-          accessibilityLabel="Send message">
-          {startingChat ? (
-            <ActivityIndicator size="small" color={PawColors.peachBorder} />
+        <View style={styles.headerRight}>
+          {!isOwnProfile && isAuthenticated && profile ? (
+            <Pressable
+              onPress={() => setBlockOpen(true)}
+              hitSlop={8}
+              style={styles.headerBtn}
+              accessibilityRole="button"
+              accessibilityLabel={`Block ${blockName}`}>
+              <View style={styles.headerBtnCircle}>
+                <Feather name="more-horizontal" size={20} color={PawColors.black} />
+              </View>
+            </Pressable>
           ) : (
-            <View style={styles.headerBtnCircle}>
-              <Feather name="message-circle" size={20} color={PawColors.black} />
-            </View>
+            <View style={styles.headerBtn} />
           )}
-        </Pressable>
+          <Pressable
+            onPress={() => void startChat()}
+            disabled={startingChat || loading || isOwnProfile}
+            hitSlop={8}
+            style={styles.headerBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Send message">
+            {startingChat ? (
+              <ActivityIndicator size="small" color={PawColors.peachBorder} />
+            ) : (
+              <View style={styles.headerBtnCircle}>
+                <Feather name="message-circle" size={20} color={PawColors.black} />
+              </View>
+            )}
+          </Pressable>
+        </View>
       </View>
 
       {loading ? (
@@ -269,6 +315,14 @@ export function PublicProfileScreen({ handle }: PublicProfileScreenProps) {
           )}
         </ScrollView>
       ) : null}
+
+      <BlockUserConfirmSheet
+        visible={blockOpen}
+        displayName={blockName}
+        blocking={blocking}
+        onClose={() => setBlockOpen(false)}
+        onConfirm={() => void confirmBlock()}
+      />
     </View>
   );
 }
@@ -296,6 +350,10 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   headerBtnCircle: {
     width: 40,

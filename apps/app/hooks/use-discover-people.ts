@@ -18,6 +18,7 @@ import {
   markDiscoverPendingConnection,
 } from '@/lib/discover-storage';
 import * as inboxApi from '@/lib/api/inbox';
+import * as moderationApi from '@/lib/api/moderation';
 import { CONNECTION_INTENT_FRIENDSHIP } from '@/context/profile-onboarding';
 
 type UseDiscoverPeopleOptions = {
@@ -93,7 +94,13 @@ export function useDiscoverPeople({
   const excludePerson = useCallback(async (userId: string) => {
     const next = await addToDiscoverBlacklist(userId);
     setBlacklist(next);
-  }, []);
+    try {
+      await moderationApi.blockUser(userId);
+      await refreshUsers();
+    } catch {
+      /* Local hide still applies if the network call fails. */
+    }
+  }, [refreshUsers]);
 
   const sendConnection = useCallback(async (userId: string) => {
     setConnectingId(userId);

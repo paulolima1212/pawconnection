@@ -21,10 +21,12 @@ import { ChatHeader } from '@/components/paw/chat-header';
 import { ChatMessageActionSheet } from '@/components/paw/chat-message-action-sheet';
 import { ChatMessageBubble } from '@/components/paw/chat-message-bubble';
 import { ChatReplyBar } from '@/components/paw/chat-reply-bar';
+import { BlockUserConfirmSheet } from '@/components/paw/block-user-confirm-sheet';
 import { PawColors, PawFontSize, PawLayout } from '@/constants/paw-styles';
 import { useAuth } from '@/context/auth';
 import { useInboxUnread } from '@/context/inbox-unread';
 import * as chatApi from '@/lib/api/chat';
+import * as moderationApi from '@/lib/api/moderation';
 import type { ConversationResponse, MessageResponse } from '@/lib/api/chat';
 import {
   buildOptimisticOutgoingMessage,
@@ -92,6 +94,8 @@ export default function ChatScreen() {
   const [typingUserId, setTypingUserId] = useState<string | null>(null);
   const [actionTarget, setActionTarget] = useState<MessageResponse | null>(null);
   const [replyTarget, setReplyTarget] = useState<MessageResponse | null>(null);
+  const [blockOpen, setBlockOpen] = useState(false);
+  const [blocking, setBlocking] = useState(false);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const listRef = useRef<FlatList<MessageResponse>>(null);
   const composerRef = useRef<TextInput | null>(null);
@@ -101,6 +105,7 @@ export default function ChatScreen() {
 
   const cachedConversation = conversations.find((c) => c.id === conversationId) ?? null;
   const otherUser = conversation?.otherUser ?? cachedConversation?.otherUser ?? null;
+  const otherName = otherUser?.fullName?.split(/\s+/)[0] || otherUser?.fullName || 'this user';
 
   const exitChat = useCallback(() => {
     if (shouldExitChatWithBack(from) && router.canGoBack()) {
@@ -110,6 +115,29 @@ export default function ChatScreen() {
     }
     router.replace(exitChatRoute(from));
   }, [from, router]);
+
+  const confirmBlock = async () => {
+    if (!otherUser?.id) return;
+    setBlocking(true);
+    try {
+      await moderationApi.blockUser(otherUser.id);
+      setBlockOpen(false);
+      showTooltip({
+        title: 'User blocked',
+        message: `${otherName} can no longer see or interact with you.`,
+        variant: 'success',
+      });
+      exitChat();
+    } catch (err) {
+      showTooltip({
+        title: 'Could not block',
+        message: tooltipMessageFromError(err, 'Please try again.'),
+        variant: 'error',
+      });
+    } finally {
+      setBlocking(false);
+    }
+  };
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -335,6 +363,7 @@ export default function ChatScreen() {
             ? () => openUserProfile(router, otherUser.handle)
             : undefined
         }
+        onPressMore={otherUser ? () => setBlockOpen(true) : undefined}
       />
 
       <KeyboardAvoidingView
@@ -405,6 +434,13 @@ export default function ChatScreen() {
           if (actionTarget) setReplyTarget(actionTarget);
           setActionTarget(null);
         }}
+      />
+      <BlockUserConfirmSheet
+        visible={blockOpen}
+        displayName={otherName}
+        blocking={blocking}
+        onClose={() => setBlockOpen(false)}
+        onConfirm={() => void confirmBlock()}
       />
     </View>
   );

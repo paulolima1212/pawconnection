@@ -42,6 +42,7 @@ export async function markDiscoverPendingConnection(userId: string): Promise<Set
 }
 
 /**
- * TODO(api): replace local blacklist with POST /blocks when backend ships.
- * Prisma already has UserBlock — wire discover exclude to that endpoint.
+ * Local hide list used as an optimistic cache. Discover exclude now also
+ * calls POST /users/:id/block so blocked people disappear from map, feed,
+ * match, and chat.
  */

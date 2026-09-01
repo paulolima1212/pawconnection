@@ -13,9 +13,16 @@ type ChatHeaderProps = {
   connected: boolean;
   onBack: () => void;
   onPressProfile?: () => void;
+  onPressMore?: () => void;
 };
 
-export function ChatHeader({ otherUser, connected, onBack, onPressProfile }: ChatHeaderProps) {
+export function ChatHeader({
+  otherUser,
+  connected,
+  onBack,
+  onPressProfile,
+  onPressMore,
+}: ChatHeaderProps) {
   const photoUri = resolveMediaDisplayUrl(otherUser?.photoUrl);
   const title = otherUser ? ownerFirstName(otherUser.fullName) : 'Chat';
 
@@ -46,9 +53,20 @@ export function ChatHeader({ otherUser, connected, onBack, onPressProfile }: Cha
           ) : null}
         </View>
       </Pressable>
-      <View style={styles.statusDot}>
-        <View style={[styles.dot, connected ? styles.dotOn : styles.dotOff]} />
-      </View>
+      {onPressMore ? (
+        <Pressable
+          onPress={onPressMore}
+          hitSlop={12}
+          style={styles.moreBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Chat options">
+          <Text style={styles.moreIcon}>⋮</Text>
+        </Pressable>
+      ) : (
+        <View style={styles.statusDot}>
+          <View style={[styles.dot, connected ? styles.dotOn : styles.dotOff]} />
+        </View>
+      )}
     </View>
   );
 }
@@ -108,6 +126,17 @@ const styles = StyleSheet.create({
   statusDot: {
     width: 24,
     alignItems: 'center',
+  },
+  moreBtn: {
+    width: 32,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  moreIcon: {
+    fontSize: 22,
+    color: PawColors.black,
+    fontWeight: '700',
   },
   dot: {
     width: 10,
