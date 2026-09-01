@@ -13,6 +13,7 @@ import { CommentsModule } from './modules/comments/comments.module';
 import { MapModule } from './modules/map/map.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { MediaModule } from './modules/media/media.module';
+import { ModerationModule } from './modules/moderation/moderation.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { MediaModule } from './modules/media/media.module';
     MapModule,
     ChatModule,
     MediaModule,
+    ModerationModule,
   ],
   controllers: [HealthController],
 })

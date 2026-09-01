@@ -11,6 +11,11 @@ import {
   USER_REPOSITORY,
 } from '../../profile/domain/repositories/user.repository';
 import { MAP_REPOSITORY, IMapRepository, MapUserPin } from '../domain/repositories/map.repository';
+import {
+  USER_BLOCK_READER,
+  IUserBlockReader,
+} from '../../moderation/domain/ports/user-block-reader.port';
+import { VisibleToViewerSpec } from '../../moderation/domain/specifications/hidden-user';
 
 export type MapUserPinResponse = {
   id: string;
@@ -61,13 +66,19 @@ export class ListMapUsersUseCase {
   constructor(
     @Inject(MAP_REPOSITORY) private readonly map: IMapRepository,
     @Inject(USER_REPOSITORY) private readonly users: IUserRepository,
+    @Inject(USER_BLOCK_READER) private readonly blocks: IUserBlockReader,
     private readonly supabase: SupabaseService,
   ) {}
 
   async execute(viewerId: string): Promise<MapUserPinResponse[]> {
     const viewer = await this.users.findById(viewerId);
     const pins = await this.map.listVisibleUsers(viewerId);
-    return pins.map((pin) => this.toResponse(pin, viewer?.latitude, viewer?.longitude));
+    const hidden = new VisibleToViewerSpec(
+      new Set(await this.blocks.listHiddenUserIds(viewerId)),
+    );
+    return pins
+      .filter((pin) => hidden.isSatisfiedBy(pin))
+      .map((pin) => this.toResponse(pin, viewer?.latitude, viewer?.longitude));
   }
 
   private toResponse(

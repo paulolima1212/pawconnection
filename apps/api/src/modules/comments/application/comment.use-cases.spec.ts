@@ -111,6 +111,15 @@ class FakePostReader implements IPostReader {
   }
 }
 
+class AllowAllBlocks {
+  async isBlockedBetween(): Promise<boolean> {
+    return false;
+  }
+  async listHiddenUserIds(): Promise<string[]> {
+    return [];
+  }
+}
+
 class NoModerators implements IModerationPolicy {
   async isModerator(): Promise<boolean> {
     return false;
@@ -140,7 +149,12 @@ describe('Comment use cases (application + events integration)', () => {
   it('creates a comment and publishes CommentCreated', async () => {
     const repo = new InMemoryCommentRepository();
     const { bus, received } = makeBus();
-    const useCase = new CreateCommentUseCase(repo, new FakePostReader('post-author'), bus);
+    const useCase = new CreateCommentUseCase(
+      repo,
+      new FakePostReader('post-author'),
+      bus,
+      new AllowAllBlocks(),
+    );
 
     const res = await useCase.execute({ postId: 'post-1', content: 'Hello' }, ctx);
 
@@ -150,10 +164,33 @@ describe('Comment use cases (application + events integration)', () => {
     expect(await repo.countByPost('post-1')).toBe(1);
   });
 
+  it('rejects commenting when the viewer is blocked from the author', async () => {
+    const repo = new InMemoryCommentRepository();
+    const { bus } = makeBus();
+    const blocked = {
+      async isBlockedBetween(): Promise<boolean> {
+        return true;
+      },
+      async listHiddenUserIds(): Promise<string[]> {
+        return ['post-author'];
+      },
+    };
+    const useCase = new CreateCommentUseCase(
+      repo,
+      new FakePostReader('post-author'),
+      bus,
+      blocked,
+    );
+
+    await expect(
+      useCase.execute({ postId: 'post-1', content: 'Hello' }, ctx),
+    ).rejects.toThrow(/cannot interact/i);
+  });
+
   it('rejects commenting on a non-existent post', async () => {
     const repo = new InMemoryCommentRepository();
     const { bus } = makeBus();
-    const useCase = new CreateCommentUseCase(repo, new FakePostReader(null), bus);
+    const useCase = new CreateCommentUseCase(repo, new FakePostReader(null), bus, new AllowAllBlocks());
 
     await expect(
       useCase.execute({ postId: 'ghost', content: 'hi' }, ctx),
@@ -163,8 +200,8 @@ describe('Comment use cases (application + events integration)', () => {
   it('creates a reply and publishes both CommentCreated and ReplyCreated', async () => {
     const repo = new InMemoryCommentRepository();
     const { bus, received } = makeBus();
-    const create = new CreateCommentUseCase(repo, new FakePostReader('pa'), bus);
-    const reply = new ReplyToCommentUseCase(repo, bus);
+    const create = new CreateCommentUseCase(repo, new FakePostReader('pa'), bus, new AllowAllBlocks());
+    const reply = new ReplyToCommentUseCase(repo, bus, new FakePostReader('pa'), new AllowAllBlocks());
 
     const parent = await create.execute({ postId: 'p1', content: 'parent' }, ctx);
     received.length = 0;
@@ -183,8 +220,8 @@ describe('Comment use cases (application + events integration)', () => {
   it('enforces max reply depth', async () => {
     const repo = new InMemoryCommentRepository();
     const { bus } = makeBus();
-    const create = new CreateCommentUseCase(repo, new FakePostReader('pa'), bus);
-    const reply = new ReplyToCommentUseCase(repo, bus);
+    const create = new CreateCommentUseCase(repo, new FakePostReader('pa'), bus, new AllowAllBlocks());
+    const reply = new ReplyToCommentUseCase(repo, bus, new FakePostReader('pa'), new AllowAllBlocks());
 
     let current = await create.execute({ postId: 'p1', content: 'root' }, ctx);
     // depth 1, 2, 3 are allowed; the 4th should fail (MAX_REPLY_DEPTH = 3)
@@ -202,9 +239,9 @@ describe('Comment use cases (application + events integration)', () => {
   it('blocks replies to a deleted comment', async () => {
     const repo = new InMemoryCommentRepository();
     const { bus } = makeBus();
-    const create = new CreateCommentUseCase(repo, new FakePostReader('pa'), bus);
+    const create = new CreateCommentUseCase(repo, new FakePostReader('pa'), bus, new AllowAllBlocks());
     const del = new DeleteCommentUseCase(repo, new NoModerators(), bus);
-    const reply = new ReplyToCommentUseCase(repo, bus);
+    const reply = new ReplyToCommentUseCase(repo, bus, new FakePostReader('pa'), new AllowAllBlocks());
 
     const parent = await create.execute({ postId: 'p1', content: 'parent' }, ctx);
     await del.execute({ commentId: parent.id }, ctx);
@@ -217,7 +254,7 @@ describe('Comment use cases (application + events integration)', () => {
   it('only the author can edit', async () => {
     const repo = new InMemoryCommentRepository();
     const { bus } = makeBus();
-    const create = new CreateCommentUseCase(repo, new FakePostReader('pa'), bus);
+    const create = new CreateCommentUseCase(repo, new FakePostReader('pa'), bus, new AllowAllBlocks());
     const edit = new EditCommentUseCase(repo, bus);
 
     const c = await create.execute({ postId: 'p1', content: 'mine' }, ctx);
@@ -237,10 +274,10 @@ describe('Comment use cases (application + events integration)', () => {
   it('soft-deletes and keeps the thread, returning a tombstone in listing', async () => {
     const repo = new InMemoryCommentRepository();
     const { bus } = makeBus();
-    const create = new CreateCommentUseCase(repo, new FakePostReader('pa'), bus);
-    const reply = new ReplyToCommentUseCase(repo, bus);
+    const create = new CreateCommentUseCase(repo, new FakePostReader('pa'), bus, new AllowAllBlocks());
+    const reply = new ReplyToCommentUseCase(repo, bus, new FakePostReader('pa'), new AllowAllBlocks());
     const del = new DeleteCommentUseCase(repo, new NoModerators(), bus);
-    const list = new ListPostCommentsUseCase(repo);
+    const list = new ListPostCommentsUseCase(repo, new AllowAllBlocks());
 
     const parent = await create.execute({ postId: 'p1', content: 'parent' }, ctx);
     await reply.execute({ parentCommentId: parent.id, content: 'child' }, ctx);

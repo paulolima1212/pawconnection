@@ -1,6 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ForbiddenError, NotFoundError, ValidationError } from '../../../shared/domain/result';
-import { PrismaUserBlockRepository } from '../infrastructure/prisma-block.repository';
 import { EVENT_BUS, IEventBus } from '../../../shared/events/event-bus';
 import { EventMetadata } from '../../../shared/events/domain-event';
 import { Conversation } from '../domain/entities/conversation.entity';
@@ -9,6 +8,7 @@ import { MessageReadEvent } from '../domain/events/chat-events';
 import { isConversationParticipant, otherParticipantId } from '../domain/participant-pair';
 import { CHAT_POLICY, IChatPolicy } from '../domain/ports/chat-policy.port';
 import { CHAT_USER_READER, IChatUserReader } from '../domain/ports/user-reader.port';
+import { CHAT_BLOCK_READER, IChatBlockReader } from '../domain/ports/block-reader.port';
 import {
   CHAT_REPOSITORY,
   IChatRepository,
@@ -90,17 +90,26 @@ export class CreateOrGetConversationUseCase {
 
 @Injectable()
 export class ListConversationsUseCase {
-  constructor(@Inject(CHAT_REPOSITORY) private readonly repo: IChatRepository) {}
+  constructor(
+    @Inject(CHAT_REPOSITORY) private readonly repo: IChatRepository,
+    @Inject(CHAT_BLOCK_READER) private readonly blocks: IChatBlockReader,
+  ) {}
 
   async execute(ctx: ChatRequestContext): Promise<ConversationResponseDto[]> {
     const list = await this.repo.listConversationsForUser(ctx.userId);
-    return list.map(toConversationResponse);
+    const hidden = new Set(await this.blocks.listHiddenUserIds(ctx.userId));
+    return list
+      .filter((c) => !hidden.has(c.otherUser.id))
+      .map(toConversationResponse);
   }
 }
 
 @Injectable()
 export class GetConversationUseCase {
-  constructor(@Inject(CHAT_REPOSITORY) private readonly repo: IChatRepository) {}
+  constructor(
+    @Inject(CHAT_REPOSITORY) private readonly repo: IChatRepository,
+    @Inject(CHAT_BLOCK_READER) private readonly blocks: IChatBlockReader,
+  ) {}
 
   async execute(
     conversationId: string,
@@ -109,6 +118,9 @@ export class GetConversationUseCase {
     const list = await this.repo.listConversationsForUser(ctx.userId, 100);
     const found = list.find((c) => c.id === conversationId);
     if (!found) throw new NotFoundError('Conversation not found');
+    if (await this.blocks.isBlockedBetween(ctx.userId, found.otherUser.id)) {
+      throw new NotFoundError('Conversation not found');
+    }
     return toConversationResponse(found);
   }
 }
@@ -366,33 +378,5 @@ export class MarkConversationReadUseCase {
       );
     }
     return { marked: ids.length };
-  }
-}
-
-@Injectable()
-export class BlockUserUseCase {
-  constructor(
-    private readonly blocks: PrismaUserBlockRepository,
-    @Inject(CHAT_USER_READER) private readonly users: IChatUserReader,
-  ) {}
-
-  async execute(blockedUserId: string, ctx: ChatRequestContext): Promise<{ blocked: true }> {
-    if (blockedUserId === ctx.userId) {
-      throw new ValidationError('You cannot block yourself');
-    }
-    const target = await this.users.findById(blockedUserId);
-    if (!target) throw new NotFoundError('User not found');
-    await this.blocks.block(ctx.userId, blockedUserId);
-    return { blocked: true };
-  }
-}
-
-@Injectable()
-export class UnblockUserUseCase {
-  constructor(private readonly blocks: PrismaUserBlockRepository) {}
-
-  async execute(blockedUserId: string, ctx: ChatRequestContext): Promise<{ unblocked: true }> {
-    await this.blocks.unblock(ctx.userId, blockedUserId);
-    return { unblocked: true };
   }
 }

@@ -27,8 +27,6 @@ import {
   MarkConversationReadUseCase,
   SendMessageUseCase,
   ToggleMessageReactionUseCase,
-  BlockUserUseCase,
-  UnblockUserUseCase,
   ChatRequestContext,
 } from '../application/chat.use-cases';
 import {
@@ -59,8 +57,6 @@ export class ChatController {
     private readonly editMessage: EditMessageUseCase,
     private readonly deleteMessage: DeleteMessageUseCase,
     private readonly markRead: MarkConversationReadUseCase,
-    private readonly blockUser: BlockUserUseCase,
-    private readonly unblockUser: UnblockUserUseCase,
   ) {}
 
   @Post('conversations')
@@ -195,28 +191,5 @@ export class ChatController {
     @Param('messageId') messageId: string,
   ) {
     return this.deleteMessage.execute(messageId, ctx(user, correlationId));
-  }
-
-  @Post('users/:userId/block')
-  @UseGuards(ThrottlerGuard)
-  @Throttle({ default: { limit: 30, ttl: 60_000 } })
-  @ApiOperation({ summary: 'Block a user from messaging you' })
-  block(
-    @CurrentUser() user: AuthUserPayload,
-    @CorrelationId() correlationId: string,
-    @Param('userId') userId: string,
-  ) {
-    return this.blockUser.execute(userId, ctx(user, correlationId));
-  }
-
-  @Delete('users/:userId/block')
-  @SkipThrottle()
-  @ApiOperation({ summary: 'Unblock a user' })
-  unblock(
-    @CurrentUser() user: AuthUserPayload,
-    @CorrelationId() correlationId: string,
-    @Param('userId') userId: string,
-  ) {
-    return this.unblockUser.execute(userId, ctx(user, correlationId));
   }
 }

@@ -76,6 +76,14 @@ export class PrismaPostRepository implements IPostRepository {
     return posts.map((p) => this.mapPost(p, userId));
   }
 
+  async findAuthorId(postId: string): Promise<string | null> {
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+      select: { authorId: true },
+    });
+    return post?.authorId ?? null;
+  }
+
   async createPost(
     authorId: string,
     body: string | undefined,

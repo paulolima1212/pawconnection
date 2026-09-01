@@ -1,5 +1,6 @@
 import { Inject, Module, OnModuleInit } from '@nestjs/common';
 import { SupabaseModule } from '../../shared/infrastructure/supabase/supabase.module';
+import { ModerationModule } from '../moderation/moderation.module';
 import { EVENT_BUS, IEventBus } from '../../shared/events/event-bus';
 import { USER_REPOSITORY } from './domain/repositories/user.repository';
 import { PET_REPOSITORY } from './domain/repositories/pet.repository';
@@ -22,7 +23,7 @@ import {
 import { ProfileController } from './presentation/profile.controller';
 
 @Module({
-  imports: [SupabaseModule],
+  imports: [SupabaseModule, ModerationModule],
   controllers: [ProfileController],
   providers: [
     { provide: USER_REPOSITORY, useClass: PrismaUserRepository },

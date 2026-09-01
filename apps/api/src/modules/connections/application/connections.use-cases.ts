@@ -4,7 +4,7 @@ import {
   ConnectionTypeValue,
   RequestDirection,
 } from '../../../shared/domain/types';
-import { ConflictError, NotFoundError, ValidationError } from '../../../shared/domain/result';
+import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../../shared/domain/result';
 import {
   IUserRepository,
   USER_REPOSITORY,
@@ -19,12 +19,18 @@ import {
   CONNECTION_REQUEST_REPOSITORY,
   IConnectionRequestRepository,
 } from '../domain/repositories/connection-request.repository';
+import {
+  USER_BLOCK_READER,
+  IUserBlockReader,
+} from '../../moderation/domain/ports/user-block-reader.port';
+import { PartiesNotBlockedSpec } from '../../moderation/domain/specifications/hidden-user';
 
 @Injectable()
 export class ListInboxRequestsUseCase {
   constructor(
     @Inject(CONNECTION_REQUEST_REPOSITORY)
     private readonly requests: IConnectionRequestRepository,
+    @Inject(USER_BLOCK_READER) private readonly blocks: IUserBlockReader,
   ) {}
 
   async execute(
@@ -32,6 +38,9 @@ export class ListInboxRequestsUseCase {
     filters: { type?: ConnectionTypeValue; direction?: RequestDirection },
   ) {
     let items = await this.requests.listForUser(userId);
+    const hidden = new Set(await this.blocks.listHiddenUserIds(userId));
+    const notBlocked = new PartiesNotBlockedSpec(hidden);
+    items = items.filter((r) => notBlocked.isSatisfiedBy(r));
     items = items.filter((r) => new PendingRequestsSpec().isSatisfiedBy(r));
 
     if (filters.type) {
@@ -53,9 +62,16 @@ export class AcceptConnectionRequestUseCase {
   constructor(
     @Inject(CONNECTION_REQUEST_REPOSITORY)
     private readonly requests: IConnectionRequestRepository,
+    @Inject(USER_BLOCK_READER) private readonly blocks: IUserBlockReader,
   ) {}
 
-  execute(id: string, userId: string) {
+  async execute(id: string, userId: string) {
+    const request = await this.requests.findById(id);
+    if (!request) throw new NotFoundError('Request not found');
+    const otherId = request.senderId === userId ? request.recipientId : request.senderId;
+    if (await this.blocks.isBlockedBetween(userId, otherId)) {
+      throw new ForbiddenError('You cannot interact with this user');
+    }
     return this.requests.accept(id, userId);
   }
 }
@@ -65,9 +81,16 @@ export class RejectConnectionRequestUseCase {
   constructor(
     @Inject(CONNECTION_REQUEST_REPOSITORY)
     private readonly requests: IConnectionRequestRepository,
+    @Inject(USER_BLOCK_READER) private readonly blocks: IUserBlockReader,
   ) {}
 
-  execute(id: string, userId: string) {
+  async execute(id: string, userId: string) {
+    const request = await this.requests.findById(id);
+    if (!request) throw new NotFoundError('Request not found');
+    const otherId = request.senderId === userId ? request.recipientId : request.senderId;
+    if (await this.blocks.isBlockedBetween(userId, otherId)) {
+      throw new ForbiddenError('You cannot interact with this user');
+    }
     return this.requests.reject(id, userId);
   }
 }
@@ -78,6 +101,7 @@ export class CreateConnectionRequestUseCase {
     @Inject(CONNECTION_REQUEST_REPOSITORY)
     private readonly requests: IConnectionRequestRepository,
     @Inject(USER_REPOSITORY) private readonly users: IUserRepository,
+    @Inject(USER_BLOCK_READER) private readonly blocks: IUserBlockReader,
   ) {}
 
   async execute(
@@ -87,6 +111,10 @@ export class CreateConnectionRequestUseCase {
   ) {
     if (senderId === recipientId) {
       throw new ValidationError('Cannot connect with yourself');
+    }
+
+    if (await this.blocks.isBlockedBetween(senderId, recipientId)) {
+      throw new ForbiddenError('You cannot interact with this user');
     }
 
     const recipient = await this.users.findById(recipientId);

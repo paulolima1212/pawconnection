@@ -119,12 +119,17 @@ export class CommentController {
   @Get('posts/:postId/comments')
   @SkipThrottle()
   @ApiOperation({ summary: 'List a post comment tree (cursor paginated)' })
-  list(@Param('postId') postId: string, @Query() query: ListCommentsQueryDto) {
+  list(
+    @CurrentUser() user: AuthUserPayload,
+    @Param('postId') postId: string,
+    @Query() query: ListCommentsQueryDto,
+  ) {
     return this.listComments.execute({
       postId,
       limit: query.limit,
       cursor: query.cursor ?? null,
       order: query.order,
+      viewerId: user.userId,
     });
   }
 

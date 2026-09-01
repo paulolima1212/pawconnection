@@ -1,4 +1,5 @@
 import { apiRequest } from '@/lib/api/client';
+import { blockUser as blockUserApi, unblockUser as unblockUserApi } from '@/lib/api/moderation';
 import { getApiBaseUrl } from '@/lib/api/config';
 import { getPublicProfile } from '@/lib/api/profile';
 
@@ -148,9 +149,9 @@ export function markConversationRead(conversationId: string) {
 }
 
 export function blockUser(userId: string) {
-  return apiRequest<{ blocked: true }>(`/users/${userId}/block`, { method: 'POST' });
+  return blockUserApi(userId);
 }
 
 export function unblockUser(userId: string) {
-  return apiRequest<{ unblocked: true }>(`/users/${userId}/block`, { method: 'DELETE' });
+  return unblockUserApi(userId);
 }

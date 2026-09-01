@@ -35,12 +35,17 @@ import {
 } from '@/constants/feed-search-filters';
 import { FeedSearchFiltersSheet } from '@/components/paw/feed-search-filters-sheet';
 import { PostCommentsSheet } from '@/components/paw/post-comments-sheet';
+import { PostActionSheet } from '@/components/paw/post-action-sheet';
+import { ReportPostSheet } from '@/components/paw/report-post-sheet';
+import { BlockUserConfirmSheet } from '@/components/paw/block-user-confirm-sheet';
 import { PawColors, PawFontSize, PawLayout, PawLineHeight } from '@/constants/paw-styles';
 import { useAuth } from '@/context/auth';
 import { useFeedPosts } from '@/context/feed-posts';
 import { useProfileOnboarding } from '@/context/profile-onboarding';
+import { tooltipMessageFromError, usePawTooltip } from '@/context/paw-tooltip';
 import { useFeedNearbyCities } from '@/hooks/use-feed-nearby-cities';
 import * as feedApi from '@/lib/api/feed';
+import * as moderationApi from '@/lib/api/moderation';
 import type { FeedPostApi } from '@/lib/api/types';
 
 function formatPostDate(iso: string): string {
@@ -57,10 +62,10 @@ function formatPostDate(iso: string): string {
 export function SocialFeedScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { logout } = useAuth();
+  const { logout, userId } = useAuth();
+  const { showTooltip } = usePawTooltip();
   const { refreshNonce, pendingPost, clearPendingPost } = useFeedPosts();
   const { draft, handle: myHandle, resetOnboardingForDev } = useProfileOnboarding();
-  const { userId } = useAuth();
   const [viewMode, setViewMode] = useState<FeedMapMode>('feed');
   const [search, setSearch] = useState('');
   const [searchFilters, setSearchFilters] = useState<FeedSearchFilters>(EMPTY_FEED_SEARCH_FILTERS);
@@ -72,6 +77,11 @@ export function SocialFeedScreen() {
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [commentsPost, setCommentsPost] = useState<FeedPostApi | null>(null);
+  const [safetyPost, setSafetyPost] = useState<FeedPostApi | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [blockOpen, setBlockOpen] = useState(false);
+  const [reporting, setReporting] = useState(false);
+  const [blocking, setBlocking] = useState(false);
   const activeFilterCount = countActiveFeedSearchFilters(searchFilters);
   const {
     permission: cityPermission,
@@ -162,6 +172,63 @@ export function SocialFeedScreen() {
     }
   };
 
+  const safetyAuthorName =
+    safetyPost?.author?.fullName?.split(/\s+/)[0] || safetyPost?.author?.fullName || 'this user';
+
+  const hideAuthorFromFeed = (authorId: string) => {
+    setPosts((prev) => prev.filter((p) => p.authorId !== authorId && p.author?.id !== authorId));
+  };
+
+  const submitReport = async (reason: moderationApi.ReportReason, details?: string) => {
+    if (!safetyPost) return;
+    setReporting(true);
+    try {
+      const result = await moderationApi.reportPost(safetyPost.id, reason, details);
+      setReportOpen(false);
+      setSafetyPost(null);
+      showTooltip({
+        title: result.duplicate ? 'Already reported' : 'Report sent',
+        message: result.duplicate
+          ? 'You already reported this post. Thanks for looking out for the community.'
+          : 'Thanks. Our team will review this publication.',
+        variant: 'success',
+      });
+    } catch (err) {
+      showTooltip({
+        title: 'Could not report',
+        message: tooltipMessageFromError(err, 'Please try again.'),
+        variant: 'error',
+      });
+    } finally {
+      setReporting(false);
+    }
+  };
+
+  const confirmBlock = async () => {
+    const authorId = safetyPost?.author?.id ?? safetyPost?.authorId;
+    if (!authorId) return;
+    setBlocking(true);
+    try {
+      await moderationApi.blockUser(authorId);
+      hideAuthorFromFeed(authorId);
+      setBlockOpen(false);
+      setSafetyPost(null);
+      showTooltip({
+        title: 'User blocked',
+        message: `${safetyAuthorName} can no longer see or interact with you.`,
+        variant: 'success',
+      });
+    } catch (err) {
+      showTooltip({
+        title: 'Could not block',
+        message: tooltipMessageFromError(err, 'Please try again.'),
+        variant: 'error',
+      });
+    } finally {
+      setBlocking(false);
+    }
+  };
+
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <ScrollView
@@ -240,6 +307,37 @@ export function SocialFeedScreen() {
             }}
           />
         ) : null}
+
+        {safetyPost ? (
+          <PostActionSheet
+            visible={!reportOpen && !blockOpen}
+            authorName={safetyAuthorName}
+            onClose={() => setSafetyPost(null)}
+            onSelect={(action) => {
+              if (action === 'report') setReportOpen(true);
+              if (action === 'block') setBlockOpen(true);
+            }}
+          />
+        ) : null}
+        <ReportPostSheet
+          visible={reportOpen}
+          submitting={reporting}
+          onClose={() => {
+            setReportOpen(false);
+            setSafetyPost(null);
+          }}
+          onSubmit={(reason, details) => void submitReport(reason, details)}
+        />
+        <BlockUserConfirmSheet
+          visible={blockOpen}
+          displayName={safetyAuthorName}
+          blocking={blocking}
+          onClose={() => {
+            setBlockOpen(false);
+            setSafetyPost(null);
+          }}
+          onConfirm={() => void confirmBlock()}
+        />
 
         <View style={styles.chipsRow}>
           <FeedCityAreaChip
@@ -328,6 +426,16 @@ export function SocialFeedScreen() {
                       <View style={styles.checkBadge} accessibilityLabel="Verified">
                         <MaterialCommunityIcons name="check-decagram" size={22} color={PawColors.badgeBlue} />
                       </View>
+                      {post.authorId !== userId && post.author?.id !== userId ? (
+                        <Pressable
+                          onPress={() => setSafetyPost(post)}
+                          hitSlop={8}
+                          style={styles.moreBtn}
+                          accessibilityRole="button"
+                          accessibilityLabel="Post options">
+                          <Feather name="more-vertical" size={20} color={PawColors.black} />
+                        </Pressable>
+                      ) : null}
                     </View>
                     {post.body ? <Text style={styles.postBody}>{post.body}</Text> : null}
                     <FeedPostImages imageUrls={post.imageUrls} />
@@ -526,6 +634,12 @@ const styles = StyleSheet.create({
     borderWidth: 0.7,
     borderColor: PawColors.black,
     backgroundColor: PawColors.fieldWhite,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  moreBtn: {
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },

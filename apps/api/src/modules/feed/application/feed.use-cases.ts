@@ -4,6 +4,12 @@ import {
   USER_REPOSITORY,
 } from '../../profile/domain/repositories/user.repository';
 import {
+  USER_BLOCK_READER,
+  IUserBlockReader,
+} from '../../moderation/domain/ports/user-block-reader.port';
+import { VisibleAuthorSpec } from '../../moderation/domain/specifications/hidden-user';
+import { ForbiddenError, NotFoundError } from '../../../shared/domain/result';
+import {
   FeedPostFilters,
   FeedPostWithAuthorMeta,
   FeedScope,
@@ -27,11 +33,16 @@ export class ListFeedPostsUseCase {
   constructor(
     @Inject(POST_REPOSITORY) private readonly posts: IPostRepository,
     @Inject(USER_REPOSITORY) private readonly users: IUserRepository,
+    @Inject(USER_BLOCK_READER) private readonly blocks: IUserBlockReader,
   ) {}
 
   async execute(userId: string, query: ListFeedPostsQuery) {
     const me = await this.users.findById(userId);
     let items = (await this.posts.listPosts(userId)) as FeedPostWithAuthorMeta[];
+
+    const hiddenIds = new Set(await this.blocks.listHiddenUserIds(userId));
+    const visibleAuthor = new VisibleAuthorSpec(hiddenIds);
+    items = items.filter((p) => visibleAuthor.isSatisfiedBy(p));
 
     const scopeSpec = new PublishedPostsSpec().and(
       new PostScopeSpec(query.scope ?? 'all', userId),
@@ -85,27 +96,54 @@ export class CreateFeedPostUseCase {
 
 @Injectable()
 export class TogglePostLikeUseCase {
-  constructor(@Inject(POST_REPOSITORY) private readonly posts: IPostRepository) {}
+  constructor(
+    @Inject(POST_REPOSITORY) private readonly posts: IPostRepository,
+    @Inject(USER_BLOCK_READER) private readonly blocks: IUserBlockReader,
+  ) {}
 
-  execute(postId: string, userId: string) {
+  async execute(postId: string, userId: string) {
+    const authorId = await this.posts.findAuthorId(postId);
+    if (!authorId) throw new NotFoundError('Post not found');
+    if (await this.blocks.isBlockedBetween(userId, authorId)) {
+      throw new ForbiddenError('You cannot interact with this post');
+    }
     return this.posts.toggleLike(postId, userId);
   }
 }
 
 @Injectable()
 export class ListPostCommentsUseCase {
-  constructor(@Inject(POST_REPOSITORY) private readonly posts: IPostRepository) {}
+  constructor(
+    @Inject(POST_REPOSITORY) private readonly posts: IPostRepository,
+    @Inject(USER_BLOCK_READER) private readonly blocks: IUserBlockReader,
+  ) {}
 
-  execute(postId: string) {
-    return this.posts.listComments(postId);
+  async execute(postId: string, userId: string) {
+    const authorId = await this.posts.findAuthorId(postId);
+    if (!authorId) throw new NotFoundError('Post not found');
+    if (await this.blocks.isBlockedBetween(userId, authorId)) {
+      throw new ForbiddenError('You cannot interact with this post');
+    }
+    const hiddenIds = new Set(await this.blocks.listHiddenUserIds(userId));
+    const visibleAuthor = new VisibleAuthorSpec(hiddenIds);
+    const comments = await this.posts.listComments(postId);
+    return comments.filter((c) => visibleAuthor.isSatisfiedBy(c));
   }
 }
 
 @Injectable()
 export class AddPostCommentUseCase {
-  constructor(@Inject(POST_REPOSITORY) private readonly posts: IPostRepository) {}
+  constructor(
+    @Inject(POST_REPOSITORY) private readonly posts: IPostRepository,
+    @Inject(USER_BLOCK_READER) private readonly blocks: IUserBlockReader,
+  ) {}
 
-  execute(postId: string, authorId: string, body: string) {
+  async execute(postId: string, authorId: string, body: string) {
+    const postAuthorId = await this.posts.findAuthorId(postId);
+    if (!postAuthorId) throw new NotFoundError('Post not found');
+    if (await this.blocks.isBlockedBetween(authorId, postAuthorId)) {
+      throw new ForbiddenError('You cannot interact with this post');
+    }
     return this.posts.addComment(postId, authorId, body);
   }
 }

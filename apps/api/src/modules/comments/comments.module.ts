@@ -1,6 +1,7 @@
 import { Inject, Module, OnModuleInit } from '@nestjs/common';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { EVENT_BUS, IEventBus } from '../../shared/events/event-bus';
+import { ModerationModule } from '../moderation/moderation.module';
 import { COMMENT_EVENTS } from './domain/events/comment-events';
 import { COMMENT_REPOSITORY } from './domain/repositories/comment.repository';
 import { POST_READER } from './domain/ports/post-reader.port';
@@ -25,6 +26,7 @@ import { CommentController } from './presentation/comment.controller';
 
 @Module({
   imports: [
+    ModerationModule,
     // Per-module throttler storage; the ThrottlerGuard is applied at the
     // controller level so only comment writes are rate limited.
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),

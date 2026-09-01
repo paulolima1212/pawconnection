@@ -101,8 +101,8 @@ export class FeedController {
   }
 
   @Get('posts/:id/comments')
-  comments(@Param('id') id: string) {
-    return this.listComments.execute(id);
+  comments(@CurrentUser() user: AuthUserPayload, @Param('id') id: string) {
+    return this.listComments.execute(id, user.userId);
   }
 
   @Post('posts/:id/comments')

@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { NotFoundError, ValidationError } from '../../../shared/domain/result';
+import { NotFoundError, ValidationError, ForbiddenError } from '../../../shared/domain/result';
 import { EVENT_BUS, IEventBus } from '../../../shared/events/event-bus';
 import { EventMetadata } from '../../../shared/events/domain-event';
 import { Comment } from '../domain/comment.entity';
@@ -15,6 +15,11 @@ import {
   IModerationPolicy,
   MODERATION_POLICY,
 } from '../domain/ports/moderation-policy.port';
+import {
+  USER_BLOCK_READER,
+  IUserBlockReader,
+} from '../../moderation/domain/ports/user-block-reader.port';
+import { VisibleAuthorSpec } from '../../moderation/domain/specifications/hidden-user';
 import {
   CommentResponse,
   CommentTree,
@@ -55,14 +60,19 @@ export class CreateCommentUseCase {
     @Inject(COMMENT_REPOSITORY) private readonly repo: ICommentRepository,
     @Inject(POST_READER) private readonly posts: IPostReader,
     @Inject(EVENT_BUS) private readonly bus: IEventBus,
+    @Inject(USER_BLOCK_READER) private readonly blocks: IUserBlockReader,
   ) {}
 
   async execute(
     input: { postId: string; content: string },
     ctx: RequestContext,
   ): Promise<CommentResponse> {
-    if (!(await this.posts.exists(input.postId))) {
+    const postAuthorId = await this.posts.getAuthorId(input.postId);
+    if (!postAuthorId) {
       throw new NotFoundError('Post not found');
+    }
+    if (await this.blocks.isBlockedBetween(ctx.userId, postAuthorId)) {
+      throw new ForbiddenError('You cannot interact with this post');
     }
 
     const comment = Comment.createTopLevel({
@@ -100,6 +110,8 @@ export class ReplyToCommentUseCase {
   constructor(
     @Inject(COMMENT_REPOSITORY) private readonly repo: ICommentRepository,
     @Inject(EVENT_BUS) private readonly bus: IEventBus,
+    @Inject(POST_READER) private readonly posts: IPostReader,
+    @Inject(USER_BLOCK_READER) private readonly blocks: IUserBlockReader,
   ) {}
 
   async execute(
@@ -108,6 +120,14 @@ export class ReplyToCommentUseCase {
   ): Promise<CommentResponse> {
     const parent = await this.repo.findById(input.parentCommentId);
     if (!parent) throw new NotFoundError('Parent comment not found');
+
+    if (await this.blocks.isBlockedBetween(ctx.userId, parent.authorId)) {
+      throw new ForbiddenError('You cannot interact with this user');
+    }
+    const postAuthorId = await this.posts.getAuthorId(parent.postId);
+    if (postAuthorId && (await this.blocks.isBlockedBetween(ctx.userId, postAuthorId))) {
+      throw new ForbiddenError('You cannot interact with this post');
+    }
 
     const parentDepth = (await this.repo.getDepth(parent.id)) ?? 0;
 
@@ -220,6 +240,7 @@ export class DeleteCommentUseCase {
 export class ListPostCommentsUseCase {
   constructor(
     @Inject(COMMENT_REPOSITORY) private readonly repo: ICommentRepository,
+    @Inject(USER_BLOCK_READER) private readonly blocks: IUserBlockReader,
   ) {}
 
   async execute(input: {
@@ -227,6 +248,7 @@ export class ListPostCommentsUseCase {
     limit?: number;
     cursor?: string | null;
     order?: CommentOrder;
+    viewerId?: string;
   }): Promise<{ items: CommentTree[]; nextCursor: string | null }> {
     const order: CommentOrder = input.order ?? 'newest';
     const page = await this.repo.listTopLevel(input.postId, {
@@ -235,15 +257,26 @@ export class ListPostCommentsUseCase {
       order,
     });
 
-    const parentIds = page.items.map((c) => c.id);
+    const hiddenIds = input.viewerId
+      ? new Set(await this.blocks.listHiddenUserIds(input.viewerId))
+      : new Set<string>();
+    const visible = new VisibleAuthorSpec(hiddenIds);
+    const topLevel = hiddenIds.size
+      ? page.items.filter((c) => visible.isSatisfiedBy(c))
+      : page.items;
+
+    const parentIds = topLevel.map((c) => c.id);
     const repliesByParent = await this.repo.previewRepliesFor(
       parentIds,
       REPLIES_PREVIEW,
       'oldest',
     );
 
-    const items = page.items.map((c) =>
-      toCommentTree(c, repliesByParent.get(c.id) ?? []),
+    const items = topLevel.map((c) =>
+      toCommentTree(
+        c,
+        (repliesByParent.get(c.id) ?? []).filter((r) => visible.isSatisfiedBy(r)),
+      ),
     );
     return { items, nextCursor: page.nextCursor };
   }

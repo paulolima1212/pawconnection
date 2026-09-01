@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ProfileModule } from '../profile/profile.module';
+import { ModerationModule } from '../moderation/moderation.module';
 import { CONNECTION_REQUEST_REPOSITORY } from './domain/repositories/connection-request.repository';
 import { PrismaConnectionRequestRepository } from './infrastructure/prisma-connection-request.repository';
 import {
@@ -11,7 +12,7 @@ import {
 import { ConnectionsController } from './presentation/connections.controller';
 
 @Module({
-  imports: [ProfileModule],
+  imports: [ProfileModule, ModerationModule],
   controllers: [ConnectionsController],
   providers: [
     {
