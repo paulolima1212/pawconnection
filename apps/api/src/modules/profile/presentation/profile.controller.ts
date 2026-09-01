@@ -12,7 +12,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../auth/presentation/jwt-auth.guard';
+import { JwtAuthGuard, OptionalJwtAuthGuard } from '../../auth/presentation/jwt-auth.guard';
 import {
   CurrentUser,
   AuthUserPayload,
@@ -79,8 +79,12 @@ export class ProfileController {
   }
 
   @Get('public/:handle')
-  async publicProfile(@Param('handle') handle: string) {
-    const profile = await this.getPublicProfile.execute(handle);
+  @UseGuards(OptionalJwtAuthGuard)
+  async publicProfile(
+    @Param('handle') handle: string,
+    @CurrentUser() user?: AuthUserPayload,
+  ) {
+    const profile = await this.getPublicProfile.execute(handle, user?.userId);
     return this.withPublicMediaUrls(profile);
   }
 

@@ -8,6 +8,10 @@ import {
   IUserRepository,
   USER_REPOSITORY,
 } from '../domain/repositories/user.repository';
+import {
+  USER_BLOCK_READER,
+  IUserBlockReader,
+} from '../../moderation/domain/ports/user-block-reader.port';
 
 @Injectable()
 export class GetMyProfileUseCase {
@@ -26,11 +30,17 @@ export class GetMyProfileUseCase {
 export class GetPublicProfileByHandleUseCase {
   constructor(
     @Inject(USER_REPOSITORY) private readonly users: IUserRepository,
+    @Inject(USER_BLOCK_READER) private readonly blocks: IUserBlockReader,
   ) {}
 
-  async execute(handle: string) {
+  async execute(handle: string, viewerId?: string) {
     const user = await this.users.findByHandle(handle);
     if (!user) throw new NotFoundError('Profile not found');
+    if (viewerId && viewerId !== user.id) {
+      if (await this.blocks.isBlockedBetween(viewerId, user.id)) {
+        throw new NotFoundError('Profile not found');
+      }
+    }
     return user;
   }
 }

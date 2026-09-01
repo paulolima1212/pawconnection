@@ -11,6 +11,11 @@ import {
   USER_REPOSITORY,
 } from '../../profile/domain/repositories/user.repository';
 import {
+  USER_BLOCK_READER,
+  IUserBlockReader,
+} from '../../moderation/domain/ports/user-block-reader.port';
+import { ForbiddenError } from '../../../shared/domain/result';
+import {
   ExcludePassedUsersSpec,
   MatchingInterestSpec,
   MatchingLookingForSpec,
@@ -22,6 +27,7 @@ import { MATCH_RADIUS_STEPS_KM } from './match.mapper';
 export class ListMatchCandidatesUseCase {
   constructor(
     @Inject(USER_REPOSITORY) private readonly users: IUserRepository,
+    @Inject(USER_BLOCK_READER) private readonly blocks: IUserBlockReader,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -35,6 +41,9 @@ export class ListMatchCandidatesUseCase {
     }
 
     const excludedIds = await this.collectExcludedTargetIds(userId);
+    for (const id of await this.blocks.listHiddenUserIds(userId)) {
+      excludedIds.add(id);
+    }
 
     const pool = await this.users.listCandidates(userId, {
       excludeIds: [...excludedIds],
@@ -162,9 +171,15 @@ export class ListMatchCandidatesUseCase {
 
 @Injectable()
 export class PassMatchCandidateUseCase {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(USER_BLOCK_READER) private readonly blocks: IUserBlockReader,
+    private readonly prisma: PrismaService,
+  ) {}
 
   async execute(userId: string, targetId: string) {
+    if (await this.blocks.isBlockedBetween(userId, targetId)) {
+      throw new ForbiddenError('You cannot interact with this user');
+    }
     await this.prisma.matchPass.upsert({
       where: { userId_targetId: { userId, targetId } },
       create: { userId, targetId },
@@ -180,9 +195,13 @@ export class SendWaveUseCase {
     private readonly prisma: PrismaService,
     @Inject(CONNECTION_REQUEST_REPOSITORY)
     private readonly connections: IConnectionRequestRepository,
+    @Inject(USER_BLOCK_READER) private readonly blocks: IUserBlockReader,
   ) {}
 
   async execute(userId: string, targetId: string) {
+    if (await this.blocks.isBlockedBetween(userId, targetId)) {
+      throw new ForbiddenError('You cannot interact with this user');
+    }
     await this.prisma.$transaction(async (tx) => {
       await tx.matchWave.create({
         data: { senderId: userId, targetId },

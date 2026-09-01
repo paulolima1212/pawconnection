@@ -88,6 +88,20 @@ enum MessageStatus {
   FAILED
 }
 
+enum ReportReason {
+  spam
+  harassment
+  inappropriate
+  hate
+  other
+}
+
+enum ReportStatus {
+  pending
+  reviewed
+  dismissed
+}
+
 model User {
   id                 String   @id @default(cuid())
   email              String?  @unique
@@ -124,6 +138,7 @@ model User {
   messageReactions MessageReaction[]
   blocksInitiated  UserBlock[]         @relation("BlocksInitiated")
   blocksReceived   UserBlock[]         @relation("BlocksReceived")
+  postReports      PostReport[]
   photos              UserPhoto[]
   passwordResetTokens PasswordResetToken[]
 
@@ -251,6 +266,26 @@ model Post {
   images   PostImage[]
   likes    PostLike[]
   comments Comment[]
+  reports  PostReport[]
+}
+
+model PostReport {
+  id         String       @id @default(cuid())
+  reporterId String
+  postId     String
+  reason     ReportReason
+  details    String?
+  status     ReportStatus @default(pending)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  post     Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([reporterId, postId])
+  @@index([postId])
+  @@index([reporterId])
+  @@index([status])
 }
 
 model PostImage {

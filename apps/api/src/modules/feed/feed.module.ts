@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ProfileModule } from '../profile/profile.module';
+import { ModerationModule } from '../moderation/moderation.module';
 import { POST_REPOSITORY } from './domain/repositories/post.repository';
 import { PrismaPostRepository } from './infrastructure/prisma-post.repository';
 import {
@@ -12,7 +13,7 @@ import {
 import { FeedController } from './presentation/feed.controller';
 
 @Module({
-  imports: [ProfileModule],
+  imports: [ProfileModule, ModerationModule],
   controllers: [FeedController],
   providers: [
     { provide: POST_REPOSITORY, useClass: PrismaPostRepository },

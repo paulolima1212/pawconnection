@@ -30,7 +30,7 @@ Positive, negative, and follow-up work.
 ## Index
 | ADR | Title | Status |
 |-----|-------|--------|
-| — | (none yet) | — |
+| [0001](0001-moderation-bounded-context.md) | Moderation bounded context for reports and blocks | Accepted |
 
 ## Related backlog
 

@@ -7,6 +7,7 @@ export interface IPostRepository {
   listPosts(userId: string): Promise<
     (PostEntity & { authorLat?: number | null; authorLng?: number | null })[]
   >;
+  findAuthorId(postId: string): Promise<string | null>;
   createPost(
     authorId: string,
     body: string | undefined,
