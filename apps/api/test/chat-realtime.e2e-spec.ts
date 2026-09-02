@@ -76,6 +76,7 @@ describe('Chat realtime (e2e)', () => {
         email: `chat-ws-${label}-${Date.now()}@paw.test`,
         password: 'password123',
         fullName: `WS ${label}`,
+        handle: `w${label}${Date.now()}`.slice(0, 20),
       })
       .expect(201);
     return res.body as { accessToken: string; user: { id: string } };

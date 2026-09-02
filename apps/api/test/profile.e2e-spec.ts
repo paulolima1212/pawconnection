@@ -38,6 +38,7 @@ describe('Profile (e2e)', () => {
         email,
         password: 'password123',
         fullName: 'Walking Phoebe',
+        handle: `phoebe${Date.now()}`.slice(0, 20),
       })
       .expect(201);
 
@@ -79,5 +80,40 @@ describe('Profile (e2e)', () => {
     expect(profile.body.lookingFor).toEqual(
       expect.arrayContaining(['Friendship', 'Meet people']),
     );
+  });
+
+  it('requires a chosen handle and enforces uniqueness', async () => {
+    const stamp = Date.now();
+    const handle = `uniq${stamp}`.slice(0, 20);
+
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: `nohandle-${stamp}@paw.test`,
+        password: 'password123',
+        fullName: 'No Handle',
+      })
+      .expect(400);
+
+    const first = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: `handle-a-${stamp}@paw.test`,
+        password: 'password123',
+        fullName: 'Handle Owner',
+        handle,
+      })
+      .expect(201);
+    expect(first.body.user.handle).toBe(handle);
+
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: `handle-b-${stamp}@paw.test`,
+        password: 'password123',
+        fullName: 'Copycat',
+        handle,
+      })
+      .expect(409);
   });
 });

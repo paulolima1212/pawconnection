@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsString, Matches, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterDto {
@@ -15,6 +15,13 @@ export class RegisterDto {
   @IsString()
   @MinLength(1)
   fullName!: string;
+
+  @ApiProperty({ example: 'phoebe_walker' })
+  @IsString()
+  @Matches(/^[a-zA-Z0-9_]{3,20}$/, {
+    message: 'Handle must be 3–20 letters, numbers, or underscores',
+  })
+  handle!: string;
 }
 
 export class LoginDto {

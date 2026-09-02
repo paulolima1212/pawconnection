@@ -115,7 +115,16 @@ class AllowAllBlocks {
   async isBlockedBetween(): Promise<boolean> {
     return false;
   }
+  async isBlockedBy(): Promise<boolean> {
+    return false;
+  }
   async listHiddenUserIds(): Promise<string[]> {
+    return [];
+  }
+  async listBlockedByMe(): Promise<string[]> {
+    return [];
+  }
+  async listWhoBlocked(): Promise<string[]> {
     return [];
   }
 }
@@ -171,8 +180,17 @@ describe('Comment use cases (application + events integration)', () => {
       async isBlockedBetween(): Promise<boolean> {
         return true;
       },
+      async isBlockedBy(): Promise<boolean> {
+        return true;
+      },
       async listHiddenUserIds(): Promise<string[]> {
         return ['post-author'];
+      },
+      async listBlockedByMe(): Promise<string[]> {
+        return ['post-author'];
+      },
+      async listWhoBlocked(): Promise<string[]> {
+        return [];
       },
     };
     const useCase = new CreateCommentUseCase(

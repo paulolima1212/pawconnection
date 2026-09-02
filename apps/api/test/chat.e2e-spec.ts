@@ -19,6 +19,7 @@ describe('Chat (e2e)', () => {
         email: `chat-${label}-${Date.now()}@paw.test`,
         password: 'password123',
         fullName: `Chatter ${label}`,
+        handle: `h${label}${Date.now()}`.slice(0, 20),
       })
       .expect(201);
     return res.body as { accessToken: string; user: { id: string } };
@@ -146,6 +147,18 @@ describe('Chat (e2e)', () => {
       .set('Authorization', `Bearer ${tokenB}`)
       .send({ participantUserId: userAId })
       .expect(403);
+
+    await request(app.getHttpServer())
+      .post(`/conversations/${conversationId}/messages`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ content: 'should fail' })
+      .expect(403);
+
+    const conversation = await request(app.getHttpServer())
+      .get(`/conversations/${conversationId}`)
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+    expect(conversation.body.blockedByMe).toBe(true);
 
     await request(app.getHttpServer())
       .delete(`/users/${userBId}/block`)

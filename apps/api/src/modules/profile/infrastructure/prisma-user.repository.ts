@@ -45,7 +45,8 @@ export class PrismaUserRepository implements IUserRepository {
   }
 
   async findByHandle(handle: string): Promise<UserEntity | null> {
-    const normalized = Handle.fromString(handle).value;
+    const normalized = Handle.tryNormalize(handle);
+    if (!normalized) return null;
     const user = await this.prisma.user.findUnique({
       where: { handle: normalized },
       include: this.include,
@@ -76,7 +77,7 @@ export class PrismaUserRepository implements IUserRepository {
         ...data,
         gender: data.gender ? mapGenderToPrisma(data.gender as AppGender) : undefined,
         handle: data.handle
-          ? Handle.fromString(data.handle).value
+          ? Handle.parse(data.handle).value
           : undefined,
       },
       include: this.include,

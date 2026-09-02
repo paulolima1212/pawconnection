@@ -1,5 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { NotFoundError } from '../../../shared/domain/result';
+import { ConflictError, NotFoundError } from '../../../shared/domain/result';
+import { Handle } from '../domain/value-objects/handle.vo';
+import { UniqueHandleSpec } from '../domain/specifications/unique-handle';
+import { UserEntity } from '../../../shared/domain/types';
 import {
   IPetRepository,
   PET_REPOSITORY,
@@ -33,15 +36,19 @@ export class GetPublicProfileByHandleUseCase {
     @Inject(USER_BLOCK_READER) private readonly blocks: IUserBlockReader,
   ) {}
 
-  async execute(handle: string, viewerId?: string) {
+  async execute(
+    handle: string,
+    viewerId?: string,
+  ): Promise<{ user: UserEntity; blockedByMe: boolean }> {
     const user = await this.users.findByHandle(handle);
     if (!user) throw new NotFoundError('Profile not found');
-    if (viewerId && viewerId !== user.id) {
-      if (await this.blocks.isBlockedBetween(viewerId, user.id)) {
-        throw new NotFoundError('Profile not found');
-      }
+    if (!viewerId || viewerId === user.id) {
+      return { user, blockedByMe: false };
     }
-    return user;
+    const theyBlockedMe = await this.blocks.isBlockedBy(user.id, viewerId);
+    if (theyBlockedMe) throw new NotFoundError('Profile not found');
+    const blockedByMe = await this.blocks.isBlockedBy(viewerId, user.id);
+    return { user, blockedByMe };
   }
 }
 
@@ -54,7 +61,18 @@ export class UpdateOwnerProfileUseCase {
   async execute(userId: string, data: Parameters<IUserRepository['updateOwner']>[1]) {
     const existing = await this.users.findById(userId);
     if (!existing) throw new NotFoundError('User not found');
-    return this.users.updateOwner(userId, data);
+    const next = { ...data };
+    if (data.handle != null && data.handle !== '') {
+      const handle = Handle.parse(data.handle);
+      if (handle.value !== existing.handle) {
+        const taken = await this.users.findByHandle(handle.value);
+        if (!new UniqueHandleSpec(handle.value).isSatisfiedBy(taken)) {
+          throw new ConflictError('Handle already taken');
+        }
+      }
+      next.handle = handle.value;
+    }
+    return this.users.updateOwner(userId, next);
   }
 }
 

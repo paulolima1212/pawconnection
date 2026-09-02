@@ -6,10 +6,7 @@ import {
   IUserRepository,
   USER_REPOSITORY,
 } from '../../profile/domain/repositories/user.repository';
-import {
-  EMAIL_SENDER,
-  IEmailSender,
-} from '../domain/ports/email-sender.port';
+import { EMAIL_SENDER, IEmailSender } from '../../../shared/domain/ports/email-sender.port';
 import {
   createPasswordResetToken,
   hashPasswordResetToken,

@@ -21,6 +21,7 @@ describe('Moderation (e2e)', () => {
         email: `moderation-${label}-${Date.now()}@paw.test`,
         password: 'password123',
         fullName: `Moderation ${label}`,
+        handle: `m${label}${Date.now()}`.slice(0, 20),
       })
       .expect(201);
     return res.body as { accessToken: string; user: { id: string; handle: string } };
@@ -94,7 +95,21 @@ describe('Moderation (e2e)', () => {
       .expect(400);
   });
 
-  it('hides the author after a block', async () => {
+  it('hides the reported post from the reporter feed', async () => {
+    const feedA = await request(app.getHttpServer())
+      .get('/feed/posts')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+    expect((feedA.body as { id: string }[]).some((p) => p.id === postId)).toBe(false);
+
+    const feedB = await request(app.getHttpServer())
+      .get('/feed/posts')
+      .set('Authorization', `Bearer ${tokenB}`)
+      .expect(200);
+    expect((feedB.body as { id: string }[]).some((p) => p.id === postId)).toBe(true);
+  });
+
+  it('hides the author after a block and keeps the profile available to unblock', async () => {
     await request(app.getHttpServer())
       .post(`/users/${userBId}/block`)
       .set('Authorization', `Bearer ${tokenA}`)
@@ -106,16 +121,11 @@ describe('Moderation (e2e)', () => {
       .expect(200);
     expect((feed.body as { id: string }[]).some((p) => p.id === postId)).toBe(false);
 
-    await request(app.getHttpServer())
-      .post(`/posts/${postId}/comments`)
-      .set('Authorization', `Bearer ${tokenA}`)
-      .send({ content: 'should fail' })
-      .expect(403);
-
-    await request(app.getHttpServer())
+    const publicProfile = await request(app.getHttpServer())
       .get(`/profile/public/${handleB}`)
       .set('Authorization', `Bearer ${tokenA}`)
-      .expect(404);
+      .expect(200);
+    expect(publicProfile.body.blockedByMe).toBe(true);
 
     await request(app.getHttpServer())
       .post('/conversations')
@@ -130,7 +140,14 @@ describe('Moderation (e2e)', () => {
     expect(blocks.body.items.some((u: { id: string }) => u.id === userBId)).toBe(true);
   });
 
-  it('restores visibility after unblock', async () => {
+  it('restores visibility after unblock except for reported posts', async () => {
+    const other = await request(app.getHttpServer())
+      .post('/feed/posts')
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ body: 'A later post that was not reported', imageUrls: [] })
+      .expect(201);
+    const otherPostId = other.body.id as string;
+
     await request(app.getHttpServer())
       .delete(`/users/${userBId}/block`)
       .set('Authorization', `Bearer ${tokenA}`)
@@ -140,6 +157,7 @@ describe('Moderation (e2e)', () => {
       .get('/feed/posts')
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
-    expect((feed.body as { id: string }[]).some((p) => p.id === postId)).toBe(true);
+    expect((feed.body as { id: string }[]).some((p) => p.id === postId)).toBe(false);
+    expect((feed.body as { id: string }[]).some((p) => p.id === otherPostId)).toBe(true);
   });
 });

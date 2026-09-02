@@ -50,6 +50,7 @@ describe('Auth password reset (e2e)', () => {
         email,
         password: oldPassword,
         fullName: 'Reset Tester',
+        handle: `reset${Date.now()}`.slice(0, 20),
       })
       .expect(201);
 

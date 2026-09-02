@@ -13,6 +13,7 @@ export interface PostReportedPayload {
   reporterId: string;
   postAuthorId: string;
   reason: ReportReason;
+  details: string | null;
 }
 
 export class PostReportedEvent extends BaseDomainEvent<PostReportedPayload> {

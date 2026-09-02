@@ -2,12 +2,13 @@ import { Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { ConflictError } from '../../../shared/domain/result';
-import { handleFromFullName } from '../../../shared/domain/types';
+import { Handle } from '../../profile/domain/value-objects/handle.vo';
 import {
   IUserRepository,
   USER_REPOSITORY,
 } from '../../profile/domain/repositories/user.repository';
 import { UniqueEmailSpec } from '../domain/specifications/unique-email.spec';
+import { UniqueHandleSpec } from '../../profile/domain/specifications/unique-handle';
 
 @Injectable()
 export class RegisterUseCase {
@@ -16,18 +17,17 @@ export class RegisterUseCase {
     private readonly jwt: JwtService,
   ) {}
 
-  async execute(input: { email: string; password: string; fullName: string }) {
+  async execute(input: { email: string; password: string; fullName: string; handle: string }) {
     const existing = await this.users.findByEmail(input.email);
     const spec = new UniqueEmailSpec(input.email);
     if (!spec.isSatisfiedBy(existing)) {
       throw new ConflictError('Email already registered');
     }
 
-    let handle = handleFromFullName(input.fullName);
-    let suffix = 0;
-    while (await this.users.findByHandle(handle)) {
-      suffix += 1;
-      handle = `${handleFromFullName(input.fullName)}${suffix}`;
+    const handle = Handle.parse(input.handle);
+    const taken = await this.users.findByHandle(handle.value);
+    if (!new UniqueHandleSpec(handle.value).isSatisfiedBy(taken)) {
+      throw new ConflictError('Handle already taken');
     }
 
     const passwordHash = await bcrypt.hash(input.password, 10);
@@ -35,7 +35,7 @@ export class RegisterUseCase {
       email: input.email,
       passwordHash,
       fullName: input.fullName,
-      handle,
+      handle: handle.value,
     });
 
     const token = this.jwt.sign({

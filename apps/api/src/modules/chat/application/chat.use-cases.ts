@@ -97,10 +97,11 @@ export class ListConversationsUseCase {
 
   async execute(ctx: ChatRequestContext): Promise<ConversationResponseDto[]> {
     const list = await this.repo.listConversationsForUser(ctx.userId);
-    const hidden = new Set(await this.blocks.listHiddenUserIds(ctx.userId));
+    const whoBlockedMe = new Set(await this.blocks.listWhoBlocked(ctx.userId));
+    const blockedByMe = new Set(await this.blocks.listBlockedByMe(ctx.userId));
     return list
-      .filter((c) => !hidden.has(c.otherUser.id))
-      .map(toConversationResponse);
+      .filter((c) => !whoBlockedMe.has(c.otherUser.id))
+      .map((c) => toConversationResponse(c, blockedByMe.has(c.otherUser.id)));
   }
 }
 
@@ -118,10 +119,10 @@ export class GetConversationUseCase {
     const list = await this.repo.listConversationsForUser(ctx.userId, 100);
     const found = list.find((c) => c.id === conversationId);
     if (!found) throw new NotFoundError('Conversation not found');
-    if (await this.blocks.isBlockedBetween(ctx.userId, found.otherUser.id)) {
-      throw new NotFoundError('Conversation not found');
-    }
-    return toConversationResponse(found);
+    const theyBlockedMe = await this.blocks.isBlockedBy(found.otherUser.id, ctx.userId);
+    if (theyBlockedMe) throw new NotFoundError('Conversation not found');
+    const blockedByMe = await this.blocks.isBlockedBy(ctx.userId, found.otherUser.id);
+    return toConversationResponse(found, blockedByMe);
   }
 }
 

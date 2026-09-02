@@ -18,6 +18,7 @@ describe('Comments (e2e)', () => {
         email: `comments-${label}-${Date.now()}@paw.test`,
         password: 'password123',
         fullName: `Commenter ${label}`,
+        handle: `c${label}${Date.now()}`.slice(0, 20),
       })
       .expect(201);
     return res.body.accessToken as string;

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { EmailMessage, IEmailSender } from '../domain/ports/email-sender.port';
+import { EmailMessage, IEmailSender } from '../../domain/ports/email-sender.port';
 
 @Injectable()
 export class ConsoleEmailSender implements IEmailSender {
@@ -7,7 +7,7 @@ export class ConsoleEmailSender implements IEmailSender {
 
   async send(message: EmailMessage): Promise<void> {
     this.logger.log(
-      `Password reset email to ${message.to}\nSubject: ${message.subject}\n\n${message.text}`,
+      `Email to ${message.to}\nSubject: ${message.subject}\n\n${message.text}`,
     );
   }
 }

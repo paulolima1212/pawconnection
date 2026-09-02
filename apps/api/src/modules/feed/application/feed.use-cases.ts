@@ -7,6 +7,10 @@ import {
   USER_BLOCK_READER,
   IUserBlockReader,
 } from '../../moderation/domain/ports/user-block-reader.port';
+import {
+  IPostReportReader,
+  POST_REPORT_READER,
+} from '../../moderation/domain/ports/post-report-reader.port';
 import { VisibleAuthorSpec } from '../../moderation/domain/specifications/hidden-user';
 import { ForbiddenError, NotFoundError } from '../../../shared/domain/result';
 import {
@@ -34,6 +38,7 @@ export class ListFeedPostsUseCase {
     @Inject(POST_REPOSITORY) private readonly posts: IPostRepository,
     @Inject(USER_REPOSITORY) private readonly users: IUserRepository,
     @Inject(USER_BLOCK_READER) private readonly blocks: IUserBlockReader,
+    @Inject(POST_REPORT_READER) private readonly reports: IPostReportReader,
   ) {}
 
   async execute(userId: string, query: ListFeedPostsQuery) {
@@ -43,6 +48,11 @@ export class ListFeedPostsUseCase {
     const hiddenIds = new Set(await this.blocks.listHiddenUserIds(userId));
     const visibleAuthor = new VisibleAuthorSpec(hiddenIds);
     items = items.filter((p) => visibleAuthor.isSatisfiedBy(p));
+
+    const reportedIds = new Set(await this.reports.listHiddenPostIdsForViewer(userId));
+    if (reportedIds.size) {
+      items = items.filter((p) => !reportedIds.has(p.id));
+    }
 
     const scopeSpec = new PublishedPostsSpec().and(
       new PostScopeSpec(query.scope ?? 'all', userId),

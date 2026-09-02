@@ -20,6 +20,15 @@ export class PrismaUserBlockReader implements IUserBlockReader {
     return Boolean(row);
   }
 
+  async isBlockedBy(blockerId: string, blockedId: string): Promise<boolean> {
+    if (blockerId === blockedId) return false;
+    const row = await this.prisma.userBlock.findUnique({
+      where: { blockerId_blockedId: { blockerId, blockedId } },
+      select: { id: true },
+    });
+    return Boolean(row);
+  }
+
   async listHiddenUserIds(viewerId: string): Promise<string[]> {
     const rows = await this.prisma.userBlock.findMany({
       where: {
@@ -33,5 +42,21 @@ export class PrismaUserBlockReader implements IUserBlockReader {
     }
     ids.delete(viewerId);
     return [...ids];
+  }
+
+  async listBlockedByMe(viewerId: string): Promise<string[]> {
+    const rows = await this.prisma.userBlock.findMany({
+      where: { blockerId: viewerId },
+      select: { blockedId: true },
+    });
+    return rows.map((row) => row.blockedId);
+  }
+
+  async listWhoBlocked(viewerId: string): Promise<string[]> {
+    const rows = await this.prisma.userBlock.findMany({
+      where: { blockedId: viewerId },
+      select: { blockerId: true },
+    });
+    return rows.map((row) => row.blockerId);
   }
 }

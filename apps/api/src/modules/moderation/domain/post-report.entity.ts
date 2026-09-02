@@ -104,6 +104,7 @@ export class PostReport {
           reporterId: report.reporterId,
           postAuthorId: report.postAuthorId,
           reason: report.reason,
+          details: report.details,
         },
         input.metadata,
       ),

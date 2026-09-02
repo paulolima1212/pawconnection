@@ -84,8 +84,11 @@ export class ProfileController {
     @Param('handle') handle: string,
     @CurrentUser() user?: AuthUserPayload,
   ) {
-    const profile = await this.getPublicProfile.execute(handle, user?.userId);
-    return this.withPublicMediaUrls(profile);
+    const result = await this.getPublicProfile.execute(handle, user?.userId);
+    return {
+      ...this.withPublicMediaUrls(result.user),
+      blockedByMe: result.blockedByMe,
+    };
   }
 
   @Patch('me/owner')

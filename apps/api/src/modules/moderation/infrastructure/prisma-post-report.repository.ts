@@ -2,11 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
 import { PostReport } from '../domain/post-report.entity';
 import { IPostReportRepository } from '../domain/repositories/post-report.repository';
+import { IPostReportReader } from '../domain/ports/post-report-reader.port';
 import { ReportReason } from '../domain/report-reason';
 import { ReportStatus } from '../domain/report-status';
 
 @Injectable()
-export class PrismaPostReportRepository implements IPostReportRepository {
+export class PrismaPostReportRepository implements IPostReportRepository, IPostReportReader {
   constructor(private readonly prisma: PrismaService) {}
 
   async findByReporterAndPost(reporterId: string, postId: string): Promise<PostReport | null> {
@@ -30,6 +31,18 @@ export class PrismaPostReportRepository implements IPostReportRepository {
         updatedAt: state.updatedAt,
       },
     });
+  }
+
+  async listPostIdsByReporter(reporterId: string): Promise<string[]> {
+    return this.listHiddenPostIdsForViewer(reporterId);
+  }
+
+  async listHiddenPostIdsForViewer(viewerId: string): Promise<string[]> {
+    const rows = await this.prisma.postReport.findMany({
+      where: { reporterId: viewerId },
+      select: { postId: true },
+    });
+    return rows.map((row) => row.postId);
   }
 
   private toDomain(row: {

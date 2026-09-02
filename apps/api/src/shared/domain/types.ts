@@ -1,3 +1,4 @@
+/** @deprecated Handles must be chosen by the user. Do not use for new accounts. */
 export function handleFromFullName(fullName: string): string {
   const base =
     fullName.trim().toLowerCase().replace(/\s+/g, '') || 'walkingphoebe';

@@ -39,6 +39,12 @@ class InMemoryPostReportRepository implements IPostReportRepository {
     if (this.rows.has(key)) throw new ConflictError('duplicate');
     this.rows.set(key, PostReport.restore(report.toState()));
   }
+
+  async listPostIdsByReporter(reporterId: string): Promise<string[]> {
+    return [...this.rows.values()]
+      .filter((r) => r.reporterId === reporterId)
+      .map((r) => r.postId);
+  }
 }
 
 class InMemoryUserBlockRepository implements IUserBlockRepository {
@@ -72,6 +78,17 @@ class FakePostReader implements IModerationPostReader {
   constructor(private readonly authorId: string | null) {}
   async getAuthorId(): Promise<string | null> {
     return this.authorId;
+  }
+  async getSnapshot() {
+    if (!this.authorId) return null;
+    return {
+      id: 'post-1',
+      body: 'hello',
+      imageUrls: [] as string[],
+      authorId: this.authorId,
+      authorHandle: 'author',
+      authorName: 'Author',
+    };
   }
 }
 

@@ -18,7 +18,8 @@ export type ConversationResponseDto = {
     senderId: string;
     createdAt: string;
   } | null;
-  unreadCount: number;
+    unreadCount: number;
+  blockedByMe: boolean;
 };
 
 export type MessageReplyPreviewDto = {
@@ -56,6 +57,7 @@ export type MessageResponseDto = {
 
 export function toConversationResponse(
   model: ConversationReadModel,
+  blockedByMe = false,
 ): ConversationResponseDto {
   return {
     id: model.id,
@@ -75,6 +77,7 @@ export function toConversationResponse(
         }
       : null,
     unreadCount: model.unreadCount,
+    blockedByMe,
   };
 }
 

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { EmailMessage, IEmailSender } from '../domain/ports/email-sender.port';
+import { EmailMessage, IEmailSender } from '../../domain/ports/email-sender.port';
 
 @Injectable()
 export class ResendEmailSender implements IEmailSender {

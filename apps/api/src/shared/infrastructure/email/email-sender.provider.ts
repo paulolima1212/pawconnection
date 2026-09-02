@@ -1,6 +1,6 @@
 import { Provider } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { EMAIL_SENDER } from '../domain/ports/email-sender.port';
+import { EMAIL_SENDER } from '../../domain/ports/email-sender.port';
 import { ConsoleEmailSender } from './console-email.sender';
 import { ResendEmailSender } from './resend-email.sender';
 

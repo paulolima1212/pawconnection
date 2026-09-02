@@ -76,6 +76,14 @@ export class UpdateOwnerDto {
   @IsOptional()
   @IsNumber()
   longitude?: number;
+
+  @ApiPropertyOptional({ example: 'phoebe_walker' })
+  @IsOptional()
+  @IsString()
+  @Matches(/^[a-zA-Z0-9_]{3,20}$/, {
+    message: 'Handle must be 3–20 letters, numbers, or underscores',
+  })
+  handle?: string;
 }
 
 export class UpdatePetDto {
