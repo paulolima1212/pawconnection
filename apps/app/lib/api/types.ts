@@ -57,6 +57,7 @@ export type ProfileMeResponse = {
   /** @deprecated Prefer interests for dog-owner goals */
   lookingFor?: InterestId[] | string[];
   handle: string;
+  blockedByMe?: boolean;
   owner: ProfileOwnerApi;
   pet?: ProfilePetApi | null;
 };

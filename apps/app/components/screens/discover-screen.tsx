@@ -18,6 +18,7 @@ import { DiscoverAdvancedFiltersSheet } from '@/components/paw/discover-advanced
 import { DiscoverConnectModal } from '@/components/paw/discover-connect-modal';
 import { DiscoverUserCard } from '@/components/paw/discover-user-card';
 import { PawLogo } from '@/components/paw/paw-logo';
+import { useKeyboardAwareBottomPadding } from '@/components/paw/keyboard-aware-form-scroll';
 import {
   DISCOVER_AGE_FILTER_OPTIONS,
   DISCOVER_DISTANCE_FILTER_OPTIONS,
@@ -104,14 +105,16 @@ export function DiscoverScreen() {
 
   const showLocationGate = permission === 'blocked';
   const showLoading = permission === 'loading' || (permission === 'ready' && usersLoading && visiblePeople.length === 0);
+  const scrollPaddingBottom = useKeyboardAwareBottomPadding(24);
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: scrollPaddingBottom }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
         refreshControl={
           !showLocationGate ? (
             <RefreshControl

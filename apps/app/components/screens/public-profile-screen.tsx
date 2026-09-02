@@ -46,6 +46,7 @@ export function PublicProfileScreen({ handle }: PublicProfileScreenProps) {
   const [tab, setTab] = useState<PublicProfileTab>('pet');
   const [blockOpen, setBlockOpen] = useState(false);
   const [blocking, setBlocking] = useState(false);
+  const [blockedByMe, setBlockedByMe] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,6 +57,7 @@ export function PublicProfileScreen({ handle }: PublicProfileScreenProps) {
         const data = await profileApi.getPublicProfile(handle);
         if (!cancelled) {
           setProfile(data);
+          setBlockedByMe(Boolean(data.blockedByMe));
         }
       } catch (err) {
         if (!cancelled) {
@@ -103,6 +105,14 @@ export function PublicProfileScreen({ handle }: PublicProfileScreenProps) {
       });
       return;
     }
+    if (blockedByMe) {
+      showTooltip({
+        title: 'User blocked',
+        message: 'Unblock this user to send a message.',
+        variant: 'info',
+      });
+      return;
+    }
     if (!profile) return;
     setStartingChat(true);
     try {
@@ -130,17 +140,28 @@ export function PublicProfileScreen({ handle }: PublicProfileScreenProps) {
     if (!profile?.id) return;
     setBlocking(true);
     try {
-      await moderationApi.blockUser(profile.id);
-      setBlockOpen(false);
-      showTooltip({
-        title: 'User blocked',
-        message: `${blockName} can no longer see or interact with you.`,
-        variant: 'success',
-      });
-      router.back();
+      if (blockedByMe) {
+        await moderationApi.unblockUser(profile.id);
+        setBlockedByMe(false);
+        setBlockOpen(false);
+        showTooltip({
+          title: 'User unblocked',
+          message: `You can message ${blockName} again.`,
+          variant: 'success',
+        });
+      } else {
+        await moderationApi.blockUser(profile.id);
+        setBlockedByMe(true);
+        setBlockOpen(false);
+        showTooltip({
+          title: 'User blocked',
+          message: `${blockName} can no longer see or interact with you.`,
+          variant: 'success',
+        });
+      }
     } catch (err) {
       showTooltip({
-        title: 'Could not block',
+        title: blockedByMe ? 'Could not unblock' : 'Could not block',
         message: tooltipMessageFromError(err, 'Please try again.'),
         variant: 'error',
       });
@@ -168,13 +189,23 @@ export function PublicProfileScreen({ handle }: PublicProfileScreenProps) {
         <View style={styles.headerRight}>
           {!isOwnProfile && isAuthenticated && profile ? (
             <Pressable
-              onPress={() => setBlockOpen(true)}
+              onPress={() => {
+                if (blockedByMe) {
+                  void confirmBlock();
+                  return;
+                }
+                setBlockOpen(true);
+              }}
               hitSlop={8}
               style={styles.headerBtn}
               accessibilityRole="button"
-              accessibilityLabel={`Block ${blockName}`}>
-              <View style={styles.headerBtnCircle}>
-                <Feather name="more-horizontal" size={20} color={PawColors.black} />
+              accessibilityLabel={blockedByMe ? `Unblock ${blockName}` : `Block ${blockName}`}>
+              <View style={[styles.headerBtnCircle, blockedByMe && styles.unblockCircle]}>
+                <Feather
+                  name={blockedByMe ? 'unlock' : 'slash'}
+                  size={18}
+                  color={blockedByMe ? PawColors.black : PawColors.destructive}
+                />
               </View>
             </Pressable>
           ) : (
@@ -182,11 +213,11 @@ export function PublicProfileScreen({ handle }: PublicProfileScreenProps) {
           )}
           <Pressable
             onPress={() => void startChat()}
-            disabled={startingChat || loading || isOwnProfile}
+            disabled={startingChat || loading || isOwnProfile || blockedByMe}
             hitSlop={8}
             style={styles.headerBtn}
             accessibilityRole="button"
-            accessibilityLabel="Send message">
+            accessibilityLabel={blockedByMe ? 'Messaging unavailable' : 'Send message'}>
             {startingChat ? (
               <ActivityIndicator size="small" color={PawColors.peachBorder} />
             ) : (
@@ -218,6 +249,30 @@ export function PublicProfileScreen({ handle }: PublicProfileScreenProps) {
             petPhotoUrl={pet?.photoUrl}
             ownerPhotoUrl={owner?.photoUrl}
           />
+
+          {!isOwnProfile && isAuthenticated ? (
+            <View style={styles.moderationRow}>
+              {blockedByMe ? (
+                <Text style={styles.blockedBanner}>This user is blocked. They cannot message you.</Text>
+              ) : null}
+              <Pressable
+                onPress={() => {
+                  if (blockedByMe) {
+                    void confirmBlock();
+                    return;
+                  }
+                  setBlockOpen(true);
+                }}
+                disabled={blocking}
+                style={[styles.blockActionBtn, blockedByMe && styles.unblockActionBtn]}
+                accessibilityRole="button"
+                accessibilityLabel={blockedByMe ? `Unblock ${blockName}` : `Block ${blockName}`}>
+                <Text style={[styles.blockActionText, blockedByMe && styles.unblockActionText]}>
+                  {blockedByMe ? 'Unblock' : 'Block'}
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
 
           <View style={styles.tabWrap}>
             <PawSegmentedSwitch
@@ -364,6 +419,44 @@ const styles = StyleSheet.create({
     backgroundColor: PawColors.fieldWhite,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  unblockCircle: {
+    backgroundColor: PawColors.peachBorder,
+  },
+  moderationRow: {
+    paddingHorizontal: PawLayout.horizontalPadding,
+    paddingTop: 16,
+    gap: 10,
+    alignItems: 'center',
+  },
+  blockedBanner: {
+    fontSize: PawFontSize.body,
+    fontWeight: '600',
+    color: PawColors.destructive,
+    textAlign: 'center',
+  },
+  blockActionBtn: {
+    minHeight: 44,
+    minWidth: 160,
+    borderRadius: PawLayout.borderRadiusField,
+    borderWidth: 2,
+    borderColor: PawColors.destructive,
+    backgroundColor: PawColors.destructive,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  unblockActionBtn: {
+    borderColor: PawColors.black,
+    backgroundColor: PawColors.peachBorder,
+  },
+  blockActionText: {
+    fontSize: PawFontSize.body,
+    fontWeight: '700',
+    color: PawColors.fieldWhite,
+  },
+  unblockActionText: {
+    color: PawColors.black,
   },
   headerTitle: {
     flex: 1,

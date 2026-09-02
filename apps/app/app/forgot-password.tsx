@@ -84,19 +84,21 @@ export default function ForgotPasswordScreen() {
             placeholderTextColor={PawColors.textMuted}
             autoCapitalize="none"
             keyboardType="email-address"
-            editable={!sent}
+            editable={!loading}
             style={styles.input}
           />
         </View>
 
         <Pressable
           onPress={onSubmit}
-          disabled={loading || sent}
-          style={[styles.primaryBtn, (loading || sent) && styles.btnDisabled]}>
+          disabled={loading}
+          style={[styles.primaryBtn, loading && styles.btnDisabled]}>
           {loading ? (
             <ActivityIndicator color={PawColors.black} />
           ) : (
-            <Text style={styles.primaryText}>{sent ? 'Email sent' : 'Send reset link'}</Text>
+            <Text style={styles.primaryText}>
+              {sent ? 'Resend reset link' : 'Send reset link'}
+            </Text>
           )}
         </Pressable>
 

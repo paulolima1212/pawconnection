@@ -1,6 +1,7 @@
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { KeyboardAwareFormScroll } from '@/components/paw/keyboard-aware-form-scroll';
 import { MATCH_WAVE_DEFAULT_MESSAGE } from '@/constants/match-feed';
 import { PawColors, PawFontSize, PawLayout, PawLineHeight } from '@/constants/paw-styles';
 
@@ -30,6 +31,7 @@ export function MatchWaveComposeModal({
       <View style={styles.root}>
         <Pressable style={styles.dim} onPress={onClose} accessibilityLabel="Close" />
         <View style={[styles.sheet, { paddingBottom: Math.max(16, insets.bottom + 8) }]}>
+          <KeyboardAwareFormScroll contentContainerStyle={styles.sheetScroll}>
           <Text style={styles.title}>Say hi to {recipientName}</Text>
           <Text style={styles.subtitle}>
             Sends your message and a friend request — you stay on Find
@@ -49,6 +51,7 @@ export function MatchWaveComposeModal({
             style={[styles.sendBtn, (busy || !message.trim()) && styles.sendBtnDisabled]}>
             <Text style={styles.sendText}>{busy ? 'Sending…' : 'Send wave'}</Text>
           </Pressable>
+          </KeyboardAwareFormScroll>
         </View>
       </View>
     </Modal>
@@ -78,6 +81,10 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingHorizontal: 16,
     gap: 12,
+  },
+  sheetScroll: {
+    gap: 12,
+    paddingBottom: 8,
   },
   title: {
     fontSize: PawFontSize.body,

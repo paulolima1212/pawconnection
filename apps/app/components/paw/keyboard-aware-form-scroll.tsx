@@ -6,6 +6,7 @@ import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 
 type KeyboardAwareFormScrollProps = PropsWithChildren<{
   contentContainerStyle?: StyleProp<ViewStyle>;
+  style?: StyleProp<ViewStyle>;
   /** Kept for API compatibility with callers that pass a header offset */
   keyboardVerticalOffset?: number;
   /** Extra gap below the last field when the keyboard is open */
@@ -23,6 +24,7 @@ type KeyboardAwareFormScrollProps = PropsWithChildren<{
 export function KeyboardAwareFormScroll({
   children,
   contentContainerStyle,
+  style,
   keyboardOpenBottomGap = 24,
 }: KeyboardAwareFormScrollProps) {
   const keyboardHeight = useKeyboardHeight();
@@ -32,7 +34,7 @@ export function KeyboardAwareFormScroll({
 
   return (
     <ScrollView
-      style={styles.flex}
+      style={[styles.flex, style]}
       contentContainerStyle={[
         contentContainerStyle,
         keyboardHeight > 0 && {
@@ -46,6 +48,11 @@ export function KeyboardAwareFormScroll({
       {children}
     </ScrollView>
   );
+}
+
+export function useKeyboardAwareBottomPadding(baseBottom = 0, extraGap = 24) {
+  const keyboardHeight = useKeyboardHeight();
+  return keyboardHeight > 0 ? baseBottom + keyboardHeight + extraGap : baseBottom;
 }
 
 const styles = StyleSheet.create({

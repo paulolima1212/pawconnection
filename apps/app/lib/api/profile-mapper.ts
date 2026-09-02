@@ -26,6 +26,7 @@ export function profileMeToDraft(dto: ProfileMeResponse, prev: ProfileDraft): Pr
     humanGender: dto.owner.gender ?? prev.humanGender ?? '',
     location: dto.owner.location ?? prev.location,
     humanBio: dto.owner.bio ?? prev.humanBio,
+    handle: (dto.handle ?? prev.handle ?? '').replace(/^@+/, ''),
     humanPhotoUri:
       resolveMediaUrl(dto.owner.photoUrl) ?? resolveMediaUrl(prev.humanPhotoUri),
     dogName: dto.pet?.name ?? prev.dogName,
@@ -64,6 +65,7 @@ export function draftToOwnerPayload(draft: ProfileDraft) {
     gender: draft.humanGender || undefined,
     location: draft.location.trim() || undefined,
     bio: draft.humanBio.trim() || undefined,
+    handle: draft.handle.trim() || undefined,
     photoUrl: draft.humanPhotoUri?.startsWith('http') ? draft.humanPhotoUri : undefined,
   };
 }

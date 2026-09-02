@@ -14,6 +14,7 @@ import { withTimeout } from '@/lib/api/client';
 import { profileMeToDraft } from '@/lib/api/profile-mapper';
 import type { ProfileMeResponse } from '@/lib/api/types';
 import { resolveRemoteUri, isHttpUrl } from '@/lib/api/media';
+import { isValidHandle } from '@/lib/handle';
 import { ageFromBirthdayIso } from '@/lib/pet-birthday';
 import { safeGetItem, safeRemoveItem, safeSetItem } from '@/lib/safe-async-storage';
 
@@ -59,6 +60,7 @@ export type ProfileDraft = {
   humanGender: GenderValue | '';
   location: string;
   humanBio: string;
+  handle: string;
   dogPhotoUri: string | null;
   dogName: string;
   /** Pet birthday as YYYY-MM-DD (preferred). Legacy dogAge kept for migration. */
@@ -193,6 +195,7 @@ const emptyDraft = (): ProfileDraft => ({
   humanGender: '',
   location: '',
   humanBio: '',
+  handle: '',
   dogPhotoUri: null,
   dogName: '',
   dogBirthday: '',
@@ -399,12 +402,16 @@ export function ProfileOnboardingProvider({ children }: { children: ReactNode })
     async (password: string) => {
       const email = draft.email.trim();
       const fullName = draft.fullName.trim();
+      const handle = draft.handle.trim();
       if (!email || !fullName || password.length < 6) {
         throw new Error('Email, name and password (min 6 chars) are required.');
       }
+      if (!isValidHandle(handle)) {
+        throw new Error('Choose an @ handle with 3–20 letters, numbers, or underscores.');
+      }
 
       if (!isAuthenticated) {
-        await registerAuth(email, password, fullName);
+        await registerAuth(email, password, fullName, handle);
       }
 
       let humanPhotoUrl: string | undefined;
@@ -428,6 +435,7 @@ export function ProfileOnboardingProvider({ children }: { children: ReactNode })
         location: draft.location.trim() || undefined,
         bio: draft.humanBio.trim() || undefined,
         photoUrl: humanPhotoUrl,
+        handle,
       });
 
       const withInterests = await profileApi.updateInterests(draft.interests);
@@ -454,6 +462,7 @@ export function ProfileOnboardingProvider({ children }: { children: ReactNode })
         location: draft.location.trim() || undefined,
         bio: draft.humanBio.trim() || undefined,
         photoUrl: humanPhotoUrl,
+        ...(draft.handle.trim() ? { handle: draft.handle.trim() } : {}),
       });
       applyProfileResponse(profile);
       if (humanPhotoUrl) {
@@ -582,6 +591,6 @@ export function useProfileOnboarding() {
 }
 
 export function publicHandleFromDraft(draft: ProfileDraft): string {
-  const base = draft.fullName.trim().toLowerCase().replace(/\s+/g, '') || 'walkingphoebe';
-  return `@${base}`;
+  const value = draft.handle.trim().replace(/^@+/, '');
+  return value ? `@${value}` : '';
 }

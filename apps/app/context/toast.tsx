@@ -11,6 +11,7 @@ import { Modal, StyleSheet, View } from 'react-native';
 import { ToastContainer, type ToastItem, type ToastPosition, type ToastType } from '@/components/paw/toast';
 import { TOAST_DEFAULT_DURATION_MS } from '@/constants/toast-styles';
 import { getApiBaseUrl, isUsingLocalDevApi } from '@/lib/api/config';
+import { isMissingChatRouteError } from '@/lib/api/error-message';
 
 export type ShowToastOptions = {
   type: ToastType;
@@ -134,13 +135,7 @@ export function toastMessageFromError(err: unknown, fallback: string): string {
   }
 
   const msg = err.message;
-  const chatUnavailable =
-    msg.includes('Cannot POST') ||
-    msg.includes('Cannot GET') ||
-    /\/conversations/i.test(msg) ||
-    /\/messages\/.*\/reactions/i.test(msg);
-
-  if (chatUnavailable) {
+  if (isMissingChatRouteError(msg)) {
     if (__DEV__) {
       const api = getApiBaseUrl();
       if (!isUsingLocalDevApi()) {

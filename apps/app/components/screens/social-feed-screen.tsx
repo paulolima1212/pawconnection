@@ -1,5 +1,4 @@
 import Feather from '@expo/vector-icons/Feather';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -44,6 +43,7 @@ import { useFeedPosts } from '@/context/feed-posts';
 import { useProfileOnboarding } from '@/context/profile-onboarding';
 import { tooltipMessageFromError, usePawTooltip } from '@/context/paw-tooltip';
 import { useFeedNearbyCities } from '@/hooks/use-feed-nearby-cities';
+import { useKeyboardAwareBottomPadding } from '@/components/paw/keyboard-aware-form-scroll';
 import * as feedApi from '@/lib/api/feed';
 import * as moderationApi from '@/lib/api/moderation';
 import type { FeedPostApi } from '@/lib/api/types';
@@ -64,6 +64,7 @@ export function SocialFeedScreen() {
   const router = useRouter();
   const { logout, userId } = useAuth();
   const { showTooltip } = usePawTooltip();
+  const scrollPaddingBottom = useKeyboardAwareBottomPadding(24);
   const { refreshNonce, pendingPost, clearPendingPost } = useFeedPosts();
   const { draft, handle: myHandle, resetOnboardingForDev } = useProfileOnboarding();
   const [viewMode, setViewMode] = useState<FeedMapMode>('feed');
@@ -184,8 +185,10 @@ export function SocialFeedScreen() {
     setReporting(true);
     try {
       const result = await moderationApi.reportPost(safetyPost.id, reason, details);
+      const reportedId = safetyPost.id;
       setReportOpen(false);
       setSafetyPost(null);
+      setPosts((prev) => prev.filter((p) => p.id !== reportedId));
       showTooltip({
         title: result.duplicate ? 'Already reported' : 'Report sent',
         message: result.duplicate
@@ -232,7 +235,9 @@ export function SocialFeedScreen() {
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, { paddingBottom: scrollPaddingBottom }]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
         showsVerticalScrollIndicator={false}
         refreshControl={
           viewMode === 'feed' ? (
@@ -422,9 +427,6 @@ export function SocialFeedScreen() {
                       <View style={styles.postNames}>
                         <Text style={styles.dogName}>{dogName}</Text>
                         <Text style={styles.ownerName}>{ownerName}</Text>
-                      </View>
-                      <View style={styles.checkBadge} accessibilityLabel="Verified">
-                        <MaterialCommunityIcons name="check-decagram" size={22} color={PawColors.badgeBlue} />
                       </View>
                       {post.authorId !== userId && post.author?.id !== userId ? (
                         <Pressable
@@ -626,16 +628,6 @@ const styles = StyleSheet.create({
     fontSize: PawFontSize.body,
     fontWeight: '400',
     color: PawColors.chipGray,
-  },
-  checkBadge: {
-    width: 36,
-    height: 28,
-    borderRadius: 8,
-    borderWidth: 0.7,
-    borderColor: PawColors.black,
-    backgroundColor: PawColors.fieldWhite,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   moreBtn: {
     width: 32,

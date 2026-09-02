@@ -1,5 +1,4 @@
 import Feather from '@expo/vector-icons/Feather';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import type { ComponentProps, ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -37,14 +36,9 @@ export function PublicProfileLocationChip({ location }: { location: string }) {
 
 export function PublicProfileVerifiedTitle({ name }: { name: string }) {
   return (
-    <View style={styles.titleRow}>
-      <Text style={styles.heroPetName} numberOfLines={1}>
-        {name}
-      </Text>
-      <View style={styles.verifiedBadge} accessibilityLabel="Verified">
-        <MaterialCommunityIcons name="check-decagram" size={22} color={PawColors.badgeBlue} />
-      </View>
-    </View>
+    <Text style={styles.heroPetName} numberOfLines={1}>
+      {name}
+    </Text>
   );
 }
 
@@ -150,25 +144,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: PawColors.profileBrown,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    maxWidth: '100%',
-  },
   heroPetName: {
     fontSize: 26,
     fontWeight: '700',
     color: PawColors.profileBrown,
     lineHeight: 32,
     textAlign: 'center',
-  },
-  verifiedBadge: {
-    width: 28,
-    height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   locationChip: {
     flexDirection: 'row',

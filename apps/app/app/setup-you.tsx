@@ -16,6 +16,7 @@ import { tooltipMessageFromError, usePawTooltip } from '@/context/paw-tooltip';
 import { useProfileOnboarding } from '@/context/profile-onboarding';
 import { ApiError } from '@/lib/api/client';
 import { getApiBaseUrl } from '@/lib/api/config';
+import { isValidHandle, sanitizeHandleInput } from '@/lib/handle';
 
 export default function SetupYouScreen() {
   const insets = useSafeAreaInsets();
@@ -28,6 +29,7 @@ export default function SetupYouScreen() {
   const canComplete =
     draft.fullName.trim().length > 0 &&
     draft.email.trim().length > 0 &&
+    isValidHandle(draft.handle) &&
     password.length >= 6;
 
   const onBack = () => {
@@ -101,6 +103,16 @@ export default function SetupYouScreen() {
               value={draft.fullName}
               onChangeText={(t) => setDraft({ fullName: t })}
             />
+          </LabeledBlock>
+          <LabeledBlock label="@ handle">
+            <FieldInput
+              placeholder="Choose your @handle"
+              value={draft.handle}
+              onChangeText={(t) => setDraft({ handle: sanitizeHandleInput(t) })}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <Text style={styles.thinHint}>3–20 letters, numbers, or underscores. You choose it — we never invent one.</Text>
           </LabeledBlock>
           <LabeledBlock label="Email">
             <FieldInput

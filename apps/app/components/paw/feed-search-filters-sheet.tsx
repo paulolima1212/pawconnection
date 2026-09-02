@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import {
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -12,6 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChipOptionDropdown } from '@/components/paw/chip-option-dropdown';
+import { KeyboardAwareFormScroll } from '@/components/paw/keyboard-aware-form-scroll';
 import {
   EMPTY_FEED_SEARCH_FILTERS,
   FEED_PET_GENDER_FILTER_OPTIONS,
@@ -57,11 +57,9 @@ export function FeedSearchFiltersSheet({
             </Pressable>
           </View>
 
-          <ScrollView
+          <KeyboardAwareFormScroll
             style={styles.scroll}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}>
+            contentContainerStyle={styles.scrollContent}>
             <Text style={styles.label}>City</Text>
             <TextInput
               value={draft.city ?? ''}
@@ -110,7 +108,7 @@ export function FeedSearchFiltersSheet({
               sheetTitle="Pet size"
               accessibilityLabel="Pet size filter"
             />
-          </ScrollView>
+          </KeyboardAwareFormScroll>
 
           <View style={styles.actions}>
             <Pressable

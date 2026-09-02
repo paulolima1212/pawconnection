@@ -18,6 +18,8 @@ type ProfileLabeledFieldInput = ProfileLabeledFieldBase & {
   placeholder?: string;
   multiline?: boolean;
   keyboardType?: ComponentProps<typeof ProfileFieldInput>['keyboardType'];
+  autoCapitalize?: ComponentProps<typeof ProfileFieldInput>['autoCapitalize'];
+  autoCorrect?: boolean;
   children?: never;
 };
 
@@ -47,6 +49,8 @@ export function ProfileLabeledField(props: ProfileLabeledFieldProps) {
           placeholder={(props as ProfileLabeledFieldInput).placeholder}
           multiline={(props as ProfileLabeledFieldInput).multiline}
           keyboardType={(props as ProfileLabeledFieldInput).keyboardType}
+          autoCapitalize={(props as ProfileLabeledFieldInput).autoCapitalize}
+          autoCorrect={(props as ProfileLabeledFieldInput).autoCorrect}
         />
       )}
     </View>

@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 
+import { ScrollView } from 'react-native-gesture-handler';
 import { ChatMessageBubble } from '@/components/paw/chat-message-bubble';
 import type { MessageResponse } from '@/lib/api/chat';
 import { extractSingleEmoji } from '@/lib/chat/reaction-emoji';
@@ -67,7 +68,11 @@ export function ChatMessageActionSheet({
       <View style={styles.root}>
         <Pressable style={styles.dim} onPress={onClose} accessibilityLabel="Close message actions" />
 
-        <View style={styles.centerStage} pointerEvents="box-none">
+        <ScrollView
+          contentContainerStyle={styles.centerStage}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="none"
+          pointerEvents="box-none">
           <View style={[styles.messageStack, mine ? styles.messageStackMine : styles.messageStackOther]}>
             <View style={styles.reactionBar}>
               {CHAT_QUICK_REACTIONS.map((emoji) => (
@@ -107,7 +112,7 @@ export function ChatMessageActionSheet({
               </Pressable>
             </View>
           </View>
-        </View>
+        </ScrollView>
 
         <TextInput
           ref={emojiInputRef}

@@ -1,7 +1,12 @@
 import { apiRequest } from '@/lib/api/client';
 import type { AuthResponse } from '@/lib/api/types';
 
-export function register(input: { email: string; password: string; fullName: string }) {
+export function register(input: {
+  email: string;
+  password: string;
+  fullName: string;
+  handle: string;
+}) {
   return apiRequest<AuthResponse>('/auth/register', { method: 'POST', body: input });
 }
 

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { KeyboardAwareFormScroll } from '@/components/paw/keyboard-aware-form-scroll';
 import { PawColors, PawFontSize, PawLayout, PawLineHeight } from '@/constants/paw-styles';
 import {
   REPORT_REASON_LABELS,
@@ -62,7 +63,8 @@ export function ReportPostSheet({
           onPress={close}
           accessibilityLabel="Close"
         />
-        <View style={[styles.sheet, { paddingBottom: Math.max(20, insets.bottom + 12) }]}>
+        <View style={[styles.sheet, { maxHeight: '92%', paddingBottom: Math.max(20, insets.bottom + 12) }]}>
+          <KeyboardAwareFormScroll contentContainerStyle={styles.sheetScroll}>
           <View style={styles.handle} accessibilityElementsHidden />
           <View style={styles.iconWrap}>
             <Feather name="flag" size={22} color={PawColors.destructive} />
@@ -138,6 +140,7 @@ export function ReportPostSheet({
             accessibilityLabel="Cancel">
             <Text style={styles.cancelText}>Cancel</Text>
           </Pressable>
+          </KeyboardAwareFormScroll>
         </View>
       </View>
     </Modal>
@@ -159,6 +162,9 @@ const styles = StyleSheet.create({
     maxWidth: PawLayout.screenMaxWidth,
     alignSelf: 'center',
     width: '100%',
+  },
+  sheetScroll: {
+    paddingBottom: 8,
   },
   handle: {
     alignSelf: 'center',

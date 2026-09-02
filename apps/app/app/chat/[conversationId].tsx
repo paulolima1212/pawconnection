@@ -96,6 +96,7 @@ export default function ChatScreen() {
   const [replyTarget, setReplyTarget] = useState<MessageResponse | null>(null);
   const [blockOpen, setBlockOpen] = useState(false);
   const [blocking, setBlocking] = useState(false);
+  const [blockedByMe, setBlockedByMe] = useState(false);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const listRef = useRef<FlatList<MessageResponse>>(null);
   const composerRef = useRef<TextInput | null>(null);
@@ -120,17 +121,31 @@ export default function ChatScreen() {
     if (!otherUser?.id) return;
     setBlocking(true);
     try {
-      await moderationApi.blockUser(otherUser.id);
-      setBlockOpen(false);
-      showTooltip({
-        title: 'User blocked',
-        message: `${otherName} can no longer see or interact with you.`,
-        variant: 'success',
-      });
-      exitChat();
+      if (blockedByMe) {
+        await moderationApi.unblockUser(otherUser.id);
+        setBlockedByMe(false);
+        setBlockOpen(false);
+        setConversation((prev) => (prev ? { ...prev, blockedByMe: false } : prev));
+        showTooltip({
+          title: 'User unblocked',
+          message: `You can message ${otherName} again.`,
+          variant: 'success',
+        });
+      } else {
+        await moderationApi.blockUser(otherUser.id);
+        setBlockedByMe(true);
+        setBlockOpen(false);
+        setConversation((prev) => (prev ? { ...prev, blockedByMe: true } : prev));
+        showTooltip({
+          title: 'User blocked',
+          message: `${otherName} can no longer see or interact with you.`,
+          variant: 'success',
+        });
+      }
+      void refreshConversations();
     } catch (err) {
       showTooltip({
-        title: 'Could not block',
+        title: blockedByMe ? 'Could not unblock' : 'Could not block',
         message: tooltipMessageFromError(err, 'Please try again.'),
         variant: 'error',
       });
@@ -151,11 +166,12 @@ export default function ChatScreen() {
     if (!conversationId) return;
     if (cachedConversation) {
       setConversation(cachedConversation);
-      return;
+      setBlockedByMe(Boolean(cachedConversation.blockedByMe));
     }
     try {
       const data = await chatApi.getConversation(conversationId);
       setConversation(data);
+      setBlockedByMe(Boolean(data.blockedByMe));
     } catch {
       /* header falls back to generic title */
     }
@@ -250,7 +266,7 @@ export default function ChatScreen() {
 
   const handleSend = async () => {
     const text = draft.trim();
-    if (!text || !conversationId || sending || !userId) return;
+    if (!text || !conversationId || sending || !userId || blockedByMe) return;
     setSending(true);
     const clientMessageId = makeClientId();
     const replySnapshot = replyTarget;
@@ -363,7 +379,17 @@ export default function ChatScreen() {
             ? () => openUserProfile(router, otherUser.handle)
             : undefined
         }
-        onPressMore={otherUser ? () => setBlockOpen(true) : undefined}
+        onPressMore={
+          otherUser
+            ? () => {
+                if (blockedByMe) {
+                  void confirmBlock();
+                  return;
+                }
+                setBlockOpen(true);
+              }
+            : undefined
+        }
       />
 
       <KeyboardAvoidingView
@@ -402,6 +428,21 @@ export default function ChatScreen() {
             <ChatReplyBar target={replyTarget} onCancel={() => setReplyTarget(null)} />
           ) : null}
 
+          {blockedByMe ? (
+            <View style={styles.blockedBanner}>
+              <Text style={styles.blockedBannerText}>
+                {otherName} is blocked. You cannot send messages until you unblock them.
+              </Text>
+              <Pressable
+                onPress={() => void confirmBlock()}
+                disabled={blocking}
+                style={styles.unblockBtn}
+                accessibilityRole="button"
+                accessibilityLabel={`Unblock ${otherName}`}>
+                <Text style={styles.unblockBtnText}>Unblock</Text>
+              </Pressable>
+            </View>
+          ) : (
           <View style={styles.composerRow}>
             <TextInput
               ref={composerRef}
@@ -421,6 +462,7 @@ export default function ChatScreen() {
               <Feather name="send" size={20} color={PawColors.whiteCard} />
             </Pressable>
           </View>
+          )}
         </View>
       </KeyboardAvoidingView>
 
@@ -508,6 +550,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sendBtnDisabled: { opacity: 0.4 },
+  blockedBanner: {
+    paddingHorizontal: PawLayout.horizontalPadding,
+    paddingVertical: 12,
+    gap: 10,
+    borderTopWidth: 1,
+    borderColor: PawColors.profileHeaderBorder,
+    backgroundColor: PawColors.creamBg,
+  },
+  blockedBannerText: {
+    fontSize: PawFontSize.body,
+    fontWeight: '500',
+    color: PawColors.destructive,
+    textAlign: 'center',
+  },
+  unblockBtn: {
+    minHeight: 44,
+    borderRadius: PawLayout.borderRadiusField,
+    borderWidth: 2,
+    borderColor: PawColors.black,
+    backgroundColor: PawColors.peachBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  unblockBtnText: {
+    fontSize: PawFontSize.body,
+    fontWeight: '800',
+    color: PawColors.black,
+  },
 });
 
 function MessageSeparator() {

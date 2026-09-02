@@ -2,9 +2,7 @@ import Feather from '@expo/vector-icons/Feather';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -15,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CommentActionSheet } from '@/components/paw/comment-action-sheet';
+import { useKeyboardAwareBottomPadding } from '@/components/paw/keyboard-aware-form-scroll';
 import { RemoteMediaImage } from '@/components/paw/remote-media-image';
 import { PawColors, PawFontSize, PawLayout, PawLineHeight } from '@/constants/paw-styles';
 import { useAuth } from '@/context/auth';
@@ -180,6 +179,7 @@ export function PostCommentsSheet({
   onCountChange,
 }: PostCommentsSheetProps) {
   const insets = useSafeAreaInsets();
+  const keyboardPad = useKeyboardAwareBottomPadding(Math.max(12, insets.bottom + 8));
   const { userId } = useAuth();
   const { showTooltip } = usePawTooltip();
   const [items, setItems] = useState<CommentTreeApi[]>([]);
@@ -275,11 +275,9 @@ export function PostCommentsSheet({
   return (
     <>
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        style={styles.modalRoot}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <View style={styles.modalRoot}>
         <Pressable style={[StyleSheet.absoluteFillObject, styles.dim]} onPress={onClose} />
-        <View style={[styles.sheet, { paddingBottom: Math.max(12, insets.bottom + 8) }]}>
+        <View style={[styles.sheet, { paddingBottom: keyboardPad }]}>
           <View style={styles.header}>
             <View>
               <Text style={styles.title}>Comments</Text>
@@ -389,7 +387,7 @@ export function PostCommentsSheet({
             </Pressable>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
 
     <CommentActionSheet

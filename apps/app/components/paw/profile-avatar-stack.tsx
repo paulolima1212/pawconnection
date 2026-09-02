@@ -43,7 +43,6 @@ export function ProfileAvatarStack({
         subtitle="Pet profile"
         photoUri={dogPhotoUri}
         fallback={PROFILE_FIGMA.dogAvatar}
-        showVerifiedBadge
         uploading={photoUploading}
         onPhotoChange={onPhotoChange}
         accessibilityLabel="View dog photo full screen"
@@ -73,7 +72,6 @@ type ProfileEditPhotoProps = {
   subtitle: string;
   photoUri: string | null;
   fallback: number;
-  showVerifiedBadge?: boolean;
   uploading?: boolean;
   onPhotoChange: (field: ProfilePhotoField, uri: string) => void;
   accessibilityLabel: string;
@@ -86,7 +84,6 @@ function ProfileEditPhoto({
   subtitle,
   photoUri,
   fallback,
-  showVerifiedBadge = false,
   uploading = false,
   onPhotoChange,
   accessibilityLabel,
@@ -161,14 +158,6 @@ function ProfileEditPhoto({
           </View>
         </Pressable>
 
-        {showVerifiedBadge ? (
-          <View style={styles.verifiedBadge} pointerEvents="none" accessibilityLabel="Verified profile">
-            <View style={styles.verifiedInner}>
-              <Feather name="check" size={14} color={PawColors.profileBrown} />
-            </View>
-          </View>
-        ) : null}
-
         <Pressable
           onPress={handlePick}
           disabled={picking || uploading}
@@ -238,31 +227,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 46,
-  },
-  verifiedBadge: {
-    position: 'absolute',
-    right: 0,
-    top: -4,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 2,
-    borderColor: PawColors.black,
-    backgroundColor: PawColors.fieldWhite,
-    padding: 4,
-    zIndex: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  verifiedInner: {
-    flex: 1,
-    borderRadius: 14,
-    backgroundColor: PawColors.reactionLavender,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   peachCameraBtnSingle: {
     position: 'absolute',

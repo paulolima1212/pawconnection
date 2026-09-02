@@ -35,6 +35,7 @@ import * as profileApi from '@/lib/api/profile';
 import { profileMeToDraft } from '@/lib/api/profile-mapper';
 import { extractStorageObjectPath, resolveMediaUrl } from '@/lib/api/media';
 import { ageFromBirthdayIso } from '@/lib/pet-birthday';
+import { isValidHandle, sanitizeHandleInput } from '@/lib/handle';
 
 function photoSnapshotKey(uri: string | null): string | null {
   if (!uri?.trim()) return null;
@@ -101,6 +102,14 @@ export function ProfileScreen() {
   const ownerFullName = draft.fullName.trim() || 'Jefferson';
 
   const onSave = async () => {
+    if (infoTab === 'owner' && !isValidHandle(draft.handle)) {
+      showTooltip({
+        title: 'Handle required',
+        message: 'Choose an @ handle with 3–20 letters, numbers, or underscores.',
+        variant: 'info',
+      });
+      return;
+    }
     setSaving(true);
     try {
       const profile =
@@ -368,6 +377,15 @@ function OwnerInfoFields({
         value={draft.fullName}
         onChangeText={(t) => setDraft({ fullName: t })}
         placeholder="Jefferson"
+      />
+      <ProfileLabeledField
+        label="@ handle"
+        icon="at-sign"
+        value={draft.handle}
+        onChangeText={(t) => setDraft({ handle: sanitizeHandleInput(t) })}
+        placeholder="your_handle"
+        autoCapitalize="none"
+        autoCorrect={false}
       />
       <ProfileLabeledField
         label="Email"

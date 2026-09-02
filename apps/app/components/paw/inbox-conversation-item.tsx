@@ -75,9 +75,13 @@ export function InboxConversationItem({
           <Text style={styles.ownerName} numberOfLines={1}>
             {other.fullName}
           </Text>
-          <Text style={[styles.preview, unread && styles.previewUnread]} numberOfLines={1}>
-            {preview}
-          </Text>
+          {conversation.blockedByMe ? (
+            <Text style={styles.blockedLabel}>Blocked</Text>
+          ) : (
+            <Text style={[styles.preview, unread && styles.previewUnread]} numberOfLines={1}>
+              {preview}
+            </Text>
+          )}
         </View>
         {unread ? (
           <View style={styles.badge}>
@@ -135,6 +139,12 @@ const styles = StyleSheet.create({
   previewUnread: {
     fontWeight: '600',
     color: PawColors.black,
+  },
+  blockedLabel: {
+    fontSize: PawFontSize.small,
+    fontWeight: '700',
+    color: PawColors.destructive,
+    marginTop: 2,
   },
   time: {
     fontSize: PawFontSize.caption,

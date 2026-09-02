@@ -43,6 +43,7 @@ export type ConversationResponse = {
     createdAt: string;
   } | null;
   unreadCount: number;
+  blockedByMe?: boolean;
 };
 
 export type MessageResponse = {
