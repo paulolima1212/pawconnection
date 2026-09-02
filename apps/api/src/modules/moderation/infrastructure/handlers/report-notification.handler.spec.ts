@@ -53,7 +53,7 @@ describe('ReportNotificationHandler', () => {
       email,
       new FakePosts(snapshot) as never,
       new FakeUsers([reporter]),
-      config as ConfigService,
+      config as unknown as ConfigService,
     );
 
     await handler.handle(
@@ -81,7 +81,7 @@ describe('ReportNotificationHandler', () => {
       email,
       new FakePosts(snapshot) as never,
       new FakeUsers([reporter]),
-      config as ConfigService,
+      config as unknown as ConfigService,
     );
 
     await handler.handle(

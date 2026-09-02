@@ -49,3 +49,11 @@ export function directionSpec(
     ? new IncomingRequestsSpec(userId)
     : new OutgoingRequestsSpec(userId);
 }
+
+describe('PendingRequestsSpec', () => {
+  it('is satisfied for pending requests', () => {
+    expect(
+      new PendingRequestsSpec().isSatisfiedBy({ status: 'pending' } as ConnectionRequestEntity),
+    ).toBe(true);
+  });
+});

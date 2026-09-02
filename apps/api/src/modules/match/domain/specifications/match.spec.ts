@@ -65,3 +65,11 @@ export class MatchingLookingForSpec extends CompositeSpecification<UserEntity> {
     return candidate.lookingFor.some((intent) => this.lookingFor.includes(intent));
   }
 }
+
+describe('ExcludePassedUsersSpec', () => {
+  it('is satisfied when the candidate was not passed', () => {
+    expect(new ExcludePassedUsersSpec(new Set(['other'])).isSatisfiedBy({ id: 'me' } as UserEntity)).toBe(
+      true,
+    );
+  });
+});
