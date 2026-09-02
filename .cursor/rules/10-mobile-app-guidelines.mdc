@@ -24,9 +24,18 @@ alwaysApply: false
 - Opening chat: use `openChat(router, id, origin)`; exiting must restore correct tab route
 - Env: `EXPO_PUBLIC_*` for API URL; production builds must not depend on Metro/LAN
 
+## Keyboard + scroll (mandatory)
+**Every screen or sheet that has a text input (where the software keyboard can appear) MUST have scrolling enabled.** Never use a non-scroll layout for input screens.
+
+- Wrap the screen in `KeyboardAwareFormScroll` (or an equivalent scroll container that keeps `keyboardShouldPersistTaps` and still scrolls while the IME is open).
+- Existing list screens that already use `ScrollView` / `FlatList` (feed, inbox, chat messages) must still remain scrollable with the keyboard open — add keyboard-sized bottom padding via `useKeyboardAwareBottomPadding` rather than freezing the layout.
+- Bottom sheets with inputs (report, comments, filters, compose) must use the same pattern. Do not put a focused `TextInput` in a non-scroll parent.
+- Prefer the shared wrapper over copy-pasted `KeyboardAvoidingView` per screen.
+
 ## Forbidden in screens
 - Business rules that belong in API
 - Duplicate WebSocket connections when a provider already handles events
+- Input screens without a scroll container (see Keyboard + scroll)
 
 ## Tests
 - Add tests for non-trivial hooks/utils when changing behavior (see 03-testing)

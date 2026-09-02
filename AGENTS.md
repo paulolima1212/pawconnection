@@ -16,7 +16,7 @@ This repository uses **project rules** in [`.cursor/rules/`](.cursor/rules/). Th
 | [07-database-guidelines](.cursor/rules/07-database-guidelines.mdc) | Prisma / migrations |
 | [08-security-guidelines](.cursor/rules/08-security-guidelines.mdc) | Security |
 | [09-git-flow](.cursor/rules/09-git-flow.mdc) | **Git, commits, PRs (canonical)** |
-| [10-mobile-app-guidelines](.cursor/rules/10-mobile-app-guidelines.mdc) | Expo app (`apps/app`) |
+| [10-mobile-app-guidelines](.cursor/rules/10-mobile-app-guidelines.mdc) | Expo app (`apps/app`) — **input screens must scroll with the keyboard** (`KeyboardAwareFormScroll`) |
 
 ## Commits
 
@@ -27,6 +27,10 @@ type(scope): imperative summary [Refs #ID]
 ```
 
 The agent commits **only when explicitly requested**. See `09-git-flow.mdc` for the full protocol.
+
+## Mobile keyboard + scroll
+
+Screens (and sheets) with a text input **must** stay scrollable while the software keyboard is visible. Use `KeyboardAwareFormScroll` or `useKeyboardAwareBottomPadding` — never a non-scroll layout. See [10-mobile-app-guidelines](.cursor/rules/10-mobile-app-guidelines.mdc).
 
 ## ADRs
 
