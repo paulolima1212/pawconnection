@@ -60,6 +60,24 @@ function getConfiguredApiUrl(): string {
   return trimUrl(fromEnv || extra?.apiUrl || '');
 }
 
+/** Host port of the LAN API (Docker maps 3011:3001; Nest watch uses 3001). */
+function getLanApiPort(): string {
+  const fromEnv = process.env.EXPO_PUBLIC_LAN_API_PORT?.trim();
+  if (fromEnv && /^\d+$/.test(fromEnv)) return fromEnv;
+  const lanHost = getLanHost();
+  if (lanHost && isTailscaleHost(lanHost)) return '3011';
+  const configured = getConfiguredApiUrl();
+  if (configured) {
+    try {
+      const port = new URL(configured).port;
+      if (port) return port;
+    } catch {
+      /* ignore invalid URL */
+    }
+  }
+  return '3001';
+}
+
 export function getAppBaseUrl(): string {
   const fromEnv = process.env.EXPO_PUBLIC_APP_URL?.trim();
   if (fromEnv) return trimUrl(fromEnv);
@@ -72,8 +90,9 @@ export function getAppBaseUrl(): string {
  * Dev URL resolution:
  * - Production builds always use EXPO_PUBLIC_API_URL.
  * - In Expo Go, use the remote URL from .env by default (works on any network).
- * - LAN backend (http://<metro-ip>:3001) when EXPO_PUBLIC_USE_LAN_API=true,
+ * - LAN backend (http://<metro-ip>:<port>) when EXPO_PUBLIC_USE_LAN_API=true,
  *   EXPO_PUBLIC_API_URL points at localhost, or Metro is reached via Tailscale (100.x).
+ *   Tailscale defaults to 3011 (Docker host mapping). Override with EXPO_PUBLIC_LAN_API_PORT.
  * - EXPO_PUBLIC_USE_REMOTE_API=true forces the remote URL (same as default with prod .env).
  */
 export function getApiBaseUrl(): string {
@@ -81,6 +100,7 @@ export function getApiBaseUrl(): string {
   const forceRemote = process.env.EXPO_PUBLIC_USE_REMOTE_API === 'true';
   const forceLan = process.env.EXPO_PUBLIC_USE_LAN_API === 'true';
   const lanHost = getLanHost();
+  const lanPort = getLanApiPort();
   const useLanInDev =
     __DEV__ &&
     !forceRemote &&
@@ -92,7 +112,7 @@ export function getApiBaseUrl(): string {
       configuredPointsToLocalhost(configured));
 
   if (useLanInDev) {
-    return `http://${lanHost}:3001`;
+    return `http://${lanHost}:${lanPort}`;
   }
 
   if (configured) {
@@ -100,7 +120,9 @@ export function getApiBaseUrl(): string {
   }
 
   const fallback =
-    Platform.OS === 'android' ? 'http://10.0.2.2:3001' : 'http://localhost:3001';
+    Platform.OS === 'android'
+      ? `http://10.0.2.2:${lanPort}`
+      : `http://localhost:${lanPort}`;
   return resolveLocalApiUrl(fallback);
 }
 
