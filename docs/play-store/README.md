@@ -3,12 +3,12 @@
 ## Current Android release configuration
 
 - Application ID: `com.plima1212.pawconnection`
-- Release version: `1.0.6`
-- Android versionCode: `9` (previous Play build was `8`)
-- iOS buildNumber: `9`
+- Release version: `1.0.7`
+- Android versionCode: `10` (EAS production autoIncrement; Play already has `10` from 1.0.6)
+- iOS buildNumber: `10`
 - Expo SDK 54 / Android target API 36
 - Production artifact: Android App Bundle
-- EAS production version code: remote and automatically incremented (next expected: 9)
+- EAS production version code: remote and automatically incremented (next expected: 11)
 - Initial automated submission: internal track, draft status
 - Production API, app and storage endpoints: HTTPS
 - Cleartext traffic: disabled in production builds

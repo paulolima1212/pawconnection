@@ -181,3 +181,26 @@ export type MapUserPinApi = {
   distanceKm?: number | null;
   locationUpdatedAt?: string | null;
 };
+
+export type MapPlaceCategoryApi = 'parks' | 'services' | 'cafes';
+
+export type MapPlacePinApi = {
+  id: string;
+  name: string;
+  category: MapPlaceCategoryApi;
+  featured: boolean;
+  latitude: number;
+  longitude: number;
+  distanceKm: number;
+  address: string | null;
+  types: string[];
+  allowsDogs: boolean | null;
+};
+
+export type MapPlacesResponseApi = {
+  category: 'forYou' | 'parks' | 'services' | 'cafes' | 'all';
+  featuredCategory: MapPlaceCategoryApi;
+  radiusKm: number;
+  items: MapPlacePinApi[];
+};
+

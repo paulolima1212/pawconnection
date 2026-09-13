@@ -60,8 +60,9 @@ export function PostActionSheet({
   const insets = useSafeAreaInsets();
 
   const pick = (action: PostSafetyAction) => {
-    onClose();
-    requestAnimationFrame(() => onSelect(action));
+    // Parent hides this menu via `visible` when Report/Block opens.
+    // Closing first used to unmount the target post and skip the next sheet.
+    onSelect(action);
   };
 
   return (
