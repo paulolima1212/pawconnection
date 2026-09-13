@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ChipOptionDropdown } from '@/components/paw/chip-option-dropdown';
 import { KeyboardAwareFormScroll } from '@/components/paw/keyboard-aware-form-scroll';
 import {
   EMPTY_FEED_SEARCH_FILTERS,
@@ -19,7 +18,7 @@ import {
   type FeedSearchFilters,
 } from '@/constants/feed-search-filters';
 import type { GenderValue } from '@/context/profile-onboarding';
-import { PawColors, PawFontSize, PawLayout, PawLineHeight } from '@/constants/paw-styles';
+import { PawColors, PawFontSize, PawLayout } from '@/constants/paw-styles';
 
 type FeedSearchFiltersSheetProps = {
   visible: boolean;
@@ -27,6 +26,39 @@ type FeedSearchFiltersSheetProps = {
   onClose: () => void;
   onApply: (filters: FeedSearchFilters) => void;
 };
+
+type FilterChoice<T extends string> = { value: T; label: string };
+
+function FilterChoiceRow<T extends string>({
+  options,
+  value,
+  onChange,
+  accessibilityLabel,
+}: {
+  options: readonly FilterChoice<T>[];
+  value: T;
+  onChange: (value: T) => void;
+  accessibilityLabel: string;
+}) {
+  return (
+    <View style={styles.choices} accessibilityRole="radiogroup" accessibilityLabel={accessibilityLabel}>
+      {options.map((opt) => {
+        const selected = opt.value === value;
+        return (
+          <Pressable
+            key={String(opt.value) || 'any'}
+            onPress={() => onChange(opt.value)}
+            style={[styles.choiceChip, selected && styles.choiceChipSelected]}
+            accessibilityRole="radio"
+            accessibilityState={{ selected }}
+            accessibilityLabel={opt.label}>
+            <Text style={[styles.choiceText, selected && styles.choiceTextSelected]}>{opt.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
 
 export function FeedSearchFiltersSheet({
   visible,
@@ -50,16 +82,14 @@ export function FeedSearchFiltersSheet({
       <View style={styles.modalRoot}>
         <Pressable style={[StyleSheet.absoluteFillObject, styles.dim]} onPress={onClose} />
         <View style={[styles.sheet, { paddingBottom: Math.max(16, insets.bottom + 12) }]}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Search filters</Text>
-            <Pressable onPress={onClose} hitSlop={8} accessibilityLabel="Close filters">
-              <Feather name="x" size={24} color={PawColors.black} />
-            </Pressable>
-          </View>
+          <KeyboardAwareFormScroll fill={false} contentContainerStyle={styles.scrollContent}>
+            <View style={styles.header}>
+              <Text style={styles.title}>Search filters</Text>
+              <Pressable onPress={onClose} hitSlop={8} accessibilityLabel="Close filters">
+                <Feather name="x" size={24} color={PawColors.black} />
+              </Pressable>
+            </View>
 
-          <KeyboardAwareFormScroll
-            style={styles.scroll}
-            contentContainerStyle={styles.scrollContent}>
             <Text style={styles.label}>City</Text>
             <TextInput
               value={draft.city ?? ''}
@@ -81,11 +111,10 @@ export function FeedSearchFiltersSheet({
             />
 
             <Text style={styles.label}>Pet gender</Text>
-            <ChipOptionDropdown<GenderValue | ''>
+            <FilterChoiceRow<GenderValue | ''>
               value={draft.petGender ?? ''}
               options={FEED_PET_GENDER_FILTER_OPTIONS}
               onChange={(v) => setField('petGender', v)}
-              sheetTitle="Pet gender"
               accessibilityLabel="Pet gender filter"
             />
 
@@ -101,38 +130,37 @@ export function FeedSearchFiltersSheet({
             />
 
             <Text style={styles.label}>Pet size</Text>
-            <ChipOptionDropdown<'' | 'small' | 'medium' | 'large'>
+            <FilterChoiceRow<'' | 'small' | 'medium' | 'large'>
               value={draft.petSize ?? ''}
               options={FEED_PET_SIZE_FILTER_OPTIONS}
               onChange={(v) => setField('petSize', v)}
-              sheetTitle="Pet size"
               accessibilityLabel="Pet size filter"
             />
-          </KeyboardAwareFormScroll>
 
-          <View style={styles.actions}>
-            <Pressable
-              style={styles.secondaryBtn}
-              onPress={() => {
-                setDraft(EMPTY_FEED_SEARCH_FILTERS);
-                onApply(EMPTY_FEED_SEARCH_FILTERS);
-                onClose();
-              }}
-              accessibilityRole="button"
-              accessibilityLabel="Clear all filters">
-              <Text style={styles.secondaryBtnText}>Clear</Text>
-            </Pressable>
-            <Pressable
-              style={styles.primaryBtn}
-              onPress={() => {
-                onApply(draft);
-                onClose();
-              }}
-              accessibilityRole="button"
-              accessibilityLabel="Apply filters">
-              <Text style={styles.primaryBtnText}>Apply</Text>
-            </Pressable>
-          </View>
+            <View style={styles.actions}>
+              <Pressable
+                style={styles.secondaryBtn}
+                onPress={() => {
+                  setDraft(EMPTY_FEED_SEARCH_FILTERS);
+                  onApply(EMPTY_FEED_SEARCH_FILTERS);
+                  onClose();
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Clear all filters">
+                <Text style={styles.secondaryBtnText}>Clear</Text>
+              </Pressable>
+              <Pressable
+                style={styles.primaryBtn}
+                onPress={() => {
+                  onApply(draft);
+                  onClose();
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Apply filters">
+                <Text style={styles.primaryBtnText}>Apply</Text>
+              </Pressable>
+            </View>
+          </KeyboardAwareFormScroll>
         </View>
       </View>
     </Modal>
@@ -162,19 +190,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 4,
   },
   title: {
     fontSize: PawFontSize.subtitle,
     fontWeight: '700',
     color: PawColors.black,
   },
-  scroll: {
-    flexGrow: 0,
-  },
   scrollContent: {
     gap: 8,
-    paddingBottom: 12,
+    paddingBottom: 4,
   },
   label: {
     marginTop: 8,
@@ -193,10 +218,35 @@ const styles = StyleSheet.create({
     fontWeight: '300',
     color: PawColors.black,
   },
+  choices: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  choiceChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: PawLayout.borderRadiusPill,
+    borderWidth: 1,
+    borderColor: PawColors.black,
+    backgroundColor: PawColors.fieldWhite,
+  },
+  choiceChipSelected: {
+    backgroundColor: PawColors.peachBorder,
+    borderWidth: 2,
+  },
+  choiceText: {
+    fontSize: PawFontSize.body,
+    fontWeight: '300',
+    color: PawColors.black,
+  },
+  choiceTextSelected: {
+    fontWeight: '700',
+  },
   actions: {
     flexDirection: 'row',
     gap: 12,
-    marginTop: 8,
+    marginTop: 16,
   },
   secondaryBtn: {
     flex: 1,
