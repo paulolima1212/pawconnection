@@ -11,6 +11,11 @@ type KeyboardAwareFormScrollProps = PropsWithChildren<{
   keyboardVerticalOffset?: number;
   /** Extra gap below the last field when the keyboard is open */
   keyboardOpenBottomGap?: number;
+  /**
+   * When false, size to content (bottom sheets). Default true fills the parent,
+   * which collapses to height 0 inside wrap-content sheets with a header/footer.
+   */
+  fill?: boolean;
 }>;
 
 /**
@@ -26,6 +31,7 @@ export function KeyboardAwareFormScroll({
   contentContainerStyle,
   style,
   keyboardOpenBottomGap = 24,
+  fill = true,
 }: KeyboardAwareFormScrollProps) {
   const keyboardHeight = useKeyboardHeight();
   const baseContentStyle = StyleSheet.flatten(contentContainerStyle) ?? {};
@@ -34,7 +40,7 @@ export function KeyboardAwareFormScroll({
 
   return (
     <ScrollView
-      style={[styles.flex, style]}
+      style={[fill && styles.flex, style]}
       contentContainerStyle={[
         contentContainerStyle,
         keyboardHeight > 0 && {

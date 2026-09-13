@@ -44,8 +44,13 @@ app-example
 /ios
 /android
 
-# local APK artifacts
+# local APK / AAB artifacts
 *.apk
+*.aab
+
+# EAS credentials downloaded for local Play Store signing
+credentials.json
+credentials/
 
 # Play Console service account (never commit)
 play-service-account.json
