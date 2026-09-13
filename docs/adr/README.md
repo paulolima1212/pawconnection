@@ -31,6 +31,7 @@ Positive, negative, and follow-up work.
 | ADR | Title | Status |
 |-----|-------|--------|
 | [0001](0001-moderation-bounded-context.md) | Moderation bounded context for reports and blocks | Accepted |
+| [0002](0002-google-places-dog-friendly-map.md) | Google Places for dog-friendly map pins | Accepted |
 
 ## Related backlog
 

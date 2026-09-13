@@ -27,6 +27,10 @@ import {
   type FeedRadiusKm,
 } from '@/constants/feed-discovery-filters';
 import {
+  MAP_PLACE_FILTER_OPTIONS,
+  type MapPlaceFilter,
+} from '@/constants/map-place-filters';
+import {
   buildListFeedPostsParams,
   countActiveFeedSearchFilters,
   EMPTY_FEED_SEARCH_FILTERS,
@@ -74,6 +78,7 @@ export function SocialFeedScreen() {
   const [selectedCity, setSelectedCity] = useState('');
   const [radiusKm, setRadiusKm] = useState<FeedRadiusKm>('');
   const [postScope, setPostScope] = useState<FeedPostScope>('all');
+  const [placeFilter, setPlaceFilter] = useState<MapPlaceFilter>('forYou');
   const [posts, setPosts] = useState<FeedPostApi[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -254,6 +259,7 @@ export function SocialFeedScreen() {
           <PawLogo variant="mark" width={182} height={114} />
         </View>
 
+        {viewMode === 'feed' ? (
         <View style={styles.searchShell}>
           <Feather name="search" size={22} color={PawColors.black} accessibilityLabel="Search" />
           <TextInput
@@ -286,6 +292,7 @@ export function SocialFeedScreen() {
             </View>
           </Pressable>
         </View>
+        ) : null}
 
         {commentsPost ? (
           <PostCommentsSheet
@@ -335,36 +342,54 @@ export function SocialFeedScreen() {
         />
 
         <View style={styles.chipsRow}>
-          <FeedCityAreaChip
-            permission={cityPermission}
-            blockedReason={blockedReason}
-            cityOptions={cityOptions}
-            selectedCity={selectedCity}
-            onSelectCity={setSelectedCity}
-            onRequestLocation={requestLocationAccess}
-            citiesRefreshing={citiesRefreshing}
-          />
+          {viewMode === 'feed' ? (
+            <FeedCityAreaChip
+              permission={cityPermission}
+              blockedReason={blockedReason}
+              cityOptions={cityOptions}
+              selectedCity={selectedCity}
+              onSelectCity={setSelectedCity}
+              onRequestLocation={requestLocationAccess}
+              citiesRefreshing={citiesRefreshing}
+            />
+          ) : null}
           <ChipOptionDropdown<FeedRadiusKm>
             value={radiusKm}
             options={FEED_RADIUS_OPTIONS}
             onChange={setRadiusKm}
             sheetTitle="Distance from you"
             accessibilityLabel="Search radius"
-            accessibilityHint="Choose how far from your location to show posts"
+            accessibilityHint={
+              viewMode === 'map'
+                ? 'Choose how far from your location to show dog-friendly places'
+                : 'Choose how far from your location to show posts'
+            }
           />
         </View>
 
         <View style={styles.toggleRow}>
           <FeedMapToggle mode={viewMode} onChange={setViewMode} />
-          <ChipOptionDropdown<FeedPostScope>
-            value={postScope}
-            options={FEED_POST_SCOPE_OPTIONS}
-            onChange={setPostScope}
-            sheetTitle="Posts"
-            accessibilityLabel="Post filter"
-            accessibilityHint="Choose all posts, friends posts, or your posts"
-            compact
-          />
+          {viewMode === 'map' ? (
+            <ChipOptionDropdown<MapPlaceFilter>
+              value={placeFilter}
+              options={MAP_PLACE_FILTER_OPTIONS}
+              onChange={setPlaceFilter}
+              sheetTitle="Dog-friendly places"
+              accessibilityLabel="Place filter"
+              accessibilityHint="Show parks, services, cafés, or places picked for you"
+              compact
+            />
+          ) : (
+            <ChipOptionDropdown<FeedPostScope>
+              value={postScope}
+              options={FEED_POST_SCOPE_OPTIONS}
+              onChange={setPostScope}
+              sheetTitle="Posts"
+              accessibilityLabel="Post filter"
+              accessibilityHint="Choose all posts, friends posts, or your posts"
+              compact
+            />
+          )}
         </View>
 
         {viewMode === 'map' ? (
@@ -376,6 +401,8 @@ export function SocialFeedScreen() {
             selfPetLabel={draft.dogName.trim() || undefined}
             selfPetPhotoUrl={draft.dogPhotoUri}
             selfOwnerPhotoUrl={draft.humanPhotoUri}
+            radiusKm={radiusKm}
+            placeCategory={placeFilter}
           />
         ) : (
           <>

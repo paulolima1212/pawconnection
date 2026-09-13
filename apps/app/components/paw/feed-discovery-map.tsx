@@ -1,20 +1,40 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useRef } from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Linking,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import MapView, { PROVIDER_DEFAULT, PROVIDER_GOOGLE } from 'react-native-maps';
 
+import { MapPlaceMarker } from '@/components/paw/map-place-marker';
 import { MapProfileMarker } from '@/components/paw/map-profile-marker';
+import {
+  MAP_PLACE_FILTER_OPTIONS,
+  type MapPlaceFilter,
+} from '@/constants/map-place-filters';
+import { PawColors, PawFontSize, PawLayout } from '@/constants/paw-styles';
 import {
   useDiscoveryMap,
   type DiscoveryMapPermission,
   type MapCoords,
 } from '@/hooks/use-discovery-map';
-import { PawColors, PawFontSize, PawLayout } from '@/constants/paw-styles';
+import { useDogFriendlyPlaces } from '@/hooks/use-dog-friendly-places';
+import type { MapPlacePinApi } from '@/lib/api/types';
 import { openUserProfile } from '@/lib/navigation/open-user-profile';
-import type { MapUserPinApi } from '@/lib/api/types';
 
 const MAP_HEIGHT = 380;
 const DEFAULT_DELTA = 0.04;
+
+const CATEGORY_LABEL: Record<MapPlacePinApi['category'], string> = {
+  parks: 'Park',
+  services: 'Dog service',
+  cafes: 'Dog-friendly café',
+};
 
 type FeedDiscoveryMapProps = {
   active: boolean;
@@ -24,6 +44,8 @@ type FeedDiscoveryMapProps = {
   selfPetLabel?: string;
   selfPetPhotoUrl?: string | null;
   selfOwnerPhotoUrl?: string | null;
+  radiusKm: string;
+  placeCategory: MapPlaceFilter;
 };
 
 function regionFromCoords(coords: MapCoords) {
@@ -50,8 +72,8 @@ function MapPermissionCard({
       </Text>
       <Text style={styles.permissionHint}>
         {isLoading
-          ? 'Finding your position and nearby pet parents.'
-          : 'Allow location so you appear on the map and can see others nearby.'}
+          ? 'Finding your position and nearby dog-friendly places.'
+          : 'Allow location so we can show dog-friendly parks, services, and cafés near you.'}
       </Text>
       {!isLoading ? (
         <Pressable
@@ -68,6 +90,14 @@ function MapPermissionCard({
   );
 }
 
+async function openPlaceInMaps(place: MapPlacePinApi) {
+  const query = encodeURIComponent(
+    place.address ? `${place.name} ${place.address}` : `${place.latitude},${place.longitude}`,
+  );
+  const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
+  await Linking.openURL(url);
+}
+
 export function FeedDiscoveryMap({
   active,
   selfUserId,
@@ -76,9 +106,12 @@ export function FeedDiscoveryMap({
   selfPetLabel,
   selfPetPhotoUrl,
   selfOwnerPhotoUrl,
+  radiusKm,
+  placeCategory,
 }: FeedDiscoveryMapProps) {
   const router = useRouter();
   const mapRef = useRef<MapView | null>(null);
+  const [selectedPlace, setSelectedPlace] = useState<MapPlacePinApi | null>(null);
   const {
     permission,
     myCoords,
@@ -86,6 +119,12 @@ export function FeedDiscoveryMap({
     usersLoading,
     requestLocationAccess,
   } = useDiscoveryMap(active);
+  const { places, loading: placesLoading, appliedRadiusKm } = useDogFriendlyPlaces({
+    enabled: active && permission === 'ready',
+    coords: myCoords,
+    radiusKm,
+    category: placeCategory,
+  });
 
   const others = useMemo(
     () => users.filter((u) => u.id !== selfUserId),
@@ -98,6 +137,10 @@ export function FeedDiscoveryMap({
   );
 
   useEffect(() => {
+    setSelectedPlace(null);
+  }, [placeCategory, radiusKm]);
+
+  useEffect(() => {
     if (!active || !myCoords || !mapRef.current) return;
     mapRef.current.animateToRegion(regionFromCoords(myCoords), 600);
   }, [active, myCoords?.latitude, myCoords?.longitude]);
@@ -106,7 +149,9 @@ export function FeedDiscoveryMap({
     return (
       <View style={styles.permissionCard}>
         <Text style={styles.permissionTitle}>Map unavailable on web</Text>
-        <Text style={styles.permissionHint}>Open the app on iOS or Android to use the discovery map.</Text>
+        <Text style={styles.permissionHint}>
+          Open the app on iOS or Android to see dog-friendly places on the map.
+        </Text>
       </View>
     );
   }
@@ -121,6 +166,10 @@ export function FeedDiscoveryMap({
   }
 
   const selfTitle = selfPetLabel?.trim() || selfLabel;
+  const filterLabel =
+    MAP_PLACE_FILTER_OPTIONS.find((o) => o.value === placeCategory)?.label ?? 'For you';
+  const radiusLabel = `${appliedRadiusKm ?? 5} km`;
+  const overlayLoading = (placesLoading && places.length === 0) || (usersLoading && others.length === 0);
 
   return (
     <View style={styles.wrap}>
@@ -131,7 +180,7 @@ export function FeedDiscoveryMap({
         initialRegion={initialRegion}
         showsMyLocationButton
         showsCompass
-        accessibilityLabel="Discovery map">
+        accessibilityLabel="Dog-friendly places map">
         <MapProfileMarker
           coordinate={myCoords}
           petPhotoUrl={selfPetPhotoUrl}
@@ -144,7 +193,7 @@ export function FeedDiscoveryMap({
           const label = pin.petName?.trim() || pin.fullName;
           return (
             <MapProfileMarker
-              key={pin.id}
+              key={`user-${pin.id}`}
               coordinate={{ latitude: pin.latitude, longitude: pin.longitude }}
               petPhotoUrl={pin.petPhotoUrl}
               ownerPhotoUrl={pin.photoUrl}
@@ -154,17 +203,47 @@ export function FeedDiscoveryMap({
             />
           );
         })}
+        {places.map((place) => (
+          <MapPlaceMarker
+            key={`place-${place.id}`}
+            coordinate={{ latitude: place.latitude, longitude: place.longitude }}
+            category={place.category}
+            featured={place.featured}
+            accessibilityLabel={`${place.name}, ${CATEGORY_LABEL[place.category]}`}
+            onPress={() => setSelectedPlace(place)}
+          />
+        ))}
       </MapView>
-      {usersLoading && others.length === 0 ? (
+      {overlayLoading ? (
         <View style={styles.mapOverlay} pointerEvents="none">
           <ActivityIndicator color={PawColors.whiteCard} />
         </View>
       ) : null}
-      <Text style={styles.mapCaption}>
-        {others.length === 0
-          ? 'You are on the map. Other pet parents appear here while their app is open; when closed, their last known spot is shown.'
-          : `${others.length} pet parent${others.length === 1 ? '' : 's'} nearby — tap a photo to open their profile.`}
-      </Text>
+
+      {selectedPlace ? (
+        <Pressable
+          style={styles.placeCard}
+          onPress={() => void openPlaceInMaps(selectedPlace)}
+          accessibilityRole="button"
+          accessibilityLabel={`Open ${selectedPlace.name} in maps`}>
+          <Text style={styles.placeName}>{selectedPlace.name}</Text>
+          <Text style={styles.placeMeta}>
+            {CATEGORY_LABEL[selectedPlace.category]}
+            {selectedPlace.featured ? ' · suggested for you' : ''}
+            {` · ${selectedPlace.distanceKm} km`}
+          </Text>
+          {selectedPlace.address ? (
+            <Text style={styles.placeAddress}>{selectedPlace.address}</Text>
+          ) : null}
+          <Text style={styles.placeAction}>Open in Maps</Text>
+        </Pressable>
+      ) : (
+        <Text style={styles.mapCaption}>
+          {places.length === 0
+            ? `No dog-friendly ${filterLabel.toLowerCase()} within ${radiusLabel} yet. Try a wider distance.`
+            : `${places.length} dog-friendly place${places.length === 1 ? '' : 's'} within ${radiusLabel}. Pins with a peach fill match your profile.`}
+        </Text>
+      )}
     </View>
   );
 }
@@ -196,6 +275,36 @@ const styles = StyleSheet.create({
     fontWeight: '300',
     color: PawColors.textMuted,
     lineHeight: 18,
+  },
+  placeCard: {
+    borderWidth: 1,
+    borderColor: PawColors.black,
+    borderRadius: PawLayout.borderRadiusCard,
+    backgroundColor: PawColors.whiteCard,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 4,
+  },
+  placeName: {
+    fontSize: PawFontSize.body,
+    fontWeight: '700',
+    color: PawColors.black,
+  },
+  placeMeta: {
+    fontSize: PawFontSize.caption,
+    fontWeight: '400',
+    color: PawColors.profileBrown,
+  },
+  placeAddress: {
+    fontSize: PawFontSize.caption,
+    fontWeight: '300',
+    color: PawColors.textMuted,
+  },
+  placeAction: {
+    marginTop: 4,
+    fontSize: PawFontSize.caption,
+    fontWeight: '700',
+    color: PawColors.black,
   },
   permissionCard: {
     marginTop: 16,
