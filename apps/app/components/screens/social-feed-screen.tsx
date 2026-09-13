@@ -287,16 +287,6 @@ export function SocialFeedScreen() {
           </Pressable>
         </View>
 
-        <FeedSearchFiltersSheet
-          visible={filtersSheetOpen}
-          initialFilters={searchFilters}
-          onClose={() => setFiltersSheetOpen(false)}
-          onApply={(filters) => {
-            setSearchFilters(filters);
-            void loadPosts();
-          }}
-        />
-
         {commentsPost ? (
           <PostCommentsSheet
             visible
@@ -485,6 +475,16 @@ export function SocialFeedScreen() {
         ) : null}
         <View style={{ height: 24 }} />
       </ScrollView>
+
+      <FeedSearchFiltersSheet
+        visible={filtersSheetOpen}
+        initialFilters={searchFilters}
+        onClose={() => setFiltersSheetOpen(false)}
+        onApply={(filters) => {
+          setSearchFilters(filters);
+          void loadPosts();
+        }}
+      />
     </View>
   );
 }
