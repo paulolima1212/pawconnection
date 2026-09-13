@@ -2,14 +2,14 @@
   "expo": {
     "name": "Paw Connection",
     "slug": "paw-connection",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "pawconnection",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "buildNumber": "9",
+      "buildNumber": "10",
       "supportsTablet": true,
       "infoPlist": {
         "NSAppTransportSecurity": {
@@ -22,7 +22,7 @@
       }
     },
     "android": {
-      "versionCode": 9,
+      "versionCode": 10,
       "package": "com.plima1212.pawconnection",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
