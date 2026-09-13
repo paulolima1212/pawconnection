@@ -3,7 +3,7 @@ import {
   AppGender,
   UserEntity,
 } from '../../../../shared/domain/types';
-import { MatchingLookingForSpec } from './match.spec';
+import { MatchingLookingForSpec } from './match';
 
 describe('MatchingLookingForSpec', () => {
   const baseUser = (lookingFor: AppConnectionIntent[]): UserEntity =>

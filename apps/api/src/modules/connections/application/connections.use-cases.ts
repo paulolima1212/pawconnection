@@ -13,7 +13,7 @@ import {
   directionSpec,
   PendingRequestsSpec,
   RequestsByTypeSpec,
-} from '../domain/specifications/connection-request.spec';
+} from '../domain/specifications/connection-request';
 import { connectionTypeFromLookingFor } from '../domain/connection-intent.mapper';
 import {
   CONNECTION_REQUEST_REPOSITORY,

@@ -10,6 +10,24 @@ import { SupabaseService } from './shared/infrastructure/supabase/supabase.servi
 
 const isProduction = process.env.NODE_ENV === 'production';
 
+function isLocalDevOrigin(origin: string): boolean {
+  try {
+    const { hostname } = new URL(origin);
+    if (hostname === 'localhost' || hostname === '127.0.0.1') return true;
+    if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+    if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+    if (/^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+    const tailscale = /^100\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/.exec(hostname);
+    if (tailscale) {
+      const second = Number(tailscale[1]);
+      return second >= 64 && second <= 127;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 function parseCorsOrigins():
   | boolean
   | string[]
@@ -24,14 +42,12 @@ function parseCorsOrigins():
 
   if (origins.length === 0) return true;
 
-  const localOrigin = /^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?$/;
-
   return (origin, callback) => {
-    if (!origin || origins.includes(origin) || localOrigin.test(origin)) {
+    if (!origin || origins.includes(origin) || isLocalDevOrigin(origin)) {
       callback(null, true);
       return;
     }
-    callback(new Error(`Origin ${origin} not allowed by CORS`), false);
+    callback(null, false);
   };
 }
 

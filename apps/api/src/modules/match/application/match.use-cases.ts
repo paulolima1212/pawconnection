@@ -20,7 +20,7 @@ import {
   MatchingInterestSpec,
   MatchingLookingForSpec,
   WithinRadiusSpec,
-} from '../domain/specifications/match.spec';
+} from '../domain/specifications/match';
 import { MATCH_RADIUS_STEPS_KM } from './match.mapper';
 
 @Injectable()

@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { ValidationError } from '../../../shared/domain/result';
@@ -17,9 +17,13 @@ import {
 } from '../domain/repositories/password-reset-token.repository';
 
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
+const GENERIC_RESET_MESSAGE =
+  'If an account exists for that email, password reset instructions were sent.';
 
 @Injectable()
 export class RequestPasswordResetUseCase {
+  private readonly logger = new Logger(RequestPasswordResetUseCase.name);
+
   constructor(
     @Inject(USER_REPOSITORY) private readonly users: IUserRepository,
     @Inject(PASSWORD_RESET_TOKEN_REPOSITORY)
@@ -46,31 +50,44 @@ export class RequestPasswordResetUseCase {
       const appUrl = this.config.get<string>('APP_URL', 'http://localhost:8081');
       const resetUrl = `${appUrl.replace(/\/$/, '')}/reset-password?token=${raw}`;
 
-      await this.email.send({
-        to: email,
-        subject: 'Reset your Paw Connection password',
-        text: [
-          'Hi,',
-          '',
-          'We received a request to reset your Paw Connection password.',
-          'Open this link to choose a new password:',
-          resetUrl,
-          '',
-          'This link expires in 1 hour. If you did not request a reset, you can ignore this email.',
-        ].join('\n'),
-        html: [
-          '<p>Hi,</p>',
-          '<p>We received a request to reset your Paw Connection password.</p>',
-          `<p><a href="${resetUrl}">Reset your password</a></p>`,
-          '<p>This link expires in 1 hour. If you did not request a reset, you can ignore this email.</p>',
-        ].join(''),
-      });
+      try {
+        await this.email.send({
+          to: email,
+          subject: 'Reset your Paw Connection password',
+          text: [
+            'Hi,',
+            '',
+            'We received a request to reset your Paw Connection password.',
+            'Open this link to choose a new password:',
+            resetUrl,
+            '',
+            'This link expires in 1 hour. If you did not request a reset, you can ignore this email.',
+          ].join('\n'),
+          html: [
+            '<p>Hi,</p>',
+            '<p>We received a request to reset your Paw Connection password.</p>',
+            `<p><a href="${resetUrl}">Reset your password</a></p>`,
+            '<p>This link expires in 1 hour. If you did not request a reset, you can ignore this email.</p>',
+          ].join(''),
+        });
+        this.logger.log({
+          msg: 'auth.password_reset_email_sent',
+          userId: user.id,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.error({
+          msg: 'auth.password_reset_email_failed',
+          userId: user.id,
+          error: message,
+        });
+        throw new ValidationError(
+          'Could not send the reset email. Please try again later.',
+        );
+      }
     }
 
-    return {
-      message:
-        'If an account exists for that email, password reset instructions were sent.',
-    };
+    return { message: GENERIC_RESET_MESSAGE };
   }
 }
 

@@ -7,7 +7,7 @@ import {
   IUserRepository,
   USER_REPOSITORY,
 } from '../../profile/domain/repositories/user.repository';
-import { UniqueEmailSpec } from '../domain/specifications/unique-email.spec';
+import { UniqueEmailSpec } from '../domain/specifications/unique-email';
 import { UniqueHandleSpec } from '../../profile/domain/specifications/unique-handle';
 
 @Injectable()
