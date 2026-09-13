@@ -1,7 +1,7 @@
 import Feather from '@expo/vector-icons/Feather';
 import { Image } from 'expo-image';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useReducer, useState } from 'react';
 import {
   Pressable,
   RefreshControl,
@@ -47,6 +47,13 @@ import { useKeyboardAwareBottomPadding } from '@/components/paw/keyboard-aware-f
 import * as feedApi from '@/lib/api/feed';
 import * as moderationApi from '@/lib/api/moderation';
 import type { FeedPostApi } from '@/lib/api/types';
+import {
+  isPostSafetyBlockVisible,
+  isPostSafetyMenuVisible,
+  isPostSafetyReportVisible,
+  reducePostSafetyUi,
+  type PostSafetyUiState,
+} from '@/lib/post-safety-ui';
 
 function formatPostDate(iso: string): string {
   const d = new Date(iso);
@@ -78,9 +85,11 @@ export function SocialFeedScreen() {
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [commentsPost, setCommentsPost] = useState<FeedPostApi | null>(null);
-  const [safetyPost, setSafetyPost] = useState<FeedPostApi | null>(null);
-  const [reportOpen, setReportOpen] = useState(false);
-  const [blockOpen, setBlockOpen] = useState(false);
+  const [safetyUi, dispatchSafety] = useReducer(
+    reducePostSafetyUi<FeedPostApi>,
+    { target: null, overlay: 'none' } satisfies PostSafetyUiState<FeedPostApi>,
+  );
+  const safetyPost = safetyUi.target;
   const [reporting, setReporting] = useState(false);
   const [blocking, setBlocking] = useState(false);
   const activeFilterCount = countActiveFeedSearchFilters(searchFilters);
@@ -186,8 +195,7 @@ export function SocialFeedScreen() {
     try {
       const result = await moderationApi.reportPost(safetyPost.id, reason, details);
       const reportedId = safetyPost.id;
-      setReportOpen(false);
-      setSafetyPost(null);
+      dispatchSafety({ type: 'completed' });
       setPosts((prev) => prev.filter((p) => p.id !== reportedId));
       showTooltip({
         title: result.duplicate ? 'Already reported' : 'Report sent',
@@ -214,8 +222,7 @@ export function SocialFeedScreen() {
     try {
       await moderationApi.blockUser(authorId);
       hideAuthorFromFeed(authorId);
-      setBlockOpen(false);
-      setSafetyPost(null);
+      dispatchSafety({ type: 'completed' });
       showTooltip({
         title: 'User blocked',
         message: `${safetyAuthorName} can no longer see or interact with you.`,
@@ -286,53 +293,6 @@ export function SocialFeedScreen() {
             </View>
           </Pressable>
         </View>
-
-        {commentsPost ? (
-          <PostCommentsSheet
-            visible
-            postId={commentsPost.id}
-            postLabel={commentsPost.author?.petName ?? commentsPost.author?.fullName}
-            onClose={() => setCommentsPost(null)}
-            onCountChange={(count) => {
-              setPosts((prev) =>
-                prev.map((p) =>
-                  p.id === commentsPost.id ? { ...p, commentCount: count } : p,
-                ),
-              );
-            }}
-          />
-        ) : null}
-
-        {safetyPost ? (
-          <PostActionSheet
-            visible={!reportOpen && !blockOpen}
-            authorName={safetyAuthorName}
-            onClose={() => setSafetyPost(null)}
-            onSelect={(action) => {
-              if (action === 'report') setReportOpen(true);
-              if (action === 'block') setBlockOpen(true);
-            }}
-          />
-        ) : null}
-        <ReportPostSheet
-          visible={reportOpen}
-          submitting={reporting}
-          onClose={() => {
-            setReportOpen(false);
-            setSafetyPost(null);
-          }}
-          onSubmit={(reason, details) => void submitReport(reason, details)}
-        />
-        <BlockUserConfirmSheet
-          visible={blockOpen}
-          displayName={safetyAuthorName}
-          blocking={blocking}
-          onClose={() => {
-            setBlockOpen(false);
-            setSafetyPost(null);
-          }}
-          onConfirm={() => void confirmBlock()}
-        />
 
         <View style={styles.chipsRow}>
           <FeedCityAreaChip
@@ -420,7 +380,7 @@ export function SocialFeedScreen() {
                       </View>
                       {post.authorId !== userId && post.author?.id !== userId ? (
                         <Pressable
-                          onPress={() => setSafetyPost(post)}
+                          onPress={() => dispatchSafety({ type: 'openMenu', target: post })}
                           hitSlop={8}
                           style={styles.moreBtn}
                           accessibilityRole="button"
@@ -475,6 +435,45 @@ export function SocialFeedScreen() {
         ) : null}
         <View style={{ height: 24 }} />
       </ScrollView>
+
+      {commentsPost ? (
+        <PostCommentsSheet
+          visible
+          postId={commentsPost.id}
+          postLabel={commentsPost.author?.petName ?? commentsPost.author?.fullName}
+          onClose={() => setCommentsPost(null)}
+          onCountChange={(count) => {
+            setPosts((prev) =>
+              prev.map((p) =>
+                p.id === commentsPost.id ? { ...p, commentCount: count } : p,
+              ),
+            );
+          }}
+        />
+      ) : null}
+
+      <PostActionSheet
+        visible={isPostSafetyMenuVisible(safetyUi)}
+        authorName={safetyAuthorName}
+        onClose={() => dispatchSafety({ type: 'dismissMenu' })}
+        onSelect={(action) => {
+          if (action === 'report') dispatchSafety({ type: 'selectReport' });
+          if (action === 'block') dispatchSafety({ type: 'selectBlock' });
+        }}
+      />
+      <ReportPostSheet
+        visible={isPostSafetyReportVisible(safetyUi)}
+        submitting={reporting}
+        onClose={() => dispatchSafety({ type: 'closeReport' })}
+        onSubmit={(reason, details) => void submitReport(reason, details)}
+      />
+      <BlockUserConfirmSheet
+        visible={isPostSafetyBlockVisible(safetyUi)}
+        displayName={safetyAuthorName}
+        blocking={blocking}
+        onClose={() => dispatchSafety({ type: 'closeBlock' })}
+        onConfirm={() => void confirmBlock()}
+      />
 
       <FeedSearchFiltersSheet
         visible={filtersSheetOpen}

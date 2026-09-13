@@ -64,7 +64,7 @@ export function ReportPostSheet({
           accessibilityLabel="Close"
         />
         <View style={[styles.sheet, { maxHeight: '92%', paddingBottom: Math.max(20, insets.bottom + 12) }]}>
-          <KeyboardAwareFormScroll contentContainerStyle={styles.sheetScroll}>
+          <KeyboardAwareFormScroll fill={false} contentContainerStyle={styles.sheetScroll}>
           <View style={styles.handle} accessibilityElementsHidden />
           <View style={styles.iconWrap}>
             <Feather name="flag" size={22} color={PawColors.destructive} />
