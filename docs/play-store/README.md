@@ -13,6 +13,47 @@
 - Production API, app and storage endpoints: HTTPS
 - Cleartext traffic: disabled in production builds
 
+## Android signing certificate fingerprints
+
+Package: `com.plima1212.pawconnection`
+
+These are the fingerprints of the **upload / release keystore** used by EAS and local release builds
+(`apps/app/credentials/android/keystore.jks`). Verified against `paw-connection-1.0.5.aab` on 2026-09-25.
+
+| Field | Value |
+|-------|-------|
+| SHA-256 (with colons) | `A0:11:3F:D3:12:B3:60:78:1D:F7:EF:57:DB:5F:4C:7A:8E:2E:4D:8E:C9:D0:46:94:F3:58:C8:4F:07:93:81:57` |
+| SHA-256 (no colons) | `A0113FD312B360781DF7EF57DB5F4C7A8E2E4D8EC9D04694F358C84F07938157` |
+| SHA-1 | `11:70:E6:7B:06:1D:23:EE:DB:8B:94:8A:7D:EB:60:6D:1B:2F:E5:4F` |
+| Algorithm | SHA256withRSA |
+
+Use the SHA-256 value in Play Console when the form asks for *impressão digital do certificado SHA-256*.
+
+### Play App Signing vs upload key
+
+After the first AAB upload with **Google Play App Signing** enabled, Play Console shows two certificates:
+
+1. **App signing key** — signs what users install from the Play Store. Use this SHA-1/SHA-256 for Maps / Firebase / API key restrictions in production.
+2. **Upload key** — the fingerprints above. Used only to sign AABs you upload to Play.
+
+Copy Play’s app-signing fingerprints from:
+`Play Console → Protected with Google Play → Play Store protection → Manage Play App Signing`
+(or `Release → Setup → App integrity` on older Console layouts).
+
+### Re-extract from keystore or AAB
+
+```bash
+# From keystore (requires store password from apps/app/android/keystore.properties)
+keytool -list -v \
+  -keystore apps/app/credentials/android/keystore.jks \
+  -alias <keyAlias from keystore.properties>
+
+# From a signed AAB / APK
+keytool -printcert -jarfile apps/app/paw-connection-1.0.5.aab
+```
+
+Do **not** use fingerprints from `paw-connection-test.apk` — that APK is signed with the Android Debug keystore.
+
 ## Required EAS secrets
 
 Configure these outside GitHub:
@@ -20,7 +61,7 @@ Configure these outside GitHub:
 - `GOOGLE_MAPS_ANDROID_API_KEY`
 - Google Play service-account credentials for EAS Submit
 
-Restrict the Maps key to the Android package and the SHA-1/SHA-256 certificate fingerprints used by Google Play App Signing.
+Restrict the Maps key to the Android package and the SHA-1/SHA-256 fingerprints above (upload key) **and**, after the first Play upload, the **app signing key** certificates shown in Play Console.
 
 ## Validation
 
