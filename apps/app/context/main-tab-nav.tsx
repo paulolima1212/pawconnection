@@ -14,7 +14,7 @@ import { Easing, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { useContentWidth } from '@/hooks/use-content-width';
 
-/** Tab pages in bottom bar order (Home → Find → Discover → Inbox → Profile). */
+/** Tab pages in bottom bar order (Home → Connect → Discover → Inbox → Profile). */
 export const MAIN_TAB_PAGE_ORDER = ['home', 'find', 'discover', 'inbox', 'profile'] as const;
 export type MainTabPageId = (typeof MAIN_TAB_PAGE_ORDER)[number];
 
