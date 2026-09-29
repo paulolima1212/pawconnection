@@ -1,8 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import {
-  AppConnectionIntent,
-  AppGender,
-} from '../../../shared/domain/types';
+import { AppConnectionIntent, AppGender } from '../../../shared/domain/types';
 import { ValidationError } from '../../../shared/domain/result';
 import { haversineKm } from '../../../shared/infrastructure/mappers/prisma.mapper';
 import { SupabaseService } from '../../../shared/infrastructure/supabase/supabase.service';
@@ -10,7 +7,11 @@ import {
   IUserRepository,
   USER_REPOSITORY,
 } from '../../profile/domain/repositories/user.repository';
-import { MAP_REPOSITORY, IMapRepository, MapUserPin } from '../domain/repositories/map.repository';
+import {
+  MAP_REPOSITORY,
+  IMapRepository,
+  MapUserPin,
+} from '../domain/repositories/map.repository';
 import {
   USER_BLOCK_READER,
   IUserBlockReader,
@@ -52,7 +53,11 @@ function isValidCoordinate(lat: number, lng: number): boolean {
 export class UpdateMapLocationUseCase {
   constructor(@Inject(MAP_REPOSITORY) private readonly map: IMapRepository) {}
 
-  async execute(userId: string, latitude: number, longitude: number): Promise<{ ok: true }> {
+  async execute(
+    userId: string,
+    latitude: number,
+    longitude: number,
+  ): Promise<{ ok: true }> {
     if (!isValidCoordinate(latitude, longitude)) {
       throw new ValidationError('Invalid coordinates');
     }

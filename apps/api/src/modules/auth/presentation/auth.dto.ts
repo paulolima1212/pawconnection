@@ -1,14 +1,18 @@
 import { IsEmail, IsString, Matches, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import {
+  PASSWORD_POLICY_MESSAGE,
+  PASSWORD_POLICY_PATTERN,
+} from '../domain/password-policy';
 
 export class RegisterDto {
   @ApiProperty()
   @IsEmail()
   email!: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: PASSWORD_POLICY_MESSAGE })
   @IsString()
-  @MinLength(6)
+  @Matches(PASSWORD_POLICY_PATTERN, { message: PASSWORD_POLICY_MESSAGE })
   password!: string;
 
   @ApiProperty()
@@ -31,7 +35,7 @@ export class LoginDto {
 
   @ApiProperty()
   @IsString()
-  @MinLength(6)
+  @MinLength(1)
   password!: string;
 }
 
@@ -47,8 +51,8 @@ export class ResetPasswordDto {
   @MinLength(1)
   token!: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: PASSWORD_POLICY_MESSAGE })
   @IsString()
-  @MinLength(6)
+  @Matches(PASSWORD_POLICY_PATTERN, { message: PASSWORD_POLICY_MESSAGE })
   password!: string;
 }

@@ -30,7 +30,7 @@ export class InMemoryRealtimeMessageBroker implements IRealtimeMessageBroker {
       this.channels.set(channel, set);
     }
     set.add(handler);
-    return () => set!.delete(handler);
+    return () => set.delete(handler);
   }
 }
 

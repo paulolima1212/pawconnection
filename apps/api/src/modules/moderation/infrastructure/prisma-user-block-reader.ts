@@ -6,7 +6,10 @@ import { IUserBlockReader } from '../domain/ports/user-block-reader.port';
 export class PrismaUserBlockReader implements IUserBlockReader {
   constructor(private readonly prisma: PrismaService) {}
 
-  async isBlockedBetween(userId: string, otherUserId: string): Promise<boolean> {
+  async isBlockedBetween(
+    userId: string,
+    otherUserId: string,
+  ): Promise<boolean> {
     if (userId === otherUserId) return false;
     const row = await this.prisma.userBlock.findFirst({
       where: {

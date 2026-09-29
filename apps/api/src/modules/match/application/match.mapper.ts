@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { SupabaseService } from '../../../shared/infrastructure/supabase/supabase.service';
-import { MatchCandidate, MatchCandidatesResult } from '../../../shared/domain/types';
+import {
+  MatchCandidate,
+  MatchCandidatesResult,
+} from '../../../shared/domain/types';
 
 export const MATCH_RADIUS_STEPS_KM = [50, 100, 200] as const;
 
@@ -26,7 +29,9 @@ export class MatchCandidateMapper {
       user: {
         ...candidate.user,
         photoUrl: this.supabase.normalizePublicUrl(candidate.user.photoUrl),
-        petPhotoUrl: this.supabase.normalizePublicUrl(candidate.user.petPhotoUrl),
+        petPhotoUrl: this.supabase.normalizePublicUrl(
+          candidate.user.petPhotoUrl,
+        ),
       },
       pet,
       ownerAge: candidate.ownerAge ?? null,

@@ -1,0 +1,23 @@
+---
+description: Release Android builds must enable R8 so the Play deobfuscation file is in the AAB
+globs: apps/app/app.json,apps/app/app.config.js,apps/app/android/**/*
+alwaysApply: false
+---
+
+# Android release deobfuscation
+
+Release builds (EAS production AAB and `npm run build:apk:local`) must run R8.
+
+## Required
+
+- `expo-build-properties` → `android.enableMinifyInReleaseBuilds: true` in `apps/app/app.json`
+- `apps/app/app.config.js` must keep that flag when it rewrites the plugin
+- `android.enableMinifyInReleaseBuilds=true` in `android/gradle.properties` after prebuild
+
+`minifyEnabled` in `android/app/build.gradle` already reads that property. With Android Gradle Plugin 4.1+, the release bundle includes `BUNDLE-METADATA/com.android.tools.build.obfuscation/proguard.map`. Play Console picks that file up. Do not upload a separate empty mapping file.
+
+## Do not
+
+- Set `enableMinifyInReleaseBuilds` to `false` to silence a build
+- Remove `proguard-rules.pro` keep rules for Reanimated and React Native TurboModules
+- Enable `enableShrinkResourcesInReleaseBuilds` unless minify stays on and a release build has been installed and exercised on a device

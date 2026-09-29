@@ -6,7 +6,8 @@ import {
   NearbyPlacesQuery,
 } from '../domain/ports/places-search.port';
 
-const PLACES_NEARBY_URL = 'https://places.googleapis.com/v1/places:searchNearby';
+const PLACES_NEARBY_URL =
+  'https://places.googleapis.com/v1/places:searchNearby';
 const FIELD_MASK = [
   'places.id',
   'places.displayName',
@@ -45,7 +46,9 @@ export class GooglePlacesSearch implements IPlacesSearch {
       this.config.get<string>('GOOGLE_PLACES_API_KEY')?.trim() ||
       this.config.get<string>('GOOGLE_MAPS_API_KEY')?.trim();
     if (!apiKey) {
-      this.logger.warn('GOOGLE_PLACES_API_KEY is not set; dog-friendly places will be empty');
+      this.logger.warn(
+        'GOOGLE_PLACES_API_KEY is not set; dog-friendly places will be empty',
+      );
       return [];
     }
     if (query.includedTypes.length === 0) return [];
@@ -96,7 +99,8 @@ export class GooglePlacesSearch implements IPlacesSearch {
     const latitude = place.location?.latitude;
     const longitude = place.location?.longitude;
     const name = place.displayName?.text?.trim();
-    if (!place.id || !name || latitude == null || longitude == null) return null;
+    if (!place.id || !name || latitude == null || longitude == null)
+      return null;
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
     return {
       id: place.id,
@@ -105,7 +109,8 @@ export class GooglePlacesSearch implements IPlacesSearch {
       longitude,
       types: place.types ?? [],
       primaryType: place.primaryType ?? null,
-      allowsDogs: typeof place.allowsDogs === 'boolean' ? place.allowsDogs : null,
+      allowsDogs:
+        typeof place.allowsDogs === 'boolean' ? place.allowsDogs : null,
       address: place.shortFormattedAddress ?? place.formattedAddress ?? null,
     };
   }

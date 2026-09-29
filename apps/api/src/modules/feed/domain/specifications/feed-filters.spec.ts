@@ -58,7 +58,9 @@ describe('postMatchesFeedFilters', () => {
   });
 
   it('filters by pet gender and age', () => {
-    expect(postMatchesFeedFilters(basePost, { petGender: 'Female', petAge: 3 })).toBe(true);
+    expect(
+      postMatchesFeedFilters(basePost, { petGender: 'Female', petAge: 3 }),
+    ).toBe(true);
     expect(postMatchesFeedFilters(basePost, { petGender: 'Male' })).toBe(false);
     expect(postMatchesFeedFilters(basePost, { petAge: 5 })).toBe(false);
   });

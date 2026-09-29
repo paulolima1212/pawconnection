@@ -24,6 +24,7 @@ export enum AppConnectionIntent {
 export enum AppGender {
   Male = 'Male',
   Female = 'Female',
+  Other = 'Other',
 }
 
 export enum AppTemperament {
@@ -33,17 +34,20 @@ export enum AppTemperament {
   Energetic = 'Energetic',
   Shy = 'Shy',
   Friendly = 'Friendly',
+  Custom = 'Custom',
 }
 
 export enum AppVaccinated {
   Yes = 'Yes',
   No = 'No',
+  PreferNotToSay = 'PreferNotToSay',
 }
 
 /** Australian English: desexed (neutered/spayed). */
 export enum AppDesexed {
   Yes = 'Yes',
   No = 'No',
+  PreferNotToSay = 'PreferNotToSay',
 }
 
 export type ConnectionTypeValue = 'romance' | 'friendship' | 'request';
@@ -55,6 +59,8 @@ export interface OwnerProfile {
   email?: string | null;
   phone?: string | null;
   age?: number | null;
+  /** ISO date YYYY-MM-DD. Source of truth for owner age when present. */
+  birthDate?: string | null;
   gender: AppGender;
   location?: string | null;
   bio?: string | null;
@@ -73,6 +79,8 @@ export interface PetProfile {
   photoUrl?: string | null;
   photoUrls?: string[];
   temperament: AppTemperament[];
+  /** Set when temperament includes Custom. */
+  customTemperament?: string | null;
   vaccinated: AppVaccinated;
   desexed: AppDesexed;
   gender: AppGender;
@@ -90,6 +98,7 @@ export interface UserEntity {
   fullName: string;
   handle: string;
   age?: number | null;
+  birthDate?: string | null;
   gender: AppGender;
   location?: string | null;
   latitude?: number | null;

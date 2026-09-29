@@ -13,6 +13,7 @@ export type AuthResponse = {
     email?: string | null;
     fullName: string;
     handle: string;
+    photoUrl?: string | null;
     onboardingComplete: boolean;
   };
 };
@@ -22,6 +23,7 @@ export type ProfileOwnerApi = {
   email?: string | null;
   phone?: string | null;
   age?: number | null;
+  birthDate?: string | null;
   gender?: GenderValue;
   location?: string | null;
   bio?: string | null;
@@ -40,6 +42,7 @@ export type ProfilePetApi = {
   photoUrl?: string | null;
   photoUrls?: string[];
   temperament?: TemperamentValue[];
+  customTemperament?: string | null;
   vaccinated?: VaccinatedValue;
   desexed?: DesexedValue;
   gender?: GenderValue;
@@ -105,7 +108,7 @@ export type FeedPostApi = {
     petPhotoUrl?: string | null;
     location?: string | null;
     petAge?: number | null;
-    petGender?: 'Male' | 'Female' | null;
+    petGender?: 'Male' | 'Female' | 'Other' | null;
     petBreed?: string | null;
   };
 };

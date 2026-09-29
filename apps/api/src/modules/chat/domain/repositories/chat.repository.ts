@@ -82,7 +82,10 @@ export interface IChatRepository {
   ): Promise<Conversation | null>;
   findConversationById(id: string): Promise<Conversation | null>;
   saveConversation(conversation: Conversation): Promise<void>;
-  listConversationsForUser(userId: string, limit?: number): Promise<ConversationReadModel[]>;
+  listConversationsForUser(
+    userId: string,
+    limit?: number,
+  ): Promise<ConversationReadModel[]>;
 
   findMessageById(id: string): Promise<Message | null>;
   findMessageByClientId(
@@ -105,7 +108,10 @@ export interface IChatRepository {
     messageId: string,
     at: Date,
   ): Promise<void>;
-  findMessageReadModelById(messageId: string, viewerId: string): Promise<MessageReadModel | null>;
+  findMessageReadModelById(
+    messageId: string,
+    viewerId: string,
+  ): Promise<MessageReadModel | null>;
   toggleMessageReaction(
     messageId: string,
     userId: string,

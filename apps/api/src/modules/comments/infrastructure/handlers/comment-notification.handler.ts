@@ -15,9 +15,9 @@ import { IPostReader, POST_READER } from '../../domain/ports/post-reader.port';
  * here later). Self-notifications are skipped.
  */
 @Injectable()
-export class CommentNotificationHandler
-  implements IEventHandler<CommentCreatedEvent | ReplyCreatedEvent>
-{
+export class CommentNotificationHandler implements IEventHandler<
+  CommentCreatedEvent | ReplyCreatedEvent
+> {
   readonly handlerName = 'comment-notification';
   private readonly logger = new Logger(CommentNotificationHandler.name);
 
@@ -25,7 +25,7 @@ export class CommentNotificationHandler
 
   async handle(event: CommentCreatedEvent | ReplyCreatedEvent): Promise<void> {
     if (event.eventType === 'comment.reply_created') {
-      const p = (event as ReplyCreatedEvent).payload;
+      const p = event.payload;
       if (p.parentAuthorId && p.parentAuthorId !== p.authorId) {
         this.notify(p.parentAuthorId, 'reply', event.metadata.correlationId, {
           commentId: p.commentId,
@@ -35,7 +35,7 @@ export class CommentNotificationHandler
       return;
     }
 
-    const p = (event as CommentCreatedEvent).payload;
+    const p = event.payload;
     if (p.parentCommentId) return; // replies handled above
 
     const postAuthorId = await this.posts.getAuthorId(p.postId);

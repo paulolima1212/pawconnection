@@ -6,8 +6,21 @@ import {
   mapInterestToPrisma,
   mapUserToDomain,
 } from '../../../shared/infrastructure/mappers/prisma.mapper';
-import { AppConnectionIntent, AppGender, AppInterest, UserEntity } from '../../../shared/domain/types';
+import {
+  AppConnectionIntent,
+  AppInterest,
+  UserEntity,
+} from '../../../shared/domain/types';
+import { normalizeEmail } from '../../../shared/domain/email.util';
+import { parseIsoDate } from '../domain/birth-date';
 import { Handle } from '../domain/value-objects/handle.vo';
+
+function toBirthDate(value: string | null): Date | null {
+  if (!value) return null;
+  const parsed = parseIsoDate(value);
+  if (!parsed) return null;
+  return new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day));
+}
 import {
   CreateUserInput,
   IUserRepository,
@@ -37,8 +50,16 @@ export class PrismaUserRepository implements IUserRepository {
   }
 
   async findByEmail(email: string): Promise<UserEntity | null> {
-    const user = await this.prisma.user.findUnique({
-      where: { email },
+    const normalized = normalizeEmail(email);
+    const exact = await this.prisma.user.findUnique({
+      where: { email: normalized },
+      include: this.include,
+    });
+    if (exact) return mapUserToDomain(exact);
+
+    // Existing rows may have been stored with mixed case. Unique is case-sensitive.
+    const user = await this.prisma.user.findFirst({
+      where: { email: { equals: normalized, mode: 'insensitive' } },
       include: this.include,
     });
     return user ? mapUserToDomain(user) : null;
@@ -71,14 +92,19 @@ export class PrismaUserRepository implements IUserRepository {
     userId: string,
     data: Parameters<IUserRepository['updateOwner']>[1],
   ): Promise<UserEntity> {
+    const { birthDate, email, gender, handle, ...rest } = data;
     const user = await this.prisma.user.update({
       where: { id: userId },
       data: {
-        ...data,
-        gender: data.gender ? mapGenderToPrisma(data.gender as AppGender) : undefined,
-        handle: data.handle
-          ? Handle.parse(data.handle).value
-          : undefined,
+        ...rest,
+        ...(email !== undefined
+          ? { email: email ? normalizeEmail(email) : email }
+          : {}),
+        ...(birthDate !== undefined
+          ? { birthDate: toBirthDate(birthDate) }
+          : {}),
+        gender: gender ? mapGenderToPrisma(gender) : undefined,
+        handle: handle ? Handle.parse(handle).value : undefined,
       },
       include: this.include,
     });
@@ -86,9 +112,7 @@ export class PrismaUserRepository implements IUserRepository {
   }
 
   async setInterests(userId: string, interests: string[]): Promise<UserEntity> {
-    const mapped = interests.map((i) =>
-      mapInterestToPrisma(i as AppInterest),
-    );
+    const mapped = interests.map((i) => mapInterestToPrisma(i as AppInterest));
     await this.prisma.userInterest.deleteMany({ where: { userId } });
     if (mapped.length > 0) {
       await this.prisma.userInterest.createMany({
@@ -102,7 +126,10 @@ export class PrismaUserRepository implements IUserRepository {
     return mapUserToDomain(user);
   }
 
-  async setLookingFor(userId: string, lookingFor: string[]): Promise<UserEntity> {
+  async setLookingFor(
+    userId: string,
+    lookingFor: string[],
+  ): Promise<UserEntity> {
     const mapped = lookingFor.map((value) =>
       mapConnectionIntentToPrisma(value as AppConnectionIntent),
     );
@@ -128,7 +155,10 @@ export class PrismaUserRepository implements IUserRepository {
     return mapUserToDomain(user);
   }
 
-  async updatePasswordHash(userId: string, passwordHash: string): Promise<void> {
+  async updatePasswordHash(
+    userId: string,
+    passwordHash: string,
+  ): Promise<void> {
     await this.prisma.user.update({
       where: { id: userId },
       data: { passwordHash },

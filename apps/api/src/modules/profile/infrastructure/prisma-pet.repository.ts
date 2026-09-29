@@ -7,31 +7,27 @@ import {
   mapTemperamentsToPrisma,
   mapVaccinatedToPrisma,
 } from '../../../shared/infrastructure/mappers/prisma.mapper';
-import {
-  AppDesexed,
-  AppGender,
-  AppTemperament,
-  AppVaccinated,
-  PetProfile,
-} from '../../../shared/domain/types';
+import { PetProfile } from '../../../shared/domain/types';
+import { ageOnUtcDate, parseIsoDate } from '../domain/birth-date';
 import { IPetRepository } from '../domain/repositories/pet.repository';
 
 function parseBirthDate(value?: string | null): Date | null | undefined {
   if (value === undefined) return undefined;
   if (value === null || value === '') return null;
-  const day = value.slice(0, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return undefined;
-  const date = new Date(`${day}T00:00:00.000Z`);
-  return Number.isNaN(date.getTime()) ? undefined : date;
+  const parsed = parseIsoDate(value.slice(0, 10));
+  if (!parsed) return undefined;
+  return new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day));
 }
 
 function ageFromBirthDate(birthDate: Date, now = new Date()): number {
-  let age = now.getUTCFullYear() - birthDate.getUTCFullYear();
-  const month = now.getUTCMonth() - birthDate.getUTCMonth();
-  if (month < 0 || (month === 0 && now.getUTCDate() < birthDate.getUTCDate())) {
-    age -= 1;
-  }
-  return Math.max(0, age);
+  return ageOnUtcDate(
+    {
+      year: birthDate.getUTCFullYear(),
+      month: birthDate.getUTCMonth() + 1,
+      day: birthDate.getUTCDate(),
+    },
+    now,
+  );
 }
 
 @Injectable()
@@ -59,17 +55,14 @@ export class PrismaPetRepository implements IPetRepository {
         photoUrl: data.photoUrl,
         temperament:
           data.temperament !== undefined
-            ? mapTemperamentsToPrisma(data.temperament as AppTemperament[])
+            ? mapTemperamentsToPrisma(data.temperament)
             : undefined,
         vaccinated: data.vaccinated
-          ? mapVaccinatedToPrisma(data.vaccinated as AppVaccinated)
+          ? mapVaccinatedToPrisma(data.vaccinated)
           : undefined,
-        desexed: data.desexed
-          ? mapDesexedToPrisma(data.desexed as AppDesexed)
-          : undefined,
-        gender: data.gender
-          ? mapGenderToPrisma(data.gender as AppGender)
-          : undefined,
+        desexed: data.desexed ? mapDesexedToPrisma(data.desexed) : undefined,
+        gender: data.gender ? mapGenderToPrisma(data.gender) : undefined,
+        customTemperament: data.customTemperament,
         favoritesThings: data.favoritesThings,
         favoriteMeal: data.favoriteMeal,
         enjoysPark: data.enjoysPark,
@@ -85,17 +78,14 @@ export class PrismaPetRepository implements IPetRepository {
         photoUrl: data.photoUrl,
         temperament:
           data.temperament !== undefined
-            ? mapTemperamentsToPrisma(data.temperament as AppTemperament[])
+            ? mapTemperamentsToPrisma(data.temperament)
             : undefined,
         vaccinated: data.vaccinated
-          ? mapVaccinatedToPrisma(data.vaccinated as AppVaccinated)
+          ? mapVaccinatedToPrisma(data.vaccinated)
           : undefined,
-        desexed: data.desexed
-          ? mapDesexedToPrisma(data.desexed as AppDesexed)
-          : undefined,
-        gender: data.gender
-          ? mapGenderToPrisma(data.gender as AppGender)
-          : undefined,
+        desexed: data.desexed ? mapDesexedToPrisma(data.desexed) : undefined,
+        gender: data.gender ? mapGenderToPrisma(data.gender) : undefined,
+        customTemperament: data.customTemperament,
         favoritesThings: data.favoritesThings,
         favoriteMeal: data.favoriteMeal,
         enjoysPark: data.enjoysPark,

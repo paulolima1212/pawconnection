@@ -1,4 +1,7 @@
-import { BaseDomainEvent, EventMetadata } from '../../../../shared/events/domain-event';
+import {
+  BaseDomainEvent,
+  EventMetadata,
+} from '../../../../shared/events/domain-event';
 import { CommentStatus } from '../comment-status';
 
 /** Centralized event-type names. Stable strings used for routing & transports. */

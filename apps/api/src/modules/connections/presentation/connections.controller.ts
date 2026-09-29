@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/presentation/jwt-auth.guard';
 import {
@@ -12,6 +20,7 @@ import {
 import {
   AcceptConnectionRequestUseCase,
   CreateConnectionRequestUseCase,
+  GetConnectionWithUserUseCase,
   ListInboxRequestsUseCase,
   RejectConnectionRequestUseCase,
 } from '../application/connections.use-cases';
@@ -27,7 +36,16 @@ export class ConnectionsController {
     private readonly acceptRequest: AcceptConnectionRequestUseCase,
     private readonly rejectRequest: RejectConnectionRequestUseCase,
     private readonly createRequest: CreateConnectionRequestUseCase,
+    private readonly connectionWith: GetConnectionWithUserUseCase,
   ) {}
+
+  @Get('connection/:userId')
+  connection(
+    @CurrentUser() user: AuthUserPayload,
+    @Param('userId') userId: string,
+  ) {
+    return this.connectionWith.execute(user.userId, userId);
+  }
 
   @Post('requests')
   create(
@@ -42,8 +60,16 @@ export class ConnectionsController {
   }
 
   @Get('requests')
-  @ApiQuery({ name: 'type', required: false, enum: ['romance', 'friendship', 'request'] })
-  @ApiQuery({ name: 'direction', required: false, enum: ['incoming', 'outgoing'] })
+  @ApiQuery({
+    name: 'type',
+    required: false,
+    enum: ['romance', 'friendship', 'request'],
+  })
+  @ApiQuery({
+    name: 'direction',
+    required: false,
+    enum: ['incoming', 'outgoing'],
+  })
   list(
     @CurrentUser() user: AuthUserPayload,
     @Query('type') type?: ConnectionTypeValue,

@@ -1,6 +1,9 @@
 import { randomUUID } from 'crypto';
 import { EventMetadata } from '../../../../shared/events/domain-event';
-import { ForbiddenError, ValidationError } from '../../../../shared/domain/result';
+import {
+  ForbiddenError,
+  ValidationError,
+} from '../../../../shared/domain/result';
 import { MessageType } from '../message-type';
 import { MessageStatus, isMessageVisible } from '../message-status';
 import { MessageContent } from '../value-objects/message-content.vo';
@@ -191,10 +194,14 @@ export class Message {
   }
 
   pullEvents(): import('../../../../shared/events/domain-event').DomainEvent[] {
-    return this._events.splice(0) as import('../../../../shared/events/domain-event').DomainEvent[];
+    return this._events.splice(
+      0,
+    ) as import('../../../../shared/events/domain-event').DomainEvent[];
   }
 
-  private record(event: import('../../../../shared/events/domain-event').DomainEvent): void {
+  private record(
+    event: import('../../../../shared/events/domain-event').DomainEvent,
+  ): void {
     this._events.push(event);
   }
 }

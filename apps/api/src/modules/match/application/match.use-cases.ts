@@ -1,7 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
-import { haversineKm, mapUserToSummary } from '../../../shared/infrastructure/mappers/prisma.mapper';
-import { MatchCandidate, MatchCandidatesResult, UserEntity } from '../../../shared/domain/types';
+import {
+  haversineKm,
+  mapUserToSummary,
+} from '../../../shared/infrastructure/mappers/prisma.mapper';
+import {
+  MatchCandidate,
+  MatchCandidatesResult,
+  UserEntity,
+} from '../../../shared/domain/types';
 import {
   CONNECTION_REQUEST_REPOSITORY,
   IConnectionRequestRepository,
@@ -62,44 +69,50 @@ export class ListMatchCandidatesUseCase {
       }
     }
 
-    return { candidates: [], radiusKm: radii[radii.length - 1] ?? MATCH_RADIUS_STEPS_KM[0] };
+    return {
+      candidates: [],
+      radiusKm: radii[radii.length - 1] ?? MATCH_RADIUS_STEPS_KM[0],
+    };
   }
 
   /** Users already seen or engaged on Find — they stay on Discover for revisits. */
   private async collectExcludedTargetIds(userId: string): Promise<Set<string>> {
-    const [passes, waves, conversations, friendshipRequests] = await Promise.all([
-      this.prisma.matchPass.findMany({
-        where: { userId },
-        select: { targetId: true },
-      }),
-      this.prisma.matchWave.findMany({
-        where: { senderId: userId },
-        select: { targetId: true },
-      }),
-      this.prisma.conversation.findMany({
-        where: {
-          OR: [{ participantOneId: userId }, { participantTwoId: userId }],
-        },
-        select: { participantOneId: true, participantTwoId: true },
-      }),
-      this.prisma.connectionRequest.findMany({
-        where: {
-          type: 'friendship',
-          OR: [
-            { senderId: userId, status: { in: ['pending', 'accepted'] } },
-            { recipientId: userId, status: 'accepted' },
-          ],
-        },
-        select: { senderId: true, recipientId: true },
-      }),
-    ]);
+    const [passes, waves, conversations, friendshipRequests] =
+      await Promise.all([
+        this.prisma.matchPass.findMany({
+          where: { userId },
+          select: { targetId: true },
+        }),
+        this.prisma.matchWave.findMany({
+          where: { senderId: userId },
+          select: { targetId: true },
+        }),
+        this.prisma.conversation.findMany({
+          where: {
+            OR: [{ participantOneId: userId }, { participantTwoId: userId }],
+          },
+          select: { participantOneId: true, participantTwoId: true },
+        }),
+        this.prisma.connectionRequest.findMany({
+          where: {
+            type: 'friendship',
+            OR: [
+              { senderId: userId, status: { in: ['pending', 'accepted'] } },
+              { recipientId: userId, status: 'accepted' },
+            ],
+          },
+          select: { senderId: true, recipientId: true },
+        }),
+      ]);
 
     const excluded = new Set<string>();
     for (const row of passes) excluded.add(row.targetId);
     for (const row of waves) excluded.add(row.targetId);
     for (const row of conversations) {
       excluded.add(
-        row.participantOneId === userId ? row.participantTwoId : row.participantOneId,
+        row.participantOneId === userId
+          ? row.participantTwoId
+          : row.participantOneId,
       );
     }
     for (const row of friendshipRequests) {
@@ -157,7 +170,9 @@ export class ListMatchCandidatesUseCase {
       ownerPhotoUrls: c.photoUrls ?? (c.photoUrl ? [c.photoUrl] : []),
       lookingFor: c.lookingFor,
       sharedInterests: c.interests.filter((i) => me.interests.includes(i)),
-      sharedLookingFor: c.lookingFor.filter((intent) => me.lookingFor.includes(intent)),
+      sharedLookingFor: c.lookingFor.filter((intent) =>
+        me.lookingFor.includes(intent),
+      ),
       distanceKm:
         me.latitude != null &&
         me.longitude != null &&

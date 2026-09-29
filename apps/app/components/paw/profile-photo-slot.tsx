@@ -20,12 +20,8 @@ type ProfilePhotoSlotProps = {
 export function ProfilePhotoSlot({
   imageUri,
   onImageChange,
-  aspect = [1, 1],
 }: ProfilePhotoSlotProps) {
-  const { pickPhoto, picking, sourceSheetVisible, onSelectSource } = useProfilePhotoPicker({
-    aspect,
-    allowsEditing: true,
-  });
+  const { pickPhoto, picking, sourceSheetVisible, onSelectSource } = useProfilePhotoPicker();
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const displayUri = useMemo(() => {
@@ -64,7 +60,7 @@ export function ProfilePhotoSlot({
             style={({ pressed }) => [styles.previewPress, pressed && styles.uploadPressed]}
             accessibilityRole="imagebutton"
             accessibilityLabel="View photo full screen">
-            <RemoteMediaImage uri={displayUri} style={styles.preview} contentFit="cover" />
+            <RemoteMediaImage uri={displayUri} style={styles.preview} contentFit="contain" />
           </Pressable>
           <Pressable
             onPress={() => void onPick()}
@@ -132,11 +128,11 @@ const styles = StyleSheet.create({
   },
   previewPress: {
     width: '100%',
-    minHeight: 158,
+    aspectRatio: 1,
   },
   preview: {
     width: '100%',
-    minHeight: 158,
+    aspectRatio: 1,
     borderRadius: PawLayout.borderRadiusField - 1,
   },
   emptyState: {

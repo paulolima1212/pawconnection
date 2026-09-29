@@ -5,12 +5,19 @@ import {
 } from '../../../../shared/domain/ports/email-sender.port';
 import { PostReportedEvent } from '../../domain/events/moderation-events';
 import { ReportedPostSnapshot } from '../../domain/ports/post-reader.port';
-import { IModerationUserReader, ModerationUserSummary } from '../../domain/ports/user-reader.port';
+import {
+  IModerationUserReader,
+  ModerationUserSummary,
+} from '../../domain/ports/user-reader.port';
 import { ReportNotificationHandler } from './report-notification.handler';
 
 class FakeEmail implements IEmailSender {
   readonly sent: { to: string; subject: string; text: string }[] = [];
-  async send(message: { to: string; subject: string; text: string }): Promise<void> {
+  async send(message: {
+    to: string;
+    subject: string;
+    text: string;
+  }): Promise<void> {
     this.sent.push(message);
   }
 }
@@ -44,14 +51,22 @@ describe('ReportNotificationHandler', () => {
     authorHandle: 'authorhandle',
     authorName: 'Author Name',
   };
-  const reporter = { id: 'viewer', fullName: 'Viewer', handle: 'viewer', photoUrl: null };
+  const reporter = {
+    id: 'viewer',
+    fullName: 'Viewer',
+    handle: 'viewer',
+    photoUrl: null,
+  };
 
   it('emails the reports inbox with the reported content', async () => {
     const email = new FakeEmail();
-    const config = { get: (key: string) => (key === 'REPORTS_INBOX_EMAIL' ? 'dev@paw.test' : undefined) };
+    const config = {
+      get: (key: string) =>
+        key === 'REPORTS_INBOX_EMAIL' ? 'dev@paw.test' : undefined,
+    };
     const handler = new ReportNotificationHandler(
       email,
-      new FakePosts(snapshot) as never,
+      new FakePosts(snapshot),
       new FakeUsers([reporter]),
       config as unknown as ConfigService,
     );
@@ -79,7 +94,7 @@ describe('ReportNotificationHandler', () => {
     const config = { get: () => undefined };
     const handler = new ReportNotificationHandler(
       email,
-      new FakePosts(snapshot) as never,
+      new FakePosts(snapshot),
       new FakeUsers([reporter]),
       config as unknown as ConfigService,
     );

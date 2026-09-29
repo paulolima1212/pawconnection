@@ -33,9 +33,11 @@ describe('CommentContent', () => {
   });
 
   it('supports value equality', () => {
-    expect(CommentContent.create('hi').equals(CommentContent.create('hi'))).toBe(true);
-    expect(CommentContent.create('hi').equals(CommentContent.create('bye'))).toBe(
-      false,
-    );
+    expect(
+      CommentContent.create('hi').equals(CommentContent.create('hi')),
+    ).toBe(true);
+    expect(
+      CommentContent.create('hi').equals(CommentContent.create('bye')),
+    ).toBe(false);
   });
 });

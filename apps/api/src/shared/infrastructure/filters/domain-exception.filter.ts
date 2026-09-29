@@ -37,9 +37,13 @@ export class DomainExceptionFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
       const body = exception.getResponse();
-      response.status(status).json(
-        typeof body === 'string' ? { statusCode: status, message: body } : body,
-      );
+      response
+        .status(status)
+        .json(
+          typeof body === 'string'
+            ? { statusCode: status, message: body }
+            : body,
+        );
       return;
     }
 
@@ -59,6 +63,8 @@ export class DomainExceptionFilter implements ExceptionFilter {
         return HttpStatus.BAD_REQUEST;
       case 'FORBIDDEN':
         return HttpStatus.FORBIDDEN;
+      case 'UNAUTHORIZED':
+        return HttpStatus.UNAUTHORIZED;
       default:
         return HttpStatus.BAD_REQUEST;
     }

@@ -50,6 +50,7 @@ const GENDER_OPTIONS: { value: GenderValue | 'any'; label: string }[] = [
   { value: 'any', label: 'Any' },
   { value: 'Male', label: 'Male' },
   { value: 'Female', label: 'Female' },
+  { value: 'Other', label: 'Other' },
 ];
 
 const INTEREST_FILTER_OPTIONS: { value: InterestId | 'any'; label: string }[] = [

@@ -167,7 +167,10 @@ export class PrismaChatRepository implements IChatRepository {
     }));
   }
 
-  private mapRowToReadModel(row: MessageRow, viewerId: string): MessageReadModel {
+  private mapRowToReadModel(
+    row: MessageRow,
+    viewerId: string,
+  ): MessageReadModel {
     const deleted =
       row.status === PrismaMessageStatus.DELETED || row.deletedAt != null;
     return {
@@ -213,7 +216,10 @@ export class PrismaChatRepository implements IChatRepository {
     );
     const row = await this.prisma.conversation.findUnique({
       where: {
-        participantOneId_participantTwoId: { participantOneId, participantTwoId },
+        participantOneId_participantTwoId: {
+          participantOneId,
+          participantTwoId,
+        },
       },
     });
     return row ? this.mapConversation(row) : null;
@@ -283,7 +289,9 @@ export class PrismaChatRepository implements IChatRepository {
     const result: ConversationReadModel[] = [];
     for (const row of rows) {
       const otherId =
-        row.participantOneId === userId ? row.participantTwoId : row.participantOneId;
+        row.participantOneId === userId
+          ? row.participantTwoId
+          : row.participantOneId;
       const otherUser = otherMap.get(otherId);
       if (!otherUser) continue;
 
@@ -311,7 +319,8 @@ export class PrismaChatRepository implements IChatRepository {
         lastMessage: last
           ? {
               id: last.id,
-              content: last.status === PrismaMessageStatus.DELETED ? '' : last.content,
+              content:
+                last.status === PrismaMessageStatus.DELETED ? '' : last.content,
               senderId: last.senderId,
               createdAt: last.createdAt,
             }
@@ -348,8 +357,8 @@ export class PrismaChatRepository implements IChatRepository {
         conversationId: state.conversationId,
         senderId: state.senderId,
         content: state.content,
-        type: state.type as PrismaMessageType,
-        status: state.status as PrismaMessageStatus,
+        type: state.type,
+        status: state.status,
         clientMessageId: state.clientMessageId,
         replyToMessageId: state.replyToMessageId,
         readAt: state.readAt,
@@ -359,8 +368,8 @@ export class PrismaChatRepository implements IChatRepository {
       },
       update: {
         content: state.content,
-        type: state.type as PrismaMessageType,
-        status: state.status as PrismaMessageStatus,
+        type: state.type,
+        status: state.status,
         readAt: state.readAt,
         updatedAt: state.updatedAt,
         deletedAt: state.deletedAt,
@@ -386,7 +395,10 @@ export class PrismaChatRepository implements IChatRepository {
         where.OR = [
           { createdAt: { lt: cursorMsg.createdAt } },
           {
-            AND: [{ createdAt: cursorMsg.createdAt }, { id: { lt: cursorMsg.id } }],
+            AND: [
+              { createdAt: cursorMsg.createdAt },
+              { id: { lt: cursorMsg.id } },
+            ],
           },
         ];
       }
@@ -407,7 +419,7 @@ export class PrismaChatRepository implements IChatRepository {
 
     return {
       items,
-      nextCursor: hasMore ? slice[slice.length - 1]?.id ?? null : null,
+      nextCursor: hasMore ? (slice[slice.length - 1]?.id ?? null) : null,
     };
   }
 
@@ -419,7 +431,7 @@ export class PrismaChatRepository implements IChatRepository {
       where: { id: messageId },
       include: messageInclude,
     });
-    return row ? this.mapRowToReadModel(row as MessageRow, viewerId) : null;
+    return row ? this.mapRowToReadModel(row, viewerId) : null;
   }
 
   async toggleMessageReaction(

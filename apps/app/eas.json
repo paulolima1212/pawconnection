@@ -34,8 +34,9 @@
   "submit": {
     "production": {
       "android": {
+        "serviceAccountKeyPath": "./docs/pawconnection-c12277b288da.json",
         "track": "internal",
-        "releaseStatus": "draft"
+        "releaseStatus": "completed"
       }
     }
   }

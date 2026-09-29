@@ -7,7 +7,7 @@ export type ListFeedPostsParams = {
   q?: string;
   city?: string;
   author?: string;
-  petGender?: 'Male' | 'Female';
+  petGender?: 'Male' | 'Female' | 'Other';
   petAge?: number;
   petSize?: 'small' | 'medium' | 'large';
 };

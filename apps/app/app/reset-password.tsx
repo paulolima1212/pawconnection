@@ -11,12 +11,15 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { KeyboardAwareFormScroll } from '@/components/paw/keyboard-aware-form-scroll';
+import { PasswordField } from '@/components/paw/password-field';
+import { PasswordRequirements } from '@/components/paw/password-requirements';
 import { PawLogo } from '@/components/paw/paw-logo';
 import { PawColors, PawFontSize, PawLayout } from '@/constants/paw-styles';
 import { tooltipMessageFromError, usePawTooltip } from '@/context/paw-tooltip';
 import { ApiError } from '@/lib/api/client';
 import { resetPassword } from '@/lib/api/auth';
 import { getApiBaseUrl } from '@/lib/api/config';
+import { isPasswordValid, PASSWORD_POLICY_MESSAGE } from '@/lib/password-policy';
 
 export default function ResetPasswordScreen() {
   const insets = useSafeAreaInsets();
@@ -39,10 +42,10 @@ export default function ResetPasswordScreen() {
       });
       return;
     }
-    if (password.length < 6) {
+    if (!isPasswordValid(password)) {
       showTooltip({
-        title: 'Password too short',
-        message: 'Use at least 6 characters.',
+        title: 'Password requirements',
+        message: PASSWORD_POLICY_MESSAGE,
         variant: 'info',
       });
       return;
@@ -106,21 +109,20 @@ export default function ResetPasswordScreen() {
             autoCorrect={false}
             style={styles.input}
           />
-          <TextInput
+          <PasswordField
+            purpose="new"
             value={password}
             onChangeText={setPassword}
             placeholder="New password"
             placeholderTextColor={PawColors.textMuted}
-            secureTextEntry
-            style={styles.input}
           />
-          <TextInput
+          <PasswordRequirements password={password} />
+          <PasswordField
+            purpose="new"
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             placeholder="Confirm new password"
             placeholderTextColor={PawColors.textMuted}
-            secureTextEntry
-            style={styles.input}
           />
         </View>
 

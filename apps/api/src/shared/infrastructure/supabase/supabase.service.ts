@@ -24,7 +24,11 @@ export class SupabaseService {
       url
     ).replace(/\/$/, '');
 
-    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(this.publicStorageBase)) {
+    if (
+      /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(
+        this.publicStorageBase,
+      )
+    ) {
       this.logger.warn(
         'Set SUPABASE_PUBLIC_URL to your public gateway (e.g. https://supabase.lz-plima1212.online) so storage links are not localhost.',
       );

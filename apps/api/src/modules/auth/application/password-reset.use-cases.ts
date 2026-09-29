@@ -2,11 +2,16 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { ValidationError } from '../../../shared/domain/result';
+import { normalizeEmail } from '../../../shared/domain/email.util';
+import { assertPasswordPolicy } from '../domain/password-policy';
 import {
   IUserRepository,
   USER_REPOSITORY,
 } from '../../profile/domain/repositories/user.repository';
-import { EMAIL_SENDER, IEmailSender } from '../../../shared/domain/ports/email-sender.port';
+import {
+  EMAIL_SENDER,
+  IEmailSender,
+} from '../../../shared/domain/ports/email-sender.port';
 import {
   createPasswordResetToken,
   hashPasswordResetToken,
@@ -33,7 +38,7 @@ export class RequestPasswordResetUseCase {
   ) {}
 
   async execute(input: { email: string }) {
-    const email = input.email.trim().toLowerCase();
+    const email = normalizeEmail(input.email);
     const user = await this.users.findByEmail(email);
 
     if (user?.passwordHash) {
@@ -47,7 +52,10 @@ export class RequestPasswordResetUseCase {
         expiresAt,
       });
 
-      const appUrl = this.config.get<string>('APP_URL', 'http://localhost:8081');
+      const appUrl = this.config.get<string>(
+        'APP_URL',
+        'http://localhost:8081',
+      );
       const resetUrl = `${appUrl.replace(/\/$/, '')}/reset-password?token=${raw}`;
 
       try {
@@ -110,6 +118,8 @@ export class ResetPasswordUseCase {
     if (!record) {
       throw new ValidationError('Invalid or expired reset token');
     }
+
+    assertPasswordPolicy(input.password);
 
     const passwordHash = await bcrypt.hash(input.password, 10);
     await this.users.updatePasswordHash(record.userId, passwordHash);

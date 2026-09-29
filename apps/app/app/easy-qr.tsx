@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { useNavigationContainerRef, useRouter } from 'expo-router';
 import { Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -7,12 +7,14 @@ import { FIGMA_SETUP_YOU } from '@/constants/paw-figma-assets';
 import { PawColors, PawFontSize, PawLayout, PawLineHeight } from '@/constants/paw-styles';
 import { publicHandleFromDraft, useProfileOnboarding } from '@/context/profile-onboarding';
 import { getAppBaseUrl } from '@/lib/api/config';
+import { resetNavigationToHome } from '@/lib/navigation/reset-to-home';
 
 const EASY_QR_IMAGE = require('@/assets/onboarding/easy-qr.png');
 
 export default function EasyQrScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const navigation = useNavigationContainerRef();
   const { draft, completeOnboarding, handle } = useProfileOnboarding();
 
   const displayHandle = handle ?? publicHandleFromDraft(draft);
@@ -23,7 +25,7 @@ export default function EasyQrScreen() {
 
   const goHome = async () => {
     await completeOnboarding();
-    router.replace('/social-feed');
+    resetNavigationToHome(navigation);
   };
 
   const onBack = () => {

@@ -30,7 +30,11 @@ describe('Comment aggregate', () => {
         postId: 'post-1',
         authorId: 'user-2',
         content: content('Nice!'),
-        parent: { parentCommentId: 'c-1', parentAuthorId: 'user-1', parentDepth: 0 },
+        parent: {
+          parentCommentId: 'c-1',
+          parentAuthorId: 'user-1',
+          parentDepth: 0,
+        },
       });
 
       expect(reply.isReply).toBe(true);
@@ -41,7 +45,10 @@ describe('Comment aggregate', () => {
         COMMENT_EVENTS.CREATED,
         COMMENT_EVENTS.REPLY_CREATED,
       ]);
-      const replyEvent = events[1].payload as { depth: number; parentAuthorId: string };
+      const replyEvent = events[1].payload as {
+        depth: number;
+        parentAuthorId: string;
+      };
       expect(replyEvent.depth).toBe(1);
       expect(replyEvent.parentAuthorId).toBe('user-1');
     });
@@ -114,9 +121,9 @@ describe('Comment aggregate', () => {
       expect(comment.deletedAt).toBeInstanceOf(Date);
       const events = comment.pullEvents();
       expect(events.map((e) => e.eventType)).toEqual([COMMENT_EVENTS.DELETED]);
-      expect((events[0].payload as { previousStatus: string }).previousStatus).toBe(
-        CommentStatus.ACTIVE,
-      );
+      expect(
+        (events[0].payload as { previousStatus: string }).previousStatus,
+      ).toBe(CommentStatus.ACTIVE);
     });
 
     it('lets a moderator delete a comment they did not author', () => {
@@ -136,9 +143,9 @@ describe('Comment aggregate', () => {
         authorId: 'author',
         content: content('keep'),
       });
-      expect(() => comment.softDelete('intruder', { byModerator: false })).toThrow(
-        /permission/i,
-      );
+      expect(() =>
+        comment.softDelete('intruder', { byModerator: false }),
+      ).toThrow(/permission/i);
     });
 
     it('is idempotent when already deleted', () => {

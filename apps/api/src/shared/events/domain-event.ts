@@ -34,7 +34,9 @@ export interface DomainEvent<TPayload = unknown> {
  * Base class that fills in the boilerplate (eventId, occurredAt). Concrete events
  * only declare their `eventType` and payload shape.
  */
-export abstract class BaseDomainEvent<TPayload> implements DomainEvent<TPayload> {
+export abstract class BaseDomainEvent<
+  TPayload,
+> implements DomainEvent<TPayload> {
   readonly eventId: string = randomUUID();
   readonly occurredAt: Date = new Date();
   abstract readonly eventType: string;

@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { EmailMessage, IEmailSender } from '../../domain/ports/email-sender.port';
+import {
+  EmailMessage,
+  IEmailSender,
+} from '../../domain/ports/email-sender.port';
 
 @Injectable()
 export class ResendEmailSender implements IEmailSender {
@@ -39,7 +42,9 @@ export class ResendEmailSender implements IEmailSender {
         status: response.status,
         to: message.to,
       });
-      throw new Error(`Failed to send email via Resend: ${response.status} ${body}`);
+      throw new Error(
+        `Failed to send email via Resend: ${response.status} ${body}`,
+      );
     }
 
     this.logger.log({ msg: 'email.resend_accepted', to: message.to });

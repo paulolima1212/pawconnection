@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { useNavigationContainerRef, useRouter } from 'expo-router';
 import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -8,7 +8,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GenderSelector } from '@/components/paw/gender-selector';
 import { BirthdayField } from '@/components/paw/birthday-field';
 import { BreedAutocomplete } from '@/components/paw/breed-autocomplete';
+import { LocationAutocomplete } from '@/components/paw/location-autocomplete';
 import { KeyboardAwareFormScroll } from '@/components/paw/keyboard-aware-form-scroll';
+import { useKeyboardHeight } from '@/hooks/use-keyboard-height';
 import { OptionDropdown } from '@/components/paw/option-dropdown';
 import { ProfileAvatarStack } from '@/components/paw/profile-avatar-stack';
 import { ProfileFieldInput } from '@/components/paw/profile-field-input';
@@ -22,20 +24,22 @@ import { PROFILE_FIGMA } from '@/constants/profile-figma-assets';
 import { PawColors, PawFontSize, PawLayout, PawLineHeight } from '@/constants/paw-styles';
 import { useAuth } from '@/context/auth';
 import { usePawTooltip } from '@/context/paw-tooltip';
+import { type ProfileDraft, useProfileOnboarding } from '@/context/profile-onboarding';
 import {
-  TEMPERAMENT_OPTIONS,
+  DESEXED_OPTIONS,
+  TEMPERAMENT_DROPDOWN_OPTIONS,
+  VACCINATED_OPTIONS,
   type DesexedValue,
-  type ProfileDraft,
   type TemperamentValue,
   type VaccinatedValue,
-  useProfileOnboarding,
-} from '@/context/profile-onboarding';
+} from '@/lib/profile-values';
+import { ageFromBirthdayIso } from '@/lib/pet-birthday';
 import { ApiError } from '@/lib/api/client';
 import * as profileApi from '@/lib/api/profile';
 import { profileMeToDraft } from '@/lib/api/profile-mapper';
 import { extractStorageObjectPath, resolveMediaUrl } from '@/lib/api/media';
-import { ageFromBirthdayIso } from '@/lib/pet-birthday';
 import { isValidHandle, sanitizeHandleInput } from '@/lib/handle';
+import { resetNavigationToHome } from '@/lib/navigation/reset-to-home';
 
 function photoSnapshotKey(uri: string | null): string | null {
   if (!uri?.trim()) return null;
@@ -58,24 +62,22 @@ const ENJOY_ROWS = [
   { key: 'dogEnjoysWalks' as const, label: 'Enjoys long walks' },
 ];
 
-const TEMPERAMENT_DROPDOWN_OPTIONS = TEMPERAMENT_OPTIONS.map((v) => ({ value: v, label: v }));
-
-const VACCINATED_OPTIONS: { value: VaccinatedValue; label: string }[] = [
-  { value: 'Yes', label: 'Yes' },
-  { value: 'No', label: 'No' },
-];
-
-const DESEXED_OPTIONS: { value: DesexedValue; label: string }[] = [
-  { value: 'Yes', label: 'Yes' },
-  { value: 'No', label: 'No' },
-];
-
 export function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const navigation = useNavigationContainerRef();
   const { logout } = useAuth();
-  const { draft, setDraft, setDraftPhoto, hydrated, syncOwnerToApi, syncPetToApi, syncPhotoToApi, clearLocalProfile } =
-    useProfileOnboarding();
+  const {
+    draft,
+    setDraft,
+    setDraftPhoto,
+    hydrated,
+    onboardingComplete,
+    syncOwnerToApi,
+    syncPetToApi,
+    syncPhotoToApi,
+    clearLocalProfile,
+  } = useProfileOnboarding();
   const [photoUploading, setPhotoUploading] = useState(false);
   const [infoTab, setInfoTab] = useState<ProfileInfoTab>('owner');
   const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
@@ -85,6 +87,7 @@ export function ProfileScreen() {
   const [deleteSheetOpen, setDeleteSheetOpen] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const { showTooltip } = usePawTooltip();
+  const keyboardHeight = useKeyboardHeight();
 
   useEffect(() => {
     if (!hydrated || savedSnapshot !== null) return;
@@ -96,10 +99,9 @@ export function ProfileScreen() {
     return draftSnapshot(draft) !== savedSnapshot;
   }, [draft, savedSnapshot]);
 
-  const dogName = draft.dogName.trim() || 'Pluto';
-  const ownerFirst =
-    draft.fullName.trim().split(/\s+/)[0] || draft.fullName.trim() || 'Jefferson';
-  const ownerFullName = draft.fullName.trim() || 'Jefferson';
+  const dogName = draft.dogName.trim();
+  const ownerFirst = draft.fullName.trim().split(/\s+/)[0] || draft.fullName.trim();
+  const ownerFullName = draft.fullName.trim();
 
   const onSave = async () => {
     if (infoTab === 'owner' && !isValidHandle(draft.handle)) {
@@ -138,6 +140,10 @@ export function ProfileScreen() {
   };
 
   const onBack = () => {
+    if (onboardingComplete) {
+      resetNavigationToHome(navigation);
+      return;
+    }
     if (router.canGoBack()) router.back();
     else router.replace('/social-feed');
   };
@@ -145,6 +151,7 @@ export function ProfileScreen() {
   const onConfirmSignOut = async () => {
     setSigningOut(true);
     try {
+      await clearLocalProfile();
       await logout();
       setSignOutSheetOpen(false);
       router.replace('/auth');
@@ -337,7 +344,7 @@ export function ProfileScreen() {
       </View>
 
       {isDirty || saving ? (
-        <View style={styles.saveSection}>
+        <View style={[styles.saveSection, keyboardHeight > 0 && { marginBottom: keyboardHeight }]}>
           <Pressable
             onPress={() => void onSave()}
             disabled={saving}
@@ -403,13 +410,31 @@ function OwnerInfoFields({
         placeholder="+1 (555) 123-4567"
         keyboardType="phone-pad"
       />
-      <ProfileLabeledField
-        label="Location"
-        icon="map-pin"
-        value={draft.location}
-        onChangeText={(t) => setDraft({ location: t })}
-        placeholder="Mosman, Sydney"
-      />
+      <ProfileLabeledField label="Date of birth" icon="calendar">
+        <BirthdayField
+          variant="profile"
+          kind="owner"
+          value={draft.ownerBirthDate}
+          onChangeIso={(iso) =>
+            setDraft({
+              ownerBirthDate: iso,
+              age: iso ? String(ageFromBirthdayIso(iso) ?? '') : draft.age,
+            })
+          }
+        />
+      </ProfileLabeledField>
+      <ProfileLabeledField label="City or neighborhood" icon="map-pin">
+        <LocationAutocomplete
+          variant="profile"
+          value={draft.location}
+          onChangeText={(t) => setDraft({ location: t })}
+          placeholder="City or neighborhood"
+        />
+        <Text style={styles.locationHint}>
+          Type only the city or neighborhood. Suggestions fill in the rest, for example Santa
+          Catarina, São Gonçalo - RJ - Brasil.
+        </Text>
+      </ProfileLabeledField>
       <ProfileLabeledField
         label="Bio"
         icon="heart"
@@ -440,6 +465,7 @@ function PetInfoFields({
       />
       <ProfileLabeledField label="Birthday" icon="calendar">
         <BirthdayField
+          variant="profile"
           value={draft.dogBirthday}
           onChangeIso={(iso) =>
             setDraft({
@@ -476,6 +502,16 @@ function PetInfoFields({
           variant="profile"
         />
       </ProfileLabeledField>
+      {draft.temperament.includes('Custom') ? (
+        <ProfileLabeledField
+          label="Custom temperament"
+          icon="edit-3"
+          value={draft.customTemperament}
+          onChangeText={(t) => setDraft({ customTemperament: t })}
+          placeholder="Describe their temperament"
+          maxLength={40}
+        />
+      ) : null}
       <ProfileLabeledField label="Vaccinated" icon="shield">
         <OptionDropdown<VaccinatedValue>
           value={draft.vaccinated}
@@ -689,6 +725,12 @@ const styles = StyleSheet.create({
   saveIcon: {
     width: 16,
     height: 16,
+  },
+  locationHint: {
+    fontSize: PawFontSize.small,
+    lineHeight: PawLineHeight.small + 2,
+    fontWeight: '400',
+    color: PawColors.textMuted,
   },
   saveText: {
     fontSize: PawFontSize.subtitle,

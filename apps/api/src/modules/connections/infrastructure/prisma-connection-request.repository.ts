@@ -9,9 +9,7 @@ import {
 import { IConnectionRequestRepository } from '../domain/repositories/connection-request.repository';
 
 @Injectable()
-export class PrismaConnectionRequestRepository
-  implements IConnectionRequestRepository
-{
+export class PrismaConnectionRequestRepository implements IConnectionRequestRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   private include = {
@@ -23,6 +21,20 @@ export class PrismaConnectionRequestRepository
     const requests = await this.prisma.connectionRequest.findMany({
       where: {
         OR: [{ senderId: userId }, { recipientId: userId }],
+      },
+      include: this.include,
+      orderBy: { createdAt: 'desc' },
+    });
+    return requests.map(mapConnectionRequestToDomain);
+  }
+
+  async findBetween(userId: string, otherUserId: string): Promise<ConnectionRequestEntity[]> {
+    const requests = await this.prisma.connectionRequest.findMany({
+      where: {
+        OR: [
+          { senderId: userId, recipientId: otherUserId },
+          { senderId: otherUserId, recipientId: userId },
+        ],
       },
       include: this.include,
       orderBy: { createdAt: 'desc' },
@@ -61,6 +73,15 @@ export class PrismaConnectionRequestRepository
     const updated = await this.prisma.connectionRequest.update({
       where: { id },
       data: { status: 'rejected' },
+      include: this.include,
+    });
+    return mapConnectionRequestToDomain(updated);
+  }
+
+  async markPending(id: string): Promise<ConnectionRequestEntity> {
+    const updated = await this.prisma.connectionRequest.update({
+      where: { id },
+      data: { status: 'pending' },
       include: this.include,
     });
     return mapConnectionRequestToDomain(updated);

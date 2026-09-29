@@ -13,6 +13,7 @@ module.exports = ({ config }) => {
         android: {
           ...(plugin[1]?.android ?? {}),
           usesCleartextTraffic: !isProductionBuild,
+          enableMinifyInReleaseBuilds: true,
         },
       },
     ];
@@ -29,6 +30,6 @@ module.exports = ({ config }) => {
         },
       },
     },
-    plugins: [...plugins, './plugins/with-google-maps.js'],
+    plugins: [...plugins, './plugins/with-google-maps.js', './plugins/with-crop-image-zoom.js'],
   };
 };

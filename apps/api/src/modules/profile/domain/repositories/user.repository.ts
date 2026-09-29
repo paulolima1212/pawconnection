@@ -23,6 +23,7 @@ export interface IUserRepository {
         | 'email'
         | 'phone'
         | 'age'
+        | 'birthDate'
         | 'gender'
         | 'location'
         | 'latitude'

@@ -24,7 +24,10 @@ import {
 } from '../application/moderation.use-cases';
 import { ReportPostDto } from './moderation.dto';
 
-function ctx(user: AuthUserPayload, correlationId?: string): ModerationRequestContext {
+function ctx(
+  user: AuthUserPayload,
+  correlationId?: string,
+): ModerationRequestContext {
   return { userId: user.userId, correlationId };
 }
 
@@ -69,7 +72,9 @@ export class ModerationController {
   @Post('users/:userId/block')
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
-  @ApiOperation({ summary: 'Block a user from access, visibility, and interaction' })
+  @ApiOperation({
+    summary: 'Block a user from access, visibility, and interaction',
+  })
   block(
     @CurrentUser() user: AuthUserPayload,
     @CorrelationId() correlationId: string,

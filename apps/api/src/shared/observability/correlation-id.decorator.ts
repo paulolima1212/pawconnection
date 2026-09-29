@@ -23,7 +23,8 @@ export const CorrelationId = createParamDecorator(
 
     const headerValue = req.headers[CORRELATION_ID_HEADER];
     const correlationId =
-      (Array.isArray(headerValue) ? headerValue[0] : headerValue) || randomUUID();
+      (Array.isArray(headerValue) ? headerValue[0] : headerValue) ||
+      randomUUID();
 
     req.correlationId = correlationId;
     res.setHeader?.(CORRELATION_ID_HEADER, correlationId);

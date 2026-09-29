@@ -16,23 +16,32 @@ describe('PostReport', () => {
     expect(report.reason).toBe('spam');
     expect(report.details).toBeNull();
     const events = report.pullEvents();
-    expect(events.map((e) => e.eventType)).toEqual([MODERATION_EVENTS.POST_REPORTED]);
+    expect(events.map((e) => e.eventType)).toEqual([
+      MODERATION_EVENTS.POST_REPORTED,
+    ]);
   });
 
   it('rejects reporting your own post', () => {
     expect(() =>
-      PostReport.create({ ...base, reporterId: 'author', postAuthorId: 'author' }),
+      PostReport.create({
+        ...base,
+        reporterId: 'author',
+        postAuthorId: 'author',
+      }),
     ).toThrow(ValidationError);
   });
 
   it('rejects an unknown reason', () => {
-    expect(() => PostReport.create({ ...base, reason: 'not-a-reason' })).toThrow(
-      /invalid report reason/i,
-    );
+    expect(() =>
+      PostReport.create({ ...base, reason: 'not-a-reason' }),
+    ).toThrow(/invalid report reason/i);
   });
 
   it('trims details and rejects overly long notes', () => {
-    const report = PostReport.create({ ...base, details: '  too many photos  ' });
+    const report = PostReport.create({
+      ...base,
+      details: '  too many photos  ',
+    });
     expect(report.details).toBe('too many photos');
 
     expect(() =>

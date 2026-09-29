@@ -32,6 +32,12 @@ export class ForbiddenError extends DomainError {
   }
 }
 
+export class UnauthorizedError extends DomainError {
+  constructor(message: string) {
+    super(message, 'UNAUTHORIZED');
+  }
+}
+
 export type Result<T, E = DomainError> =
   | { ok: true; value: T }
   | { ok: false; error: E };

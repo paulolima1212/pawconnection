@@ -1,10 +1,5 @@
 import { OptionDropdown } from '@/components/paw/option-dropdown';
-import type { GenderValue } from '@/context/profile-onboarding';
-
-const OPTIONS: { value: GenderValue; label: string }[] = [
-  { value: 'Male', label: 'Male' },
-  { value: 'Female', label: 'Female' },
-];
+import { GENDER_OPTIONS, type GenderValue } from '@/lib/profile-values';
 
 type GenderSelectorProps = {
   value: GenderValue | '';
@@ -22,11 +17,11 @@ export function GenderSelector({
   return (
     <OptionDropdown
       value={value}
-      options={OPTIONS}
+      options={GENDER_OPTIONS}
       onChange={onChange}
       sheetTitle="Gender"
       accessibilityLabel="Gender"
-      accessibilityHint="Opens list to choose Male or Female"
+      accessibilityHint="Opens list to choose Male, Female, or Other"
       placeholder={placeholder}
       variant={variant}
     />

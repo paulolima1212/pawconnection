@@ -14,31 +14,21 @@ import { PawLogo } from '@/components/paw/paw-logo';
 import { ProfilePhotoSlot } from '@/components/paw/profile-photo-slot';
 import { FIGMA_SETUP_DOG } from '@/constants/paw-figma-assets';
 import { PawColors, PawFontSize, PawLayout, PawLineHeight } from '@/constants/paw-styles';
+import { useProfileOnboarding } from '@/context/profile-onboarding';
 import {
-  TEMPERAMENT_OPTIONS,
+  DESEXED_OPTIONS,
+  TEMPERAMENT_DROPDOWN_OPTIONS,
+  VACCINATED_OPTIONS,
   type DesexedValue,
   type TemperamentValue,
   type VaccinatedValue,
-  useProfileOnboarding,
-} from '@/context/profile-onboarding';
+} from '@/lib/profile-values';
 import { ageFromBirthdayIso } from '@/lib/pet-birthday';
 
 const ENJOY_ROWS = [
   { key: 'dogEnjoysPark' as const, label: 'Enjoys the park' },
   { key: 'dogEnjoysWater' as const, label: 'Enjoys water play' },
   { key: 'dogEnjoysWalks' as const, label: 'Enjoys long walks' },
-];
-
-const TEMPERAMENT_DROPDOWN_OPTIONS = TEMPERAMENT_OPTIONS.map((v) => ({ value: v, label: v }));
-
-const VACCINATED_OPTIONS: { value: VaccinatedValue; label: string }[] = [
-  { value: 'Yes', label: 'Yes' },
-  { value: 'No', label: 'No' },
-];
-
-const DESEXED_OPTIONS: { value: DesexedValue; label: string }[] = [
-  { value: 'Yes', label: 'Yes' },
-  { value: 'No', label: 'No' },
 ];
 
 export default function SetupDogScreen() {
@@ -137,6 +127,16 @@ export default function SetupDogScreen() {
               placeholder="Select temperament"
             />
           </LabeledBlock>
+          {draft.temperament.includes('Custom') ? (
+            <LabeledBlock label="Custom temperament">
+              <FieldInput
+                placeholder="Describe their temperament"
+                value={draft.customTemperament}
+                onChangeText={(t) => setDraft({ customTemperament: t })}
+                maxLength={40}
+              />
+            </LabeledBlock>
+          ) : null}
           <LabeledBlock label="Vaccinated">
             <OptionDropdown<VaccinatedValue>
               value={draft.vaccinated}
@@ -144,7 +144,7 @@ export default function SetupDogScreen() {
               onChange={(v) => setDraft({ vaccinated: v })}
               sheetTitle="Vaccinated"
               accessibilityLabel="Vaccinated"
-              accessibilityHint="Opens list to choose Yes or No"
+              accessibilityHint="Opens list to choose Yes, No, or Prefer not to say"
               placeholder="Select an option"
             />
           </LabeledBlock>
@@ -155,7 +155,7 @@ export default function SetupDogScreen() {
               onChange={(v) => setDraft({ desexed: v })}
               sheetTitle="Desexed"
               accessibilityLabel="Desexed"
-              accessibilityHint="Opens list to choose Yes or No"
+              accessibilityHint="Opens list to choose Yes, No, or Prefer not to say"
               placeholder="Select an option"
             />
           </LabeledBlock>

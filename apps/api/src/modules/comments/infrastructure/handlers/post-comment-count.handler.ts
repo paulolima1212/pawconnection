@@ -16,9 +16,9 @@ import {
  * the same events without changing producers.
  */
 @Injectable()
-export class PostCommentCountHandler
-  implements IEventHandler<CommentCreatedEvent | CommentDeletedEvent>
-{
+export class PostCommentCountHandler implements IEventHandler<
+  CommentCreatedEvent | CommentDeletedEvent
+> {
   readonly handlerName = 'post-comment-count';
   private readonly logger = new Logger(PostCommentCountHandler.name);
 
@@ -26,7 +26,9 @@ export class PostCommentCountHandler
     @Inject(COMMENT_REPOSITORY) private readonly repo: ICommentRepository,
   ) {}
 
-  async handle(event: CommentCreatedEvent | CommentDeletedEvent): Promise<void> {
+  async handle(
+    event: CommentCreatedEvent | CommentDeletedEvent,
+  ): Promise<void> {
     const postId = event.payload.postId;
     const count = await this.repo.countByPost(postId);
     this.logger.log({

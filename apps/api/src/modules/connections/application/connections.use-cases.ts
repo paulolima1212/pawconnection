@@ -4,7 +4,12 @@ import {
   ConnectionTypeValue,
   RequestDirection,
 } from '../../../shared/domain/types';
-import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../../shared/domain/result';
+import {
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+  ValidationError,
+} from '../../../shared/domain/result';
 import {
   IUserRepository,
   USER_REPOSITORY,
@@ -15,6 +20,11 @@ import {
   RequestsByTypeSpec,
 } from '../domain/specifications/connection-request';
 import { connectionTypeFromLookingFor } from '../domain/connection-intent.mapper';
+import {
+  connectionWithUser,
+  planCreateConnection,
+  ProfileConnectionView,
+} from '../domain/connection-relationship';
 import {
   CONNECTION_REQUEST_REPOSITORY,
   IConnectionRequestRepository,
@@ -68,7 +78,8 @@ export class AcceptConnectionRequestUseCase {
   async execute(id: string, userId: string) {
     const request = await this.requests.findById(id);
     if (!request) throw new NotFoundError('Request not found');
-    const otherId = request.senderId === userId ? request.recipientId : request.senderId;
+    const otherId =
+      request.senderId === userId ? request.recipientId : request.senderId;
     if (await this.blocks.isBlockedBetween(userId, otherId)) {
       throw new ForbiddenError('You cannot interact with this user');
     }
@@ -87,7 +98,8 @@ export class RejectConnectionRequestUseCase {
   async execute(id: string, userId: string) {
     const request = await this.requests.findById(id);
     if (!request) throw new NotFoundError('Request not found');
-    const otherId = request.senderId === userId ? request.recipientId : request.senderId;
+    const otherId =
+      request.senderId === userId ? request.recipientId : request.senderId;
     if (await this.blocks.isBlockedBetween(userId, otherId)) {
       throw new ForbiddenError('You cannot interact with this user');
     }
@@ -123,15 +135,17 @@ export class CreateConnectionRequestUseCase {
     }
 
     const type: ConnectionTypeValue = connectionTypeFromLookingFor(lookingFor);
-    const existing = (await this.requests.listForUser(senderId)).find(
-      (r) =>
-        r.senderId === senderId &&
-        r.recipientId === recipientId &&
-        r.type === type &&
-        r.status === 'pending',
-    );
-    if (existing) {
-      return existing;
+    const existing = await this.requests.findBetween(senderId, recipientId);
+    const plan = planCreateConnection(senderId, type, existing);
+    if (plan.kind === 'conflict') {
+      throw new ConflictError(plan.message);
+    }
+    if (plan.kind === 'return') {
+      const current = existing.find((row) => row.id === plan.id);
+      if (current) return current;
+    }
+    if (plan.kind === 'reopen') {
+      return this.requests.markPending(plan.id);
     }
 
     try {
@@ -139,5 +153,21 @@ export class CreateConnectionRequestUseCase {
     } catch {
       throw new ConflictError('Connection request already exists');
     }
+  }
+}
+
+@Injectable()
+export class GetConnectionWithUserUseCase {
+  constructor(
+    @Inject(CONNECTION_REQUEST_REPOSITORY)
+    private readonly requests: IConnectionRequestRepository,
+  ) {}
+
+  async execute(viewerId: string, otherUserId: string): Promise<ProfileConnectionView> {
+    if (viewerId === otherUserId) {
+      return { status: 'none', requestId: null };
+    }
+    const rows = await this.requests.findBetween(viewerId, otherUserId);
+    return connectionWithUser(viewerId, rows);
   }
 }

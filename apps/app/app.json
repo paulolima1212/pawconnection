@@ -2,7 +2,7 @@
   "expo": {
     "name": "Paw Connection",
     "slug": "paw-connection",
-    "version": "1.0.7",
+    "version": "1.0.13",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "pawconnection",
@@ -22,7 +22,7 @@
       }
     },
     "android": {
-      "versionCode": 10,
+      "versionCode": 18,
       "package": "com.plima1212.pawconnection",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
@@ -61,23 +61,26 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
+          "image": "./assets/images/splash-solid.png",
+          "imageWidth": 8,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#FFFAF6",
           "dark": {
-            "backgroundColor": "#000000"
+            "backgroundColor": "#FFFAF6"
           }
         }
       ],
       "expo-font",
+      "expo-secure-store",
+      "@react-native-community/datetimepicker",
       [
         "expo-build-properties",
         {
-          "android": {
-            "usesCleartextTraffic": true,
-            "enablePngCrunchInReleaseBuilds": false
-          }
+        "android": {
+          "usesCleartextTraffic": true,
+          "enableMinifyInReleaseBuilds": true,
+          "enablePngCrunchInReleaseBuilds": false
+        }
         }
       ]
     ],

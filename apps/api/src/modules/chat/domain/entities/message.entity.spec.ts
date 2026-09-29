@@ -1,4 +1,7 @@
-import { ForbiddenError, ValidationError } from '../../../../shared/domain/result';
+import {
+  ForbiddenError,
+  ValidationError,
+} from '../../../../shared/domain/result';
 import { Message } from './message.entity';
 import { MessageStatus } from '../message-status';
 import { CHAT_EVENTS } from '../events/chat-events';
@@ -38,7 +41,9 @@ describe('Message aggregate', () => {
     expect(message.content).toBe('');
 
     const events = message.pullEvents();
-    expect(events.map((e) => e.eventType)).toEqual([CHAT_EVENTS.MESSAGE_DELETED]);
+    expect(events.map((e) => e.eventType)).toEqual([
+      CHAT_EVENTS.MESSAGE_DELETED,
+    ]);
   });
 
   it('rejects delete by non-author', () => {

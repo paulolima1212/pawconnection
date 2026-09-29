@@ -31,7 +31,9 @@ describe('Chat (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     app.useGlobalFilters(new DomainExceptionFilter());
     await app.init();
 
@@ -100,7 +102,9 @@ describe('Chat (e2e)', () => {
       .expect(200);
 
     expect(list.body.items.length).toBeGreaterThanOrEqual(1);
-    expect(list.body.items.some((m: { content: string }) => m.content === 'Woof!')).toBe(true);
+    expect(
+      list.body.items.some((m: { content: string }) => m.content === 'Woof!'),
+    ).toBe(true);
   });
 
   it('is idempotent for clientMessageId', async () => {
@@ -133,7 +137,9 @@ describe('Chat (e2e)', () => {
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
     expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body.some((c: { id: string }) => c.id === conversationId)).toBe(true);
+    expect(res.body.some((c: { id: string }) => c.id === conversationId)).toBe(
+      true,
+    );
   });
 
   it('blocks messaging after a user is blocked', async () => {

@@ -10,15 +10,10 @@ import {
   takeProfilePhoto,
   type ProfilePhotoSource,
 } from '@/hooks/use-pick-profile-image';
+import { prepareProfilePhoto } from '@/lib/apply-profile-crop';
 
-type UseProfilePhotoPickerOptions = {
-  aspect?: [number, number];
-  allowsEditing?: boolean;
-};
-
-export function useProfilePhotoPicker(options: UseProfilePhotoPickerOptions = {}) {
+export function useProfilePhotoPicker() {
   const { showTooltip } = usePawTooltip();
-  const { aspect = [1, 1], allowsEditing = false } = options;
   const [picking, setPicking] = useState(false);
   const [sourceSheetVisible, setSourceSheetVisible] = useState(false);
   const pickingRef = useRef(false);
@@ -48,29 +43,29 @@ export function useProfilePhotoPicker(options: UseProfilePhotoPickerOptions = {}
     setPicking(true);
 
     try {
-      const pickOptions = { aspect, allowsEditing };
-
       if (source === 'camera') {
         const granted = await ensureProfilePhotoCameraAccess();
         if (!granted) {
           showProfilePhotoCameraPermissionTooltip(showTooltip);
           return null;
         }
-        return await takeProfilePhoto(pickOptions);
+      } else {
+        const granted = await ensureProfilePhotoLibraryAccess();
+        if (!granted) {
+          showProfilePhotoPermissionTooltip(showTooltip);
+          return null;
+        }
       }
 
-      const granted = await ensureProfilePhotoLibraryAccess();
-      if (!granted) {
-        showProfilePhotoPermissionTooltip(showTooltip);
-        return null;
-      }
+      const picked = source === 'camera' ? await takeProfilePhoto() : await pickProfileImage();
+      if (!picked) return null;
 
-      return await pickProfileImage(pickOptions);
+      return prepareProfilePhoto(picked.uri, picked.width, picked.height);
     } finally {
       pickingRef.current = false;
       setPicking(false);
     }
-  }, [allowsEditing, aspect, showTooltip, waitForSource]);
+  }, [showTooltip, waitForSource]);
 
   return {
     pickPhoto,

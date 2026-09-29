@@ -4,7 +4,10 @@ import {
   mapConnectionIntentToApp,
   mapGenderToApp,
 } from '../../../shared/infrastructure/mappers/prisma.mapper';
-import { IMapRepository, MapUserPin } from '../domain/repositories/map.repository';
+import {
+  IMapRepository,
+  MapUserPin,
+} from '../domain/repositories/map.repository';
 
 @Injectable()
 export class PrismaMapRepository implements IMapRepository {

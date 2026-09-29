@@ -43,13 +43,17 @@ export class ListFeedPostsUseCase {
 
   async execute(userId: string, query: ListFeedPostsQuery) {
     const me = await this.users.findById(userId);
-    let items = (await this.posts.listPosts(userId)) as FeedPostWithAuthorMeta[];
+    let items = (await this.posts.listPosts(
+      userId,
+    )) as FeedPostWithAuthorMeta[];
 
     const hiddenIds = new Set(await this.blocks.listHiddenUserIds(userId));
     const visibleAuthor = new VisibleAuthorSpec(hiddenIds);
     items = items.filter((p) => visibleAuthor.isSatisfiedBy(p));
 
-    const reportedIds = new Set(await this.reports.listHiddenPostIdsForViewer(userId));
+    const reportedIds = new Set(
+      await this.reports.listHiddenPostIdsForViewer(userId),
+    );
     if (reportedIds.size) {
       items = items.filter((p) => !reportedIds.has(p.id));
     }
@@ -68,7 +72,10 @@ export class ListFeedPostsUseCase {
       q: query.q,
     };
     const hasContentFilters = Object.values(filters).some(
-      (v) => v !== undefined && v !== '' && !(typeof v === 'number' && Number.isNaN(v)),
+      (v) =>
+        v !== undefined &&
+        v !== '' &&
+        !(typeof v === 'number' && Number.isNaN(v)),
     );
     if (hasContentFilters) {
       items = items.filter((p) => postMatchesFeedFilters(p, filters));
@@ -89,15 +96,15 @@ export class ListFeedPostsUseCase {
       items = items.filter((p) => radiusSpec.isSatisfiedBy(p));
     }
 
-    return items.sort(
-      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
-    );
+    return items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 }
 
 @Injectable()
 export class CreateFeedPostUseCase {
-  constructor(@Inject(POST_REPOSITORY) private readonly posts: IPostRepository) {}
+  constructor(
+    @Inject(POST_REPOSITORY) private readonly posts: IPostRepository,
+  ) {}
 
   execute(authorId: string, body: string | undefined, imageUrls: string[]) {
     return this.posts.createPost(authorId, body, imageUrls);

@@ -1,5 +1,8 @@
 import { randomUUID } from 'crypto';
-import { DomainEvent, EventMetadata } from '../../../shared/events/domain-event';
+import {
+  DomainEvent,
+  EventMetadata,
+} from '../../../shared/events/domain-event';
 import { ForbiddenError, ValidationError } from '../../../shared/domain/result';
 import { CommentStatus } from './comment-status';
 import { CommentContent } from './value-objects/comment-content.vo';
@@ -191,7 +194,11 @@ export class Comment {
   // --- Behaviors ------------------------------------------------------------
 
   /** Edit the content. Only the author may edit, and not once deleted/blocked. */
-  edit(newContent: CommentContent, editorId: string, metadata?: EventMetadata): void {
+  edit(
+    newContent: CommentContent,
+    editorId: string,
+    metadata?: EventMetadata,
+  ): void {
     if (this.state.status === CommentStatus.DELETED) {
       throw new ValidationError('Cannot edit a deleted comment');
     }
@@ -237,7 +244,9 @@ export class Comment {
       return;
     }
     if (actorId !== this.state.authorId && !options.byModerator) {
-      throw new ForbiddenError('You do not have permission to delete this comment');
+      throw new ForbiddenError(
+        'You do not have permission to delete this comment',
+      );
     }
 
     const previousStatus = this.state.status;

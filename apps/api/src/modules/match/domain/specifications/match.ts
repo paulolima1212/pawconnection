@@ -1,5 +1,9 @@
 import { CompositeSpecification } from '../../../../shared/domain/specification';
-import { AppConnectionIntent, AppInterest, UserEntity } from '../../../../shared/domain/types';
+import {
+  AppConnectionIntent,
+  AppInterest,
+  UserEntity,
+} from '../../../../shared/domain/types';
 
 export class ExcludePassedUsersSpec extends CompositeSpecification<UserEntity> {
   constructor(private readonly passedIds: Set<string>) {
@@ -62,6 +66,8 @@ export class MatchingLookingForSpec extends CompositeSpecification<UserEntity> {
     if (this.lookingFor.length === 0 || candidate.lookingFor.length === 0) {
       return true;
     }
-    return candidate.lookingFor.some((intent) => this.lookingFor.includes(intent));
+    return candidate.lookingFor.some((intent) =>
+      this.lookingFor.includes(intent),
+    );
   }
 }

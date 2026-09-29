@@ -2,18 +2,21 @@ import * as ImagePicker from 'expo-image-picker';
 import { Linking, Platform } from 'react-native';
 
 import type { PawTooltipOptions } from '@/components/paw/paw-tooltip';
+import { NATIVE_PROFILE_CROP } from '@/lib/profile-photo';
 
-type PickOptions = {
-  aspect?: [number, number];
-  allowsEditing?: boolean;
+export type PickedProfileImage = {
+  uri: string;
+  width: number;
+  height: number;
 };
 
 export type ProfilePhotoSource = 'camera' | 'library';
 
 const IMAGE_PICKER_OPTIONS = {
   mediaTypes: ['images'] as ImagePicker.MediaType[],
-  quality: 0.65,
+  quality: 0.8,
   exif: false,
+  ...NATIVE_PROFILE_CROP,
 };
 
 export async function getProfilePhotoLibraryAccess(): Promise<boolean> {
@@ -79,31 +82,34 @@ export function showProfilePhotoCameraPermissionTooltip(
 /** @deprecated Use `showProfilePhotoPermissionTooltip` with `usePawTooltip()`. */
 export const showProfilePhotoPermissionAlert = showProfilePhotoPermissionTooltip;
 
-/** Opens the gallery when permission is already granted. */
-export async function pickProfileImage(options: PickOptions = {}): Promise<string | null> {
-  const { aspect = [1, 1], allowsEditing = false } = options;
+function pickedFromAsset(
+  asset: ImagePicker.ImagePickerAsset | undefined,
+): PickedProfileImage | null {
+  if (!asset?.uri) return null;
+  return {
+    uri: asset.uri,
+    width: asset.width > 0 ? asset.width : 1,
+    height: asset.height > 0 ? asset.height : 1,
+  };
+}
 
+/** Opens the gallery when permission is already granted, then the system crop editor. */
+export async function pickProfileImage(): Promise<PickedProfileImage | null> {
   const result = await ImagePicker.launchImageLibraryAsync({
     ...IMAGE_PICKER_OPTIONS,
-    allowsEditing,
-    aspect,
     selectionLimit: 1,
   });
 
   if (result.canceled) return null;
-  return result.assets[0]?.uri ?? null;
+  return pickedFromAsset(result.assets[0]);
 }
 
-/** Opens the device camera when permission is already granted. */
-export async function takeProfilePhoto(options: PickOptions = {}): Promise<string | null> {
-  const { aspect = [1, 1], allowsEditing = false } = options;
-
+/** Opens the camera when permission is already granted, then the system crop editor. */
+export async function takeProfilePhoto(): Promise<PickedProfileImage | null> {
   const result = await ImagePicker.launchCameraAsync({
     ...IMAGE_PICKER_OPTIONS,
-    allowsEditing,
-    aspect,
   });
 
   if (result.canceled) return null;
-  return result.assets[0]?.uri ?? null;
+  return pickedFromAsset(result.assets[0]);
 }

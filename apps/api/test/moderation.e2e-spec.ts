@@ -24,7 +24,10 @@ describe('Moderation (e2e)', () => {
         handle: `m${label}${Date.now()}`.slice(0, 20),
       })
       .expect(201);
-    return res.body as { accessToken: string; user: { id: string; handle: string } };
+    return res.body as {
+      accessToken: string;
+      user: { id: string; handle: string };
+    };
   };
 
   beforeAll(async () => {
@@ -33,7 +36,9 @@ describe('Moderation (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     app.useGlobalFilters(new DomainExceptionFilter());
     await app.init();
 
@@ -100,13 +105,17 @@ describe('Moderation (e2e)', () => {
       .get('/feed/posts')
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
-    expect((feedA.body as { id: string }[]).some((p) => p.id === postId)).toBe(false);
+    expect((feedA.body as { id: string }[]).some((p) => p.id === postId)).toBe(
+      false,
+    );
 
     const feedB = await request(app.getHttpServer())
       .get('/feed/posts')
       .set('Authorization', `Bearer ${tokenB}`)
       .expect(200);
-    expect((feedB.body as { id: string }[]).some((p) => p.id === postId)).toBe(true);
+    expect((feedB.body as { id: string }[]).some((p) => p.id === postId)).toBe(
+      true,
+    );
   });
 
   it('hides the author after a block and keeps the profile available to unblock', async () => {
@@ -119,7 +128,9 @@ describe('Moderation (e2e)', () => {
       .get('/feed/posts')
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
-    expect((feed.body as { id: string }[]).some((p) => p.id === postId)).toBe(false);
+    expect((feed.body as { id: string }[]).some((p) => p.id === postId)).toBe(
+      false,
+    );
 
     const publicProfile = await request(app.getHttpServer())
       .get(`/profile/public/${handleB}`)
@@ -137,7 +148,9 @@ describe('Moderation (e2e)', () => {
       .get('/blocks')
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
-    expect(blocks.body.items.some((u: { id: string }) => u.id === userBId)).toBe(true);
+    expect(
+      blocks.body.items.some((u: { id: string }) => u.id === userBId),
+    ).toBe(true);
   });
 
   it('restores visibility after unblock except for reported posts', async () => {
@@ -157,7 +170,11 @@ describe('Moderation (e2e)', () => {
       .get('/feed/posts')
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
-    expect((feed.body as { id: string }[]).some((p) => p.id === postId)).toBe(false);
-    expect((feed.body as { id: string }[]).some((p) => p.id === otherPostId)).toBe(true);
+    expect((feed.body as { id: string }[]).some((p) => p.id === postId)).toBe(
+      false,
+    );
+    expect(
+      (feed.body as { id: string }[]).some((p) => p.id === otherPostId),
+    ).toBe(true);
   });
 });

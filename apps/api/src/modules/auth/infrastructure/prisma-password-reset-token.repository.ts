@@ -6,9 +6,7 @@ import {
 } from '../domain/repositories/password-reset-token.repository';
 
 @Injectable()
-export class PrismaPasswordResetTokenRepository
-  implements IPasswordResetTokenRepository
-{
+export class PrismaPasswordResetTokenRepository implements IPasswordResetTokenRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async deleteByUserId(userId: string): Promise<void> {

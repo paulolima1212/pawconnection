@@ -1,5 +1,9 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { NotFoundError, ValidationError, ForbiddenError } from '../../../shared/domain/result';
+import {
+  NotFoundError,
+  ValidationError,
+  ForbiddenError,
+} from '../../../shared/domain/result';
 import { EVENT_BUS, IEventBus } from '../../../shared/events/event-bus';
 import { EventMetadata } from '../../../shared/events/domain-event';
 import { Comment } from '../domain/comment.entity';
@@ -38,7 +42,11 @@ const MAX_PAGE_SIZE = 50;
 const REPLIES_PREVIEW = 3;
 
 function metaOf(ctx: RequestContext): EventMetadata {
-  return { correlationId: ctx.correlationId, userId: ctx.userId, source: 'comments' };
+  return {
+    correlationId: ctx.correlationId,
+    userId: ctx.userId,
+    source: 'comments',
+  };
 }
 
 function clampLimit(limit?: number): number {
@@ -125,13 +133,21 @@ export class ReplyToCommentUseCase {
       throw new ForbiddenError('You cannot interact with this user');
     }
     const postAuthorId = await this.posts.getAuthorId(parent.postId);
-    if (postAuthorId && (await this.blocks.isBlockedBetween(ctx.userId, postAuthorId))) {
+    if (
+      postAuthorId &&
+      (await this.blocks.isBlockedBetween(ctx.userId, postAuthorId))
+    ) {
       throw new ForbiddenError('You cannot interact with this post');
     }
 
     const parentDepth = (await this.repo.getDepth(parent.id)) ?? 0;
 
-    if (!canReplyToSpec.isSatisfiedBy({ status: parent.status, depth: parentDepth })) {
+    if (
+      !canReplyToSpec.isSatisfiedBy({
+        status: parent.status,
+        depth: parentDepth,
+      })
+    ) {
       throw new ValidationError(
         'Cannot reply to this comment (it may be unavailable or the maximum nesting depth was reached)',
       );
@@ -275,7 +291,9 @@ export class ListPostCommentsUseCase {
     const items = topLevel.map((c) =>
       toCommentTree(
         c,
-        (repliesByParent.get(c.id) ?? []).filter((r) => visible.isSatisfiedBy(r)),
+        (repliesByParent.get(c.id) ?? []).filter((r) =>
+          visible.isSatisfiedBy(r),
+        ),
       ),
     );
     return { items, nextCursor: page.nextCursor };
@@ -299,7 +317,10 @@ export class ListCommentRepliesUseCase {
       cursor: input.cursor,
       order: input.order ?? 'oldest',
     });
-    return { items: page.items.map(toCommentResponse), nextCursor: page.nextCursor };
+    return {
+      items: page.items.map(toCommentResponse),
+      nextCursor: page.nextCursor,
+    };
   }
 }
 
