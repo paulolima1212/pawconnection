@@ -1,10 +1,18 @@
-import { ConflictError, ValidationError } from '../../../shared/domain/result';
+import * as bcrypt from 'bcrypt';
+import {
+  ConflictError,
+  UnauthorizedError,
+  ValidationError,
+} from '../../../shared/domain/result';
+import { normalizeEmail } from '../../../shared/domain/email.util';
 import { AppGender, UserEntity } from '../../../shared/domain/types';
 import {
   CreateUserInput,
   IUserRepository,
 } from '../../profile/domain/repositories/user.repository';
-import { RegisterUseCase } from './auth.use-cases';
+import { LoginUseCase, RegisterUseCase } from './auth.use-cases';
+
+const VALID_PASSWORD = 'Password1!';
 
 class InMemoryUsers implements IUserRepository {
   readonly byEmail = new Map<string, UserEntity>();
@@ -15,7 +23,11 @@ class InMemoryUsers implements IUserRepository {
     return this.byId.get(id) ?? null;
   }
   async findByEmail(email: string) {
-    return this.byEmail.get(email) ?? null;
+    const key = normalizeEmail(email);
+    for (const [stored, user] of this.byEmail) {
+      if (normalizeEmail(stored) === key) return user;
+    }
+    return null;
   }
   async findByHandle(handle: string) {
     return this.byHandle.get(handle) ?? null;
@@ -68,7 +80,7 @@ describe('RegisterUseCase', () => {
 
     const result = await useCase.execute({
       email: 'owner@paw.test',
-      password: 'password123',
+      password: VALID_PASSWORD,
       fullName: 'Walking Phoebe',
       handle: '@My_Phoebe',
     });
@@ -84,7 +96,7 @@ describe('RegisterUseCase', () => {
     await expect(
       useCase.execute({
         email: 'owner@paw.test',
-        password: 'password123',
+        password: VALID_PASSWORD,
         fullName: 'Walking Phoebe',
         handle: '',
       }),
@@ -96,7 +108,7 @@ describe('RegisterUseCase', () => {
     const useCase = new RegisterUseCase(users, jwt);
     await useCase.execute({
       email: 'first@paw.test',
-      password: 'password123',
+      password: VALID_PASSWORD,
       fullName: 'First',
       handle: 'taken',
     });
@@ -104,10 +116,87 @@ describe('RegisterUseCase', () => {
     await expect(
       useCase.execute({
         email: 'second@paw.test',
-        password: 'password123',
+        password: VALID_PASSWORD,
         fullName: 'Second',
         handle: 'taken',
       }),
     ).rejects.toThrow(ConflictError);
+  });
+
+  it('rejects a password without an uppercase letter', async () => {
+    const users = new InMemoryUsers();
+    const useCase = new RegisterUseCase(users, jwt);
+    await expect(
+      useCase.execute({
+        email: 'owner@paw.test',
+        password: 'password1!',
+        fullName: 'Owner',
+        handle: 'owner',
+      }),
+    ).rejects.toThrow(ValidationError);
+  });
+});
+
+describe('LoginUseCase', () => {
+  it('signs in an existing user and omits the password hash', async () => {
+    const users = new InMemoryUsers();
+    const register = new RegisterUseCase(users, jwt);
+    await register.execute({
+      email: 'Owner@Paw.test',
+      password: VALID_PASSWORD,
+      fullName: 'Paulo Lima',
+      handle: 'paulo',
+    });
+
+    const login = new LoginUseCase(users, jwt);
+    const result = await login.execute({
+      email: 'owner@paw.test',
+      password: VALID_PASSWORD,
+    });
+
+    expect(result.accessToken).toBe('token');
+    expect(result.user.email).toBe('owner@paw.test');
+    expect(result.user.fullName).toBe('Paulo Lima');
+    expect(result.user).not.toHaveProperty('passwordHash');
+  });
+
+  it('matches a previously stored mixed-case email', async () => {
+    const users = new InMemoryUsers();
+    const passwordHash = await bcrypt.hash(VALID_PASSWORD, 4);
+    await users.create({
+      email: 'Paulo@Paw.test',
+      passwordHash,
+      fullName: 'Paulo Lima',
+      handle: 'paulo_legacy',
+    });
+
+    const login = new LoginUseCase(users, jwt);
+    const result = await login.execute({
+      email: 'paulo@paw.test',
+      password: VALID_PASSWORD,
+    });
+    expect(result.user.id).toBeTruthy();
+  });
+
+  it('rejects an incorrect password', async () => {
+    const users = new InMemoryUsers();
+    const register = new RegisterUseCase(users, jwt);
+    await register.execute({
+      email: 'owner@paw.test',
+      password: VALID_PASSWORD,
+      fullName: 'Owner',
+      handle: 'owner',
+    });
+    const login = new LoginUseCase(users, jwt);
+    await expect(
+      login.execute({ email: 'owner@paw.test', password: 'Wrongpass1!' }),
+    ).rejects.toThrow(UnauthorizedError);
+  });
+
+  it('rejects a nonexistent account', async () => {
+    const login = new LoginUseCase(new InMemoryUsers(), jwt);
+    await expect(
+      login.execute({ email: 'missing@paw.test', password: VALID_PASSWORD }),
+    ).rejects.toThrow(UnauthorizedError);
   });
 });

@@ -1,5 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConflictError, NotFoundError } from '../../../shared/domain/result';
+import { assertOwnerAge, assertOwnerBirthDate } from '../domain/birth-date';
+import { normalizePetUpdate } from '../domain/pet-profile-rules';
+import { normalizeEmail } from '../../../shared/domain/email.util';
 import { Handle } from '../domain/value-objects/handle.vo';
 import { UniqueHandleSpec } from '../domain/specifications/unique-handle';
 import { UserEntity } from '../../../shared/domain/types';
@@ -58,7 +61,10 @@ export class UpdateOwnerProfileUseCase {
     @Inject(USER_REPOSITORY) private readonly users: IUserRepository,
   ) {}
 
-  async execute(userId: string, data: Parameters<IUserRepository['updateOwner']>[1]) {
+  async execute(
+    userId: string,
+    data: Parameters<IUserRepository['updateOwner']>[1],
+  ) {
     const existing = await this.users.findById(userId);
     if (!existing) throw new NotFoundError('User not found');
     const next = { ...data };
@@ -71,6 +77,15 @@ export class UpdateOwnerProfileUseCase {
         }
       }
       next.handle = handle.value;
+    }
+    if (typeof next.email === 'string' && next.email.trim()) {
+      next.email = normalizeEmail(next.email);
+    }
+    if (typeof next.birthDate === 'string' && next.birthDate.trim()) {
+      next.birthDate = next.birthDate.trim().slice(0, 10);
+      next.age = assertOwnerBirthDate(next.birthDate);
+    } else if (typeof next.age === 'number') {
+      assertOwnerAge(next.age);
     }
     return this.users.updateOwner(userId, next);
   }
@@ -125,11 +140,13 @@ export class UpdatePetProfileUseCase {
   async execute(userId: string, data: Parameters<IPetRepository['upsert']>[1]) {
     const existing = await this.users.findById(userId);
     if (!existing) throw new NotFoundError('User not found');
-    return this.pets.upsert(userId, data);
+    return this.pets.upsert(userId, normalizePetUpdate(data));
   }
 }
 
-export function toProfileResponse(user: Awaited<ReturnType<GetMyProfileUseCase['execute']>>) {
+export function toProfileResponse(
+  user: Awaited<ReturnType<GetMyProfileUseCase['execute']>>,
+) {
   return {
     id: user.id,
     onboardingComplete: user.onboardingComplete,
@@ -141,6 +158,7 @@ export function toProfileResponse(user: Awaited<ReturnType<GetMyProfileUseCase['
       email: user.email,
       phone: user.phone,
       age: user.age,
+      birthDate: user.birthDate,
       gender: user.gender,
       location: user.location,
       bio: user.bio,
@@ -152,7 +170,9 @@ export function toProfileResponse(user: Awaited<ReturnType<GetMyProfileUseCase['
     pet: user.pet
       ? {
           ...user.pet,
-          photoUrls: user.pet.photoUrls ?? (user.pet.photoUrl ? [user.pet.photoUrl] : []),
+          photoUrls:
+            user.pet.photoUrls ??
+            (user.pet.photoUrl ? [user.pet.photoUrl] : []),
         }
       : null,
   };

@@ -33,7 +33,9 @@ const locations: ViewerPlaceProfile = {
   enjoysWalks: false,
 };
 
-function place(partial: Partial<PlaceCandidate> & Pick<PlaceCandidate, 'id' | 'name'>): PlaceCandidate {
+function place(
+  partial: Partial<PlaceCandidate> & Pick<PlaceCandidate, 'id' | 'name'>,
+): PlaceCandidate {
   return {
     latitude: -33.86,
     longitude: 151.21,
@@ -106,7 +108,10 @@ describe('includedTypesForFilter', () => {
       'veterinary_care',
       'pet_store',
     ]);
-    expect(includedTypesForFilter('forYou', playdates)).toEqual(['dog_park', 'park']);
+    expect(includedTypesForFilter('forYou', playdates)).toEqual([
+      'dog_park',
+      'park',
+    ]);
     expect(includedTypesForFilter('forYou', locations)).toContain('cafe');
     expect(includedTypesForFilter('forYou', locations)).toContain('park');
   });
@@ -114,29 +119,41 @@ describe('includedTypesForFilter', () => {
 
 describe('isDogFriendlyPlace', () => {
   it('always keeps inherent dog businesses and dog parks', () => {
-    expect(isDogFriendlyPlace(place({ id: '1', name: 'Vet', types: ['veterinary_care'] }))).toBe(
-      true,
-    );
-    expect(isDogFriendlyPlace(place({ id: '2', name: 'Off-leash', types: ['dog_park'] }))).toBe(
-      true,
-    );
+    expect(
+      isDogFriendlyPlace(
+        place({ id: '1', name: 'Vet', types: ['veterinary_care'] }),
+      ),
+    ).toBe(true);
+    expect(
+      isDogFriendlyPlace(
+        place({ id: '2', name: 'Off-leash', types: ['dog_park'] }),
+      ),
+    ).toBe(true);
   });
 
   it('keeps cafes only when Google marks them as allowing dogs', () => {
     expect(
-      isDogFriendlyPlace(place({ id: '3', name: 'Cafe', types: ['cafe'], allowsDogs: null })),
+      isDogFriendlyPlace(
+        place({ id: '3', name: 'Cafe', types: ['cafe'], allowsDogs: null }),
+      ),
     ).toBe(false);
     expect(
-      isDogFriendlyPlace(place({ id: '4', name: 'Pup cafe', types: ['cafe'], allowsDogs: true })),
+      isDogFriendlyPlace(
+        place({ id: '4', name: 'Pup cafe', types: ['cafe'], allowsDogs: true }),
+      ),
     ).toBe(true);
   });
 
   it('drops parks that explicitly disallow dogs and keeps unknown parks', () => {
     expect(
-      isDogFriendlyPlace(place({ id: '5', name: 'Reserve', types: ['park'], allowsDogs: false })),
+      isDogFriendlyPlace(
+        place({ id: '5', name: 'Reserve', types: ['park'], allowsDogs: false }),
+      ),
     ).toBe(false);
     expect(
-      isDogFriendlyPlace(place({ id: '6', name: 'Oval', types: ['park'], allowsDogs: null })),
+      isDogFriendlyPlace(
+        place({ id: '6', name: 'Oval', types: ['park'], allowsDogs: null }),
+      ),
     ).toBe(true);
   });
 });
@@ -144,10 +161,10 @@ describe('isDogFriendlyPlace', () => {
 describe('matchesIncludedTypes', () => {
   it('keeps only places whose Google type was requested', () => {
     expect(
-      matchesIncludedTypes(place({ id: 'v', name: 'Vet', types: ['veterinary_care'] }), [
-        'veterinary_care',
-        'pet_store',
-      ]),
+      matchesIncludedTypes(
+        place({ id: 'v', name: 'Vet', types: ['veterinary_care'] }),
+        ['veterinary_care', 'pet_store'],
+      ),
     ).toBe(true);
     expect(
       matchesIncludedTypes(place({ id: 'p', name: 'Park', types: ['park'] }), [
@@ -160,9 +177,15 @@ describe('matchesIncludedTypes', () => {
 
 describe('categoryOfPlace', () => {
   it('maps Google types onto product categories', () => {
-    expect(categoryOfPlace({ types: ['cafe'], primaryType: 'cafe' })).toBe('cafes');
-    expect(categoryOfPlace({ types: ['veterinary_care'], primaryType: null })).toBe('services');
-    expect(categoryOfPlace({ types: ['dog_park'], primaryType: 'dog_park' })).toBe('parks');
+    expect(categoryOfPlace({ types: ['cafe'], primaryType: 'cafe' })).toBe(
+      'cafes',
+    );
+    expect(
+      categoryOfPlace({ types: ['veterinary_care'], primaryType: null }),
+    ).toBe('services');
+    expect(
+      categoryOfPlace({ types: ['dog_park'], primaryType: 'dog_park' }),
+    ).toBe('parks');
   });
 });
 
@@ -170,9 +193,23 @@ describe('rankDogFriendlyPlaces', () => {
   it('surfaces the featured category first, then closer pins', () => {
     const ranked = rankDogFriendlyPlaces(
       [
-        { ...place({ id: 'cafe', name: 'Far cafe', types: ['cafe'], allowsDogs: true }), distanceKm: 1 },
-        { ...place({ id: 'vet', name: 'Near vet', types: ['veterinary_care'] }), distanceKm: 0.4 },
-        { ...place({ id: 'park', name: 'Park', types: ['park'] }), distanceKm: 2 },
+        {
+          ...place({
+            id: 'cafe',
+            name: 'Far cafe',
+            types: ['cafe'],
+            allowsDogs: true,
+          }),
+          distanceKm: 1,
+        },
+        {
+          ...place({ id: 'vet', name: 'Near vet', types: ['veterinary_care'] }),
+          distanceKm: 0.4,
+        },
+        {
+          ...place({ id: 'park', name: 'Park', types: ['park'] }),
+          distanceKm: 2,
+        },
       ],
       servicesOnly,
       'services',
@@ -184,8 +221,14 @@ describe('rankDogFriendlyPlaces', () => {
   it('boosts water-named places when the dog enjoys water', () => {
     const ranked = rankDogFriendlyPlaces(
       [
-        { ...place({ id: 'oval', name: 'Sports oval', types: ['park'] }), distanceKm: 0.5 },
-        { ...place({ id: 'bay', name: 'Bay beach', types: ['park'] }), distanceKm: 0.8 },
+        {
+          ...place({ id: 'oval', name: 'Sports oval', types: ['park'] }),
+          distanceKm: 0.5,
+        },
+        {
+          ...place({ id: 'bay', name: 'Bay beach', types: ['park'] }),
+          distanceKm: 0.8,
+        },
       ],
       { ...playdates, enjoysWater: true },
       'parks',

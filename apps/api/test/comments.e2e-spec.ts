@@ -30,7 +30,9 @@ describe('Comments (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     app.useGlobalFilters(new DomainExceptionFilter());
     await app.init();
 
@@ -129,7 +131,9 @@ describe('Comments (e2e)', () => {
     expect(Array.isArray(res.body.items)).toBe(true);
     const top = res.body.items.find((c: { id: string }) => c.id === commentId);
     expect(top).toBeTruthy();
-    expect(top.replies.some((r: { id: string }) => r.id === replyId)).toBe(true);
+    expect(top.replies.some((r: { id: string }) => r.id === replyId)).toBe(
+      true,
+    );
   });
 
   it('counts visible comments', async () => {
@@ -156,9 +160,13 @@ describe('Comments (e2e)', () => {
       .get(`/posts/${postId}/comments`)
       .set('Authorization', `Bearer ${tokenA}`)
       .expect(200);
-    const tombstone = res.body.items.find((c: { id: string }) => c.id === commentId);
+    const tombstone = res.body.items.find(
+      (c: { id: string }) => c.id === commentId,
+    );
     expect(tombstone.deleted).toBe(true);
     expect(tombstone.content).toBe('[deleted]');
-    expect(tombstone.replies.some((r: { id: string }) => r.id === replyId)).toBe(true);
+    expect(
+      tombstone.replies.some((r: { id: string }) => r.id === replyId),
+    ).toBe(true);
   });
 });

@@ -36,7 +36,11 @@ export class MapController {
     @CurrentUser() user: AuthUserPayload,
     @Body() dto: UpdateMapLocationDto,
   ) {
-    return this.updateLocation.execute(user.userId, dto.latitude, dto.longitude);
+    return this.updateLocation.execute(
+      user.userId,
+      dto.latitude,
+      dto.longitude,
+    );
   }
 
   @Get('users')
@@ -51,7 +55,8 @@ export class MapController {
   @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @ApiOperation({
-    summary: 'List nearby dog-friendly places personalized from the viewer profile',
+    summary:
+      'List nearby dog-friendly places personalized from the viewer profile',
   })
   places(
     @CurrentUser() user: AuthUserPayload,

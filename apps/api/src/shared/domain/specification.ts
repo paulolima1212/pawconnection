@@ -20,7 +20,9 @@ class AndSpecification<T> extends CompositeSpecification<T> {
   }
 
   isSatisfiedBy(candidate: T): boolean {
-    return this.left.isSatisfiedBy(candidate) && this.right.isSatisfiedBy(candidate);
+    return (
+      this.left.isSatisfiedBy(candidate) && this.right.isSatisfiedBy(candidate)
+    );
   }
 }
 
@@ -33,6 +35,8 @@ export class OrSpecification<T> extends CompositeSpecification<T> {
   }
 
   isSatisfiedBy(candidate: T): boolean {
-    return this.left.isSatisfiedBy(candidate) || this.right.isSatisfiedBy(candidate);
+    return (
+      this.left.isSatisfiedBy(candidate) || this.right.isSatisfiedBy(candidate)
+    );
   }
 }

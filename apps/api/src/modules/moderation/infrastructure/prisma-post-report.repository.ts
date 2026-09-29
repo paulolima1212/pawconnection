@@ -7,10 +7,15 @@ import { ReportReason } from '../domain/report-reason';
 import { ReportStatus } from '../domain/report-status';
 
 @Injectable()
-export class PrismaPostReportRepository implements IPostReportRepository, IPostReportReader {
+export class PrismaPostReportRepository
+  implements IPostReportRepository, IPostReportReader
+{
   constructor(private readonly prisma: PrismaService) {}
 
-  async findByReporterAndPost(reporterId: string, postId: string): Promise<PostReport | null> {
+  async findByReporterAndPost(
+    reporterId: string,
+    postId: string,
+  ): Promise<PostReport | null> {
     const row = await this.prisma.postReport.findUnique({
       where: { reporterId_postId: { reporterId, postId } },
     });

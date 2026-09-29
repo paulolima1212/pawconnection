@@ -6,11 +6,15 @@ describe('MessageContent', () => {
   });
 
   it('rejects empty content', () => {
-    expect(() => MessageContent.create('   ')).toThrow('Message cannot be empty');
+    expect(() => MessageContent.create('   ')).toThrow(
+      'Message cannot be empty',
+    );
   });
 
   it('rejects content over max length', () => {
-    expect(() => MessageContent.create('a'.repeat(4001))).toThrow('maximum length');
+    expect(() => MessageContent.create('a'.repeat(4001))).toThrow(
+      'maximum length',
+    );
   });
 
   it('accepts valid text', () => {

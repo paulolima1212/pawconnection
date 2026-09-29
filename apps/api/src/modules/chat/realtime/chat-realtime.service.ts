@@ -7,9 +7,17 @@ import { Duplex } from 'stream';
 import { parse } from 'url';
 import { PresenceManager } from './presence-manager';
 import { RoomManager } from './room-manager';
-import { MarkConversationReadUseCase, SendMessageUseCase, ToggleMessageReactionUseCase } from '../application/chat.use-cases';
+import {
+  MarkConversationReadUseCase,
+  SendMessageUseCase,
+  ToggleMessageReactionUseCase,
+} from '../application/chat.use-cases';
 import { EVENT_BUS, IEventBus } from '../../../shared/events/event-bus';
-import { CHAT_EVENTS, UserOfflineEvent, UserOnlineEvent } from '../domain/events/chat-events';
+import {
+  CHAT_EVENTS,
+  UserOfflineEvent,
+  UserOnlineEvent,
+} from '../domain/events/chat-events';
 import { Inject } from '@nestjs/common';
 
 const HEARTBEAT_MS = 30_000;
@@ -50,24 +58,36 @@ export class ChatRealtimeService implements OnApplicationBootstrap {
     const httpServer = this.httpAdapterHost.httpAdapter.getHttpServer();
     this.wss = new WebSocketServer({ noServer: true });
 
-    httpServer.on('upgrade', (request: IncomingMessage, socket: Duplex, head: Buffer) => {
-      const { pathname, query } = parse(request.url ?? '', true);
-      if (pathname !== '/realtime/chat') {
-        return;
-      }
-      this.wss!.handleUpgrade(request, socket, head, (ws) => {
-        this.wss!.emit('connection', ws, request, query);
-      });
-    });
+    httpServer.on(
+      'upgrade',
+      (request: IncomingMessage, socket: Duplex, head: Buffer) => {
+        const { pathname, query } = parse(request.url ?? '', true);
+        if (pathname !== '/realtime/chat') {
+          return;
+        }
+        this.wss!.handleUpgrade(request, socket, head, (ws) => {
+          this.wss!.emit('connection', ws, request, query);
+        });
+      },
+    );
 
-    this.wss.on('connection', (socket: WebSocket, _request: IncomingMessage, query: Record<string, unknown>) => {
-      void this.handleConnection(socket, query);
-    });
+    this.wss.on(
+      'connection',
+      (
+        socket: WebSocket,
+        _request: IncomingMessage,
+        query: Record<string, unknown>,
+      ) => {
+        void this.handleConnection(socket, query);
+      },
+    );
 
     this.logger.log('Chat WebSocket listening on /realtime/chat');
   }
 
-  private async authenticate(query: Record<string, unknown>): Promise<string | null> {
+  private async authenticate(
+    query: Record<string, unknown>,
+  ): Promise<string | null> {
     const token =
       (typeof query.token === 'string' ? query.token : null) ??
       (Array.isArray(query.token) ? query.token[0] : null);
@@ -92,7 +112,9 @@ export class ChatRealtimeService implements OnApplicationBootstrap {
 
     this.rooms.register(socket, userId);
     this.presence.markOnline(userId);
-    await this.bus.publish(new UserOnlineEvent(userId, { userId, source: 'chat-ws' }));
+    await this.bus.publish(
+      new UserOnlineEvent(userId, { userId, source: 'chat-ws' }),
+    );
 
     this.rooms.broadcastToUser(userId, { type: 'connected', userId });
 
@@ -112,7 +134,10 @@ export class ChatRealtimeService implements OnApplicationBootstrap {
       if (info && !this.rooms.hasActiveSockets(info.userId)) {
         this.presence.markOffline(info.userId);
         void this.bus.publish(
-          new UserOfflineEvent(info.userId, { userId: info.userId, source: 'chat-ws' }),
+          new UserOfflineEvent(info.userId, {
+            userId: info.userId,
+            source: 'chat-ws',
+          }),
         );
       }
     });
@@ -144,20 +169,28 @@ export class ChatRealtimeService implements OnApplicationBootstrap {
           this.rooms.leaveConversation(socket, event.conversationId);
           return;
         case 'typing_start':
-          this.rooms.broadcastToConversation(event.conversationId, {
-            type: 'user_typing',
-            conversationId: event.conversationId,
-            userId,
-            active: true,
-          }, socket);
+          this.rooms.broadcastToConversation(
+            event.conversationId,
+            {
+              type: 'user_typing',
+              conversationId: event.conversationId,
+              userId,
+              active: true,
+            },
+            socket,
+          );
           return;
         case 'typing_stop':
-          this.rooms.broadcastToConversation(event.conversationId, {
-            type: 'user_typing',
-            conversationId: event.conversationId,
-            userId,
-            active: false,
-          }, socket);
+          this.rooms.broadcastToConversation(
+            event.conversationId,
+            {
+              type: 'user_typing',
+              conversationId: event.conversationId,
+              userId,
+              active: false,
+            },
+            socket,
+          );
           return;
         case 'mark_as_read': {
           const result = await this.markRead.execute(event.conversationId, ctx);
@@ -195,7 +228,11 @@ export class ChatRealtimeService implements OnApplicationBootstrap {
   }
 
   /** Called by domain event handlers to push server events. */
-  emitToConversation(conversationId: string, payload: unknown, exceptUserId?: string): void {
+  emitToConversation(
+    conversationId: string,
+    payload: unknown,
+    exceptUserId?: string,
+  ): void {
     this.rooms.broadcastToConversation(conversationId, payload);
     if (exceptUserId) {
       // broadcastToConversation already sends to all in room; filter by user if needed

@@ -1,5 +1,9 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { ConflictError, ForbiddenError, NotFoundError } from '../../../shared/domain/result';
+import {
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+} from '../../../shared/domain/result';
 import { EVENT_BUS, IEventBus } from '../../../shared/events/event-bus';
 import { EventMetadata } from '../../../shared/events/domain-event';
 import { PostReport } from '../domain/post-report.entity';
@@ -29,10 +33,17 @@ export interface ModerationRequestContext {
 }
 
 function metaOf(ctx: ModerationRequestContext): EventMetadata {
-  return { correlationId: ctx.correlationId, userId: ctx.userId, source: 'moderation' };
+  return {
+    correlationId: ctx.correlationId,
+    userId: ctx.userId,
+    source: 'moderation',
+  };
 }
 
-async function flush(bus: IEventBus, entity: { pullEvents: () => Parameters<IEventBus['publishAll']>[0] }): Promise<void> {
+async function flush(
+  bus: IEventBus,
+  entity: { pullEvents: () => Parameters<IEventBus['publishAll']>[0] },
+): Promise<void> {
   const events = entity.pullEvents();
   if (events.length) await bus.publishAll(events);
 }
@@ -48,8 +59,10 @@ export class ReportPostUseCase {
   private readonly logger = new Logger(ReportPostUseCase.name);
 
   constructor(
-    @Inject(POST_REPORT_REPOSITORY) private readonly reports: IPostReportRepository,
-    @Inject(MODERATION_POST_READER) private readonly posts: IModerationPostReader,
+    @Inject(POST_REPORT_REPOSITORY)
+    private readonly reports: IPostReportRepository,
+    @Inject(MODERATION_POST_READER)
+    private readonly posts: IModerationPostReader,
     @Inject(EVENT_BUS) private readonly bus: IEventBus,
   ) {}
 
@@ -60,7 +73,10 @@ export class ReportPostUseCase {
     const postAuthorId = await this.posts.getAuthorId(input.postId);
     if (!postAuthorId) throw new NotFoundError('Post not found');
 
-    const existing = await this.reports.findByReporterAndPost(ctx.userId, input.postId);
+    const existing = await this.reports.findByReporterAndPost(
+      ctx.userId,
+      input.postId,
+    );
     if (existing) {
       return { reported: true, reportId: existing.id, duplicate: true };
     }
@@ -77,7 +93,10 @@ export class ReportPostUseCase {
     try {
       await this.reports.save(report);
     } catch {
-      const raced = await this.reports.findByReporterAndPost(ctx.userId, input.postId);
+      const raced = await this.reports.findByReporterAndPost(
+        ctx.userId,
+        input.postId,
+      );
       if (raced) {
         return { reported: true, reportId: raced.id, duplicate: true };
       }
@@ -101,8 +120,10 @@ export class BlockUserUseCase {
   private readonly logger = new Logger(BlockUserUseCase.name);
 
   constructor(
-    @Inject(USER_BLOCK_REPOSITORY) private readonly blocks: IUserBlockRepository,
-    @Inject(MODERATION_USER_READER) private readonly users: IModerationUserReader,
+    @Inject(USER_BLOCK_REPOSITORY)
+    private readonly blocks: IUserBlockRepository,
+    @Inject(MODERATION_USER_READER)
+    private readonly users: IModerationUserReader,
     @Inject(EVENT_BUS) private readonly bus: IEventBus,
   ) {}
 
@@ -140,7 +161,8 @@ export class UnblockUserUseCase {
   private readonly logger = new Logger(UnblockUserUseCase.name);
 
   constructor(
-    @Inject(USER_BLOCK_REPOSITORY) private readonly blocks: IUserBlockRepository,
+    @Inject(USER_BLOCK_REPOSITORY)
+    private readonly blocks: IUserBlockRepository,
     @Inject(EVENT_BUS) private readonly bus: IEventBus,
   ) {}
 
@@ -172,13 +194,19 @@ export type BlockedUserListItem = ModerationUserSummary & { blockedAt: Date };
 @Injectable()
 export class ListBlockedUsersUseCase {
   constructor(
-    @Inject(USER_BLOCK_REPOSITORY) private readonly blocks: IUserBlockRepository,
-    @Inject(MODERATION_USER_READER) private readonly users: IModerationUserReader,
+    @Inject(USER_BLOCK_REPOSITORY)
+    private readonly blocks: IUserBlockRepository,
+    @Inject(MODERATION_USER_READER)
+    private readonly users: IModerationUserReader,
   ) {}
 
-  async execute(ctx: ModerationRequestContext): Promise<{ items: BlockedUserListItem[] }> {
+  async execute(
+    ctx: ModerationRequestContext,
+  ): Promise<{ items: BlockedUserListItem[] }> {
     const rows = await this.blocks.listBlockedBy(ctx.userId);
-    const summaries = await this.users.findSummariesByIds(rows.map((r) => r.blockedId));
+    const summaries = await this.users.findSummariesByIds(
+      rows.map((r) => r.blockedId),
+    );
     const byId = new Map(summaries.map((s) => [s.id, s]));
     const items: BlockedUserListItem[] = [];
     for (const row of rows) {

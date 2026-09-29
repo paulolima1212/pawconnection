@@ -14,7 +14,9 @@ describe('Handle', () => {
 
   it('rejects handles inferred from names (spaces and punctuation)', () => {
     expect(() => Handle.parse('Walking Phoebe')).toThrow(ValidationError);
-    expect(() => Handle.parse('plima12121984@gmail.com')).toThrow(ValidationError);
+    expect(() => Handle.parse('plima12121984@gmail.com')).toThrow(
+      ValidationError,
+    );
   });
 
   it('rejects overly long handles', () => {

@@ -1,4 +1,7 @@
-import { BaseDomainEvent, EventMetadata } from '../../../../shared/events/domain-event';
+import {
+  BaseDomainEvent,
+  EventMetadata,
+} from '../../../../shared/events/domain-event';
 
 export const CHAT_EVENTS = {
   CONVERSATION_CREATED: 'chat.conversation_created',
@@ -22,7 +25,11 @@ export class ConversationCreatedEvent extends BaseDomainEvent<{
   participantTwoId: string;
 }> {
   readonly eventType = CHAT_EVENTS.CONVERSATION_CREATED;
-  constructor(conversationId: string, payload: ConversationCreatedEvent['payload'], metadata?: EventMetadata) {
+  constructor(
+    conversationId: string,
+    payload: ConversationCreatedEvent['payload'],
+    metadata?: EventMetadata,
+  ) {
     super(conversationId, payload, metadata);
   }
 }
@@ -38,7 +45,11 @@ export class MessageSentEvent extends BaseDomainEvent<{
   replyToMessageId?: string | null;
 }> {
   readonly eventType = CHAT_EVENTS.MESSAGE_SENT;
-  constructor(messageId: string, payload: MessageSentEvent['payload'], metadata?: EventMetadata) {
+  constructor(
+    messageId: string,
+    payload: MessageSentEvent['payload'],
+    metadata?: EventMetadata,
+  ) {
     super(messageId, payload, metadata);
   }
 }
@@ -49,7 +60,11 @@ export class MessageDeliveredEvent extends BaseDomainEvent<{
   recipientId: string;
 }> {
   readonly eventType = CHAT_EVENTS.MESSAGE_DELIVERED;
-  constructor(messageId: string, payload: MessageDeliveredEvent['payload'], metadata?: EventMetadata) {
+  constructor(
+    messageId: string,
+    payload: MessageDeliveredEvent['payload'],
+    metadata?: EventMetadata,
+  ) {
     super(messageId, payload, metadata);
   }
 }
@@ -60,7 +75,11 @@ export class MessageReadEvent extends BaseDomainEvent<{
   messageIds: string[];
 }> {
   readonly eventType = CHAT_EVENTS.MESSAGE_READ;
-  constructor(conversationId: string, payload: MessageReadEvent['payload'], metadata?: EventMetadata) {
+  constructor(
+    conversationId: string,
+    payload: MessageReadEvent['payload'],
+    metadata?: EventMetadata,
+  ) {
     super(conversationId, payload, metadata);
   }
 }
@@ -71,7 +90,11 @@ export class MessageEditedEvent extends BaseDomainEvent<{
   content: string;
 }> {
   readonly eventType = CHAT_EVENTS.MESSAGE_EDITED;
-  constructor(messageId: string, payload: MessageEditedEvent['payload'], metadata?: EventMetadata) {
+  constructor(
+    messageId: string,
+    payload: MessageEditedEvent['payload'],
+    metadata?: EventMetadata,
+  ) {
     super(messageId, payload, metadata);
   }
 }
@@ -82,7 +105,11 @@ export class MessageDeletedEvent extends BaseDomainEvent<{
   senderId: string;
 }> {
   readonly eventType = CHAT_EVENTS.MESSAGE_DELETED;
-  constructor(messageId: string, payload: MessageDeletedEvent['payload'], metadata?: EventMetadata) {
+  constructor(
+    messageId: string,
+    payload: MessageDeletedEvent['payload'],
+    metadata?: EventMetadata,
+  ) {
     super(messageId, payload, metadata);
   }
 }
@@ -97,7 +124,11 @@ export class MessageUpdatedEvent extends BaseDomainEvent<{
   reactionChange: 'added' | 'removed' | 'changed';
 }> {
   readonly eventType = CHAT_EVENTS.MESSAGE_UPDATED;
-  constructor(messageId: string, payload: MessageUpdatedEvent['payload'], metadata?: EventMetadata) {
+  constructor(
+    messageId: string,
+    payload: MessageUpdatedEvent['payload'],
+    metadata?: EventMetadata,
+  ) {
     super(messageId, payload, metadata);
   }
 }
@@ -107,7 +138,11 @@ export class UserTypingStartedEvent extends BaseDomainEvent<{
   userId: string;
 }> {
   readonly eventType = CHAT_EVENTS.USER_TYPING_STARTED;
-  constructor(conversationId: string, payload: UserTypingStartedEvent['payload'], metadata?: EventMetadata) {
+  constructor(
+    conversationId: string,
+    payload: UserTypingStartedEvent['payload'],
+    metadata?: EventMetadata,
+  ) {
     super(conversationId, payload, metadata);
   }
 }
@@ -117,7 +152,11 @@ export class UserTypingStoppedEvent extends BaseDomainEvent<{
   userId: string;
 }> {
   readonly eventType = CHAT_EVENTS.USER_TYPING_STOPPED;
-  constructor(conversationId: string, payload: UserTypingStoppedEvent['payload'], metadata?: EventMetadata) {
+  constructor(
+    conversationId: string,
+    payload: UserTypingStoppedEvent['payload'],
+    metadata?: EventMetadata,
+  ) {
     super(conversationId, payload, metadata);
   }
 }

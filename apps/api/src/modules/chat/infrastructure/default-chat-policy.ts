@@ -1,8 +1,18 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { ForbiddenError, NotFoundError, ValidationError } from '../../../shared/domain/result';
-import { CHAT_BLOCK_READER, IChatBlockReader } from '../domain/ports/block-reader.port';
+import {
+  ForbiddenError,
+  NotFoundError,
+  ValidationError,
+} from '../../../shared/domain/result';
+import {
+  CHAT_BLOCK_READER,
+  IChatBlockReader,
+} from '../domain/ports/block-reader.port';
 import { IChatPolicy } from '../domain/ports/chat-policy.port';
-import { CHAT_USER_READER, IChatUserReader } from '../domain/ports/user-reader.port';
+import {
+  CHAT_USER_READER,
+  IChatUserReader,
+} from '../domain/ports/user-reader.port';
 
 @Injectable()
 export class DefaultChatPolicy implements IChatPolicy {
@@ -11,9 +21,14 @@ export class DefaultChatPolicy implements IChatPolicy {
     @Inject(CHAT_BLOCK_READER) private readonly blocks: IChatBlockReader,
   ) {}
 
-  async canUsersCommunicate(senderId: string, recipientId: string): Promise<void> {
+  async canUsersCommunicate(
+    senderId: string,
+    recipientId: string,
+  ): Promise<void> {
     if (senderId === recipientId) {
-      throw new ValidationError('You cannot start a conversation with yourself');
+      throw new ValidationError(
+        'You cannot start a conversation with yourself',
+      );
     }
 
     const [sender, recipient, blocked] = await Promise.all([
@@ -27,7 +42,9 @@ export class DefaultChatPolicy implements IChatPolicy {
       throw new ForbiddenError('Messaging is not allowed with this user');
     }
     if (!recipient.onboardingComplete) {
-      throw new ForbiddenError('Cannot message users who have not completed onboarding');
+      throw new ForbiddenError(
+        'Cannot message users who have not completed onboarding',
+      );
     }
   }
 }

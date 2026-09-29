@@ -18,7 +18,7 @@ export type ConversationResponseDto = {
     senderId: string;
     createdAt: string;
   } | null;
-    unreadCount: number;
+  unreadCount: number;
   blockedByMe: boolean;
 };
 

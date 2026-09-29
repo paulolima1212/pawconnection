@@ -49,7 +49,10 @@ import { CHAT_EVENTS } from './domain/events/chat-events';
     { provide: CHAT_BLOCK_READER, useExisting: USER_BLOCK_READER },
     { provide: CHAT_CONNECTION_READER, useClass: PrismaChatConnectionReader },
     { provide: CHAT_POLICY, useClass: DefaultChatPolicy },
-    { provide: REALTIME_MESSAGE_BROKER, useClass: InMemoryRealtimeMessageBroker },
+    {
+      provide: REALTIME_MESSAGE_BROKER,
+      useClass: InMemoryRealtimeMessageBroker,
+    },
     CreateOrGetConversationUseCase,
     GetConversationUseCase,
     ListConversationsUseCase,

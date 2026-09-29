@@ -42,9 +42,16 @@ function connectWs(url: string): Promise<WebSocket> {
   });
 }
 
-function waitForEvent(ws: WebSocket, type: string, timeoutMs = 8000): Promise<Record<string, unknown>> {
+function waitForEvent(
+  ws: WebSocket,
+  type: string,
+  timeoutMs = 8000,
+): Promise<Record<string, unknown>> {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`Timeout waiting for ${type}`)), timeoutMs);
+    const timer = setTimeout(
+      () => reject(new Error(`Timeout waiting for ${type}`)),
+      timeoutMs,
+    );
     const onMessage = (raw: WebSocket.RawData) => {
       try {
         const parsed = JSON.parse(raw.toString()) as Record<string, unknown>;
@@ -88,7 +95,9 @@ describe('Chat realtime (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     app.useGlobalFilters(new DomainExceptionFilter());
     await app.init();
     await app.listen(0);

@@ -1,14 +1,40 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { ConflictError } from '../../../shared/domain/result';
+import {
+  ConflictError,
+  UnauthorizedError,
+} from '../../../shared/domain/result';
+import { UserEntity } from '../../../shared/domain/types';
 import { Handle } from '../../profile/domain/value-objects/handle.vo';
 import {
   IUserRepository,
   USER_REPOSITORY,
 } from '../../profile/domain/repositories/user.repository';
+import { normalizeEmail } from '../../../shared/domain/email.util';
+import { assertPasswordPolicy } from '../domain/password-policy';
 import { UniqueEmailSpec } from '../domain/specifications/unique-email';
 import { UniqueHandleSpec } from '../../profile/domain/specifications/unique-handle';
+
+export type AuthSessionUser = {
+  id: string;
+  email?: string | null;
+  fullName: string;
+  handle: string;
+  photoUrl?: string | null;
+  onboardingComplete: boolean;
+};
+
+function toAuthSessionUser(user: UserEntity): AuthSessionUser {
+  return {
+    id: user.id,
+    email: user.email,
+    fullName: user.fullName,
+    handle: user.handle,
+    photoUrl: user.photoUrl ?? null,
+    onboardingComplete: user.onboardingComplete,
+  };
+}
 
 @Injectable()
 export class RegisterUseCase {
@@ -17,9 +43,16 @@ export class RegisterUseCase {
     private readonly jwt: JwtService,
   ) {}
 
-  async execute(input: { email: string; password: string; fullName: string; handle: string }) {
-    const existing = await this.users.findByEmail(input.email);
-    const spec = new UniqueEmailSpec(input.email);
+  async execute(input: {
+    email: string;
+    password: string;
+    fullName: string;
+    handle: string;
+  }) {
+    assertPasswordPolicy(input.password);
+    const email = normalizeEmail(input.email);
+    const existing = await this.users.findByEmail(email);
+    const spec = new UniqueEmailSpec(email);
     if (!spec.isSatisfiedBy(existing)) {
       throw new ConflictError('Email already registered');
     }
@@ -32,7 +65,7 @@ export class RegisterUseCase {
 
     const passwordHash = await bcrypt.hash(input.password, 10);
     const user = await this.users.create({
-      email: input.email,
+      email,
       passwordHash,
       fullName: input.fullName,
       handle: handle.value,
@@ -43,7 +76,7 @@ export class RegisterUseCase {
       email: user.email,
     });
 
-    return { accessToken: token, user };
+    return { accessToken: token, user: toAuthSessionUser(user) };
   }
 }
 
@@ -55,14 +88,15 @@ export class LoginUseCase {
   ) {}
 
   async execute(input: { email: string; password: string }) {
-    const user = await this.users.findByEmail(input.email);
+    const email = normalizeEmail(input.email);
+    const user = await this.users.findByEmail(email);
     if (!user?.passwordHash) {
-      throw new ConflictError('Invalid credentials');
+      throw new UnauthorizedError('Invalid email or password');
     }
 
     const valid = await bcrypt.compare(input.password, user.passwordHash);
     if (!valid) {
-      throw new ConflictError('Invalid credentials');
+      throw new UnauthorizedError('Invalid email or password');
     }
 
     const token = this.jwt.sign({
@@ -70,7 +104,7 @@ export class LoginUseCase {
       email: user.email,
     });
 
-    return { accessToken: token, user };
+    return { accessToken: token, user: toAuthSessionUser(user) };
   }
 }
 

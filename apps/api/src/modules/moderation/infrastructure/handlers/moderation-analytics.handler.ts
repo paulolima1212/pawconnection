@@ -1,5 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DomainEvent, serializeEvent } from '../../../../shared/events/domain-event';
+import {
+  DomainEvent,
+  serializeEvent,
+} from '../../../../shared/events/domain-event';
 import { IEventHandler } from '../../../../shared/events/event-bus';
 
 @Injectable()

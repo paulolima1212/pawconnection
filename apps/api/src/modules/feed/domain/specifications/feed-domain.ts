@@ -137,7 +137,9 @@ export function postMatchesPetSizeFilter(
   if (!petSize) return true;
   const breed = post.author?.petBreed?.trim().toLowerCase();
   if (!breed) return false;
-  return PET_SIZE_BREED_KEYWORDS[petSize].some((keyword) => breed.includes(keyword));
+  return PET_SIZE_BREED_KEYWORDS[petSize].some((keyword) =>
+    breed.includes(keyword),
+  );
 }
 
 export function postMatchesFeedFilters(
@@ -148,7 +150,10 @@ export function postMatchesFeedFilters(
     const q = filters.q.trim().toLowerCase();
     if (!(post.body ?? '').toLowerCase().includes(q)) return false;
   }
-  if (filters.city?.trim() && !postAuthorMatchesCity(post.author?.location, filters.city)) {
+  if (
+    filters.city?.trim() &&
+    !postAuthorMatchesCity(post.author?.location, filters.city)
+  ) {
     return false;
   }
   if (!postMatchesAuthorFilter(post, filters.author)) return false;
@@ -158,7 +163,9 @@ export function postMatchesFeedFilters(
   return true;
 }
 
-export class PostWithinRadiusSpec extends CompositeSpecification<PostEntity & { authorLat?: number | null; authorLng?: number | null }> {
+export class PostWithinRadiusSpec extends CompositeSpecification<
+  PostEntity & { authorLat?: number | null; authorLng?: number | null }
+> {
   constructor(
     private readonly lat: number,
     private readonly lng: number,
@@ -170,7 +177,11 @@ export class PostWithinRadiusSpec extends CompositeSpecification<PostEntity & { 
   isSatisfiedBy(
     post: PostEntity & { authorLat?: number | null; authorLng?: number | null },
   ): boolean {
-    if (post.authorLat == null || post.authorLng == null || this.radiusKm <= 0) {
+    if (
+      post.authorLat == null ||
+      post.authorLng == null ||
+      this.radiusKm <= 0
+    ) {
       return true;
     }
     const R = 6371;

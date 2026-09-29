@@ -1,9 +1,17 @@
 import { UserEntity } from '../../../shared/domain/types';
 import { ValidationError } from '../../../shared/domain/result';
-import { NearbyPlaceHit, IPlacesSearch } from '../domain/ports/places-search.port';
+import {
+  NearbyPlaceHit,
+  IPlacesSearch,
+} from '../domain/ports/places-search.port';
 import { IUserRepository } from '../../profile/domain/repositories/user.repository';
 import { ListDogFriendlyPlacesUseCase } from './list-dog-friendly-places.use-case';
-import { AppInterest, AppGender, AppVaccinated, AppDesexed } from '../../../shared/domain/types';
+import {
+  AppInterest,
+  AppGender,
+  AppVaccinated,
+  AppDesexed,
+} from '../../../shared/domain/types';
 
 function user(overrides: Partial<UserEntity> = {}): UserEntity {
   return {
@@ -69,13 +77,19 @@ class FakeUsers implements IUserRepository {
 }
 
 class FakePlaces implements IPlacesSearch {
-  readonly calls: Array<{ includedTypes: readonly string[]; radiusMeters: number }> = [];
+  readonly calls: Array<{
+    includedTypes: readonly string[];
+    radiusMeters: number;
+  }> = [];
   constructor(private readonly hits: NearbyPlaceHit[]) {}
   searchNearby(query: {
     includedTypes: readonly string[];
     radiusMeters: number;
   }): Promise<NearbyPlaceHit[]> {
-    this.calls.push({ includedTypes: query.includedTypes, radiusMeters: query.radiusMeters });
+    this.calls.push({
+      includedTypes: query.includedTypes,
+      radiusMeters: query.radiusMeters,
+    });
     return Promise.resolve(this.hits);
   }
 }
@@ -115,7 +129,10 @@ const nearbyHits: NearbyPlaceHit[] = [
 
 describe('ListDogFriendlyPlacesUseCase', () => {
   it('rejects invalid coordinates', async () => {
-    const useCase = new ListDogFriendlyPlacesUseCase(new FakeUsers(user()), new FakePlaces([]));
+    const useCase = new ListDogFriendlyPlacesUseCase(
+      new FakeUsers(user()),
+      new FakePlaces([]),
+    );
     await expect(
       useCase.execute('viewer-1', { latitude: 200, longitude: 0 }),
     ).rejects.toBeInstanceOf(ValidationError);
@@ -123,7 +140,10 @@ describe('ListDogFriendlyPlacesUseCase', () => {
 
   it('filters out non dog-friendly cafes and features services for that profile', async () => {
     const places = new FakePlaces(nearbyHits);
-    const useCase = new ListDogFriendlyPlacesUseCase(new FakeUsers(user()), places);
+    const useCase = new ListDogFriendlyPlacesUseCase(
+      new FakeUsers(user()),
+      places,
+    );
     const result = await useCase.execute('viewer-1', {
       latitude: -33.86,
       longitude: 151.21,
@@ -134,12 +154,19 @@ describe('ListDogFriendlyPlacesUseCase', () => {
     expect(result.radiusKm).toBe(2);
     expect(result.featuredCategory).toBe('services');
     expect(result.items.map((p) => p.id)).toEqual(['vet']);
-    expect(places.calls[0]?.includedTypes).toEqual(['dog_park', 'veterinary_care', 'pet_store']);
+    expect(places.calls[0]?.includedTypes).toEqual([
+      'dog_park',
+      'veterinary_care',
+      'pet_store',
+    ]);
   });
 
   it('uses the default radius when worldwide is requested', async () => {
     const places = new FakePlaces([]);
-    const useCase = new ListDogFriendlyPlacesUseCase(new FakeUsers(user()), places);
+    const useCase = new ListDogFriendlyPlacesUseCase(
+      new FakeUsers(user()),
+      places,
+    );
     const result = await useCase.execute('viewer-1', {
       latitude: -33.86,
       longitude: 151.21,
@@ -152,7 +179,10 @@ describe('ListDogFriendlyPlacesUseCase', () => {
     const failing: IPlacesSearch = {
       searchNearby: () => Promise.reject(new Error('quota')),
     };
-    const useCase = new ListDogFriendlyPlacesUseCase(new FakeUsers(user()), failing);
+    const useCase = new ListDogFriendlyPlacesUseCase(
+      new FakeUsers(user()),
+      failing,
+    );
     const result = await useCase.execute('viewer-1', {
       latitude: -33.86,
       longitude: 151.21,

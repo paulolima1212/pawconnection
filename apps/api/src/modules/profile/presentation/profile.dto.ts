@@ -11,6 +11,7 @@ import {
   Matches,
   Max,
   Min,
+  MaxLength,
   MinLength,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -46,6 +47,15 @@ export class UpdateOwnerDto {
   @Min(1)
   @Max(120)
   age?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Owner date of birth (YYYY-MM-DD). Age is derived from this when set.',
+    example: '1990-04-12',
+  })
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  birthDate?: string;
 
   @ApiPropertyOptional({ enum: AppGender })
   @IsOptional()
@@ -97,11 +107,12 @@ export class UpdatePetDto {
   @IsOptional()
   @IsInt()
   @Min(0)
-  @Max(30)
+  @Max(16)
   age?: number;
 
   @ApiPropertyOptional({
-    description: 'Pet date of birth (YYYY-MM-DD). Preferred over age; age is derived when omitted.',
+    description:
+      'Pet date of birth (YYYY-MM-DD). Preferred over age; age is derived when omitted.',
     example: '2020-05-12',
   })
   @IsOptional()
@@ -129,6 +140,16 @@ export class UpdatePetDto {
   @IsEnum(AppTemperament, { each: true })
   temperament?: AppTemperament[];
 
+  @ApiPropertyOptional({
+    description:
+      'Required when temperament includes Custom. Ignored otherwise.',
+    maxLength: 40,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  customTemperament?: string;
+
   @ApiPropertyOptional({ enum: AppVaccinated })
   @IsOptional()
   @IsEnum(AppVaccinated)
@@ -136,7 +157,8 @@ export class UpdatePetDto {
 
   @ApiPropertyOptional({
     enum: AppDesexed,
-    description: 'Whether the pet is desexed (Australian English for neutered/spayed)',
+    description:
+      'Whether the pet is desexed (Australian English for neutered/spayed)',
   })
   @IsOptional()
   @IsEnum(AppDesexed)

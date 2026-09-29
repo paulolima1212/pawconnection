@@ -18,7 +18,9 @@ export class MessageContent {
       throw new ValidationError('Message cannot be empty');
     }
     if (sanitized.length > maxLength) {
-      throw new ValidationError(`Message exceeds maximum length of ${maxLength}`);
+      throw new ValidationError(
+        `Message exceeds maximum length of ${maxLength}`,
+      );
     }
     return new MessageContent(sanitized);
   }

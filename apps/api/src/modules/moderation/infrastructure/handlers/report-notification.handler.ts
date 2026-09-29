@@ -26,8 +26,10 @@ export class ReportNotificationHandler implements IEventHandler {
 
   constructor(
     @Inject(EMAIL_SENDER) private readonly email: IEmailSender,
-    @Inject(MODERATION_POST_READER) private readonly posts: IModerationPostReader,
-    @Inject(MODERATION_USER_READER) private readonly users: IModerationUserReader,
+    @Inject(MODERATION_POST_READER)
+    private readonly posts: IModerationPostReader,
+    @Inject(MODERATION_USER_READER)
+    private readonly users: IModerationUserReader,
     private readonly config: ConfigService,
   ) {}
 
@@ -46,7 +48,9 @@ export class ReportNotificationHandler implements IEventHandler {
 
     const payload = event.payload as PostReportedPayload;
     const snapshot = await this.posts.getSnapshot(payload.postId);
-    const [reporter] = await this.users.findSummariesByIds([payload.reporterId]);
+    const [reporter] = await this.users.findSummariesByIds([
+      payload.reporterId,
+    ]);
     const body = snapshot?.body?.trim() || '(no text)';
     const images = snapshot?.imageUrls?.length
       ? snapshot.imageUrls.join('\n')
@@ -54,7 +58,9 @@ export class ReportNotificationHandler implements IEventHandler {
     const authorHandle = snapshot?.authorHandle
       ? `@${snapshot.authorHandle}`
       : payload.postAuthorId;
-    const reporterHandle = reporter?.handle ? `@${reporter.handle}` : payload.reporterId;
+    const reporterHandle = reporter?.handle
+      ? `@${reporter.handle}`
+      : payload.reporterId;
 
     const text = [
       'A publication was reported in Paw Connection.',

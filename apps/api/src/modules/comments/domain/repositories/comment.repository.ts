@@ -56,7 +56,10 @@ export interface ICommentRepository {
   getDepth(commentId: string): Promise<number | null>;
 
   /** Cursor-paginated top-level comments for a post. */
-  listTopLevel(postId: string, options: ListCommentsOptions): Promise<CommentPage>;
+  listTopLevel(
+    postId: string,
+    options: ListCommentsOptions,
+  ): Promise<CommentPage>;
 
   /** Cursor-paginated replies for a given parent comment. */
   listReplies(

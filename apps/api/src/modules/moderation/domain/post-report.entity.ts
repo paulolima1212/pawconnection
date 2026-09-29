@@ -1,5 +1,8 @@
 import { randomUUID } from 'crypto';
-import { DomainEvent, EventMetadata } from '../../../shared/events/domain-event';
+import {
+  DomainEvent,
+  EventMetadata,
+} from '../../../shared/events/domain-event';
 import { ValidationError } from '../../../shared/domain/result';
 import { PostReportedEvent } from './events/moderation-events';
 import { isReportReason, ReportReason } from './report-reason';

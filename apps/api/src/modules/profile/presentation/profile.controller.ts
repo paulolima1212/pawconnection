@@ -12,7 +12,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard, OptionalJwtAuthGuard } from '../../auth/presentation/jwt-auth.guard';
+import {
+  JwtAuthGuard,
+  OptionalJwtAuthGuard,
+} from '../../auth/presentation/jwt-auth.guard';
 import {
   CurrentUser,
   AuthUserPayload,
@@ -121,10 +124,7 @@ export class ProfileController {
     @CurrentUser() user: AuthUserPayload,
     @Body() dto: SetInterestsDto,
   ) {
-    const profile = await this.setInterests.execute(
-      user.userId,
-      dto.interests,
-    );
+    const profile = await this.setInterests.execute(user.userId, dto.interests);
     return this.withPublicMediaUrls(profile);
   }
 

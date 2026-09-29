@@ -1,4 +1,7 @@
-import { BaseDomainEvent, EventMetadata } from '../../../../shared/events/domain-event';
+import {
+  BaseDomainEvent,
+  EventMetadata,
+} from '../../../../shared/events/domain-event';
 
 export const PROFILE_EVENTS = {
   ACCOUNT_DELETED: 'profile.account_deleted',

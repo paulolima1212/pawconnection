@@ -6,6 +6,7 @@ import { PrismaConnectionRequestRepository } from './infrastructure/prisma-conne
 import {
   AcceptConnectionRequestUseCase,
   CreateConnectionRequestUseCase,
+  GetConnectionWithUserUseCase,
   ListInboxRequestsUseCase,
   RejectConnectionRequestUseCase,
 } from './application/connections.use-cases';
@@ -23,6 +24,7 @@ import { ConnectionsController } from './presentation/connections.controller';
     AcceptConnectionRequestUseCase,
     RejectConnectionRequestUseCase,
     CreateConnectionRequestUseCase,
+    GetConnectionWithUserUseCase,
   ],
   exports: [CONNECTION_REQUEST_REPOSITORY],
 })

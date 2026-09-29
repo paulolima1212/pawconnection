@@ -10,7 +10,10 @@ import {
 export class PrismaUserBlockRepository implements IUserBlockRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findByPair(blockerId: string, blockedId: string): Promise<UserBlock | null> {
+  async findByPair(
+    blockerId: string,
+    blockedId: string,
+  ): Promise<UserBlock | null> {
     const row = await this.prisma.userBlock.findUnique({
       where: { blockerId_blockedId: { blockerId, blockedId } },
     });
@@ -20,7 +23,12 @@ export class PrismaUserBlockRepository implements IUserBlockRepository {
   async save(block: UserBlock): Promise<void> {
     const state = block.toState();
     await this.prisma.userBlock.upsert({
-      where: { blockerId_blockedId: { blockerId: state.blockerId, blockedId: state.blockedId } },
+      where: {
+        blockerId_blockedId: {
+          blockerId: state.blockerId,
+          blockedId: state.blockedId,
+        },
+      },
       create: {
         id: state.id,
         blockerId: state.blockerId,

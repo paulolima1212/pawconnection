@@ -12,13 +12,18 @@ export class Handle {
     if (!normalized) {
       throw new ValidationError('Handle is required');
     }
-    if (normalized.length < HANDLE_MIN_LENGTH || normalized.length > HANDLE_MAX_LENGTH) {
+    if (
+      normalized.length < HANDLE_MIN_LENGTH ||
+      normalized.length > HANDLE_MAX_LENGTH
+    ) {
       throw new ValidationError(
         `Handle must be ${HANDLE_MIN_LENGTH}–${HANDLE_MAX_LENGTH} characters`,
       );
     }
     if (!HANDLE_PATTERN.test(normalized)) {
-      throw new ValidationError('Handle may only contain letters, numbers, and underscores');
+      throw new ValidationError(
+        'Handle may only contain letters, numbers, and underscores',
+      );
     }
     return new Handle(normalized);
   }

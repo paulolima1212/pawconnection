@@ -1,4 +1,8 @@
-import { ConflictError, NotFoundError, ValidationError } from '../../../shared/domain/result';
+import {
+  ConflictError,
+  NotFoundError,
+  ValidationError,
+} from '../../../shared/domain/result';
 import { InMemoryDeadLetterQueue } from '../../../shared/events/dead-letter-queue';
 import { InMemoryEventBus } from '../../../shared/events/in-memory-event-bus';
 import { IEventBus } from '../../../shared/events/event-bus';
@@ -29,7 +33,10 @@ class InMemoryPostReportRepository implements IPostReportRepository {
     return `${reporterId}:${postId}`;
   }
 
-  async findByReporterAndPost(reporterId: string, postId: string): Promise<PostReport | null> {
+  async findByReporterAndPost(
+    reporterId: string,
+    postId: string,
+  ): Promise<PostReport | null> {
     const found = this.rows.get(this.key(reporterId, postId));
     return found ? PostReport.restore(found.toState()) : null;
   }
@@ -54,13 +61,19 @@ class InMemoryUserBlockRepository implements IUserBlockRepository {
     return `${blockerId}:${blockedId}`;
   }
 
-  async findByPair(blockerId: string, blockedId: string): Promise<UserBlock | null> {
+  async findByPair(
+    blockerId: string,
+    blockedId: string,
+  ): Promise<UserBlock | null> {
     const found = this.rows.get(this.key(blockerId, blockedId));
     return found ? UserBlock.restore(found.toState()) : null;
   }
 
   async save(block: UserBlock): Promise<void> {
-    this.rows.set(this.key(block.blockerId, block.blockedId), UserBlock.restore(block.toState()));
+    this.rows.set(
+      this.key(block.blockerId, block.blockedId),
+      UserBlock.restore(block.toState()),
+    );
   }
 
   async delete(blockerId: string, blockedId: string): Promise<boolean> {
@@ -120,15 +133,27 @@ function makeBus(): { bus: IEventBus; received: string[] } {
 }
 
 const ctx = { userId: 'viewer', correlationId: 'corr-1' };
-const target = { id: 'target', fullName: 'Target', handle: 'target', photoUrl: null };
+const target = {
+  id: 'target',
+  fullName: 'Target',
+  handle: 'target',
+  photoUrl: null,
+};
 
 describe('ReportPostUseCase', () => {
   it('reports a post and publishes PostReported', async () => {
     const reports = new InMemoryPostReportRepository();
     const { bus, received } = makeBus();
-    const useCase = new ReportPostUseCase(reports, new FakePostReader('author'), bus);
+    const useCase = new ReportPostUseCase(
+      reports,
+      new FakePostReader('author'),
+      bus,
+    );
 
-    const result = await useCase.execute({ postId: 'post-1', reason: 'spam' }, ctx);
+    const result = await useCase.execute(
+      { postId: 'post-1', reason: 'spam' },
+      ctx,
+    );
 
     expect(result.reported).toBe(true);
     expect(result.duplicate).toBe(false);
@@ -138,10 +163,20 @@ describe('ReportPostUseCase', () => {
   it('is idempotent when the same viewer reports again', async () => {
     const reports = new InMemoryPostReportRepository();
     const { bus } = makeBus();
-    const useCase = new ReportPostUseCase(reports, new FakePostReader('author'), bus);
+    const useCase = new ReportPostUseCase(
+      reports,
+      new FakePostReader('author'),
+      bus,
+    );
 
-    const first = await useCase.execute({ postId: 'post-1', reason: 'spam' }, ctx);
-    const second = await useCase.execute({ postId: 'post-1', reason: 'hate' }, ctx);
+    const first = await useCase.execute(
+      { postId: 'post-1', reason: 'spam' },
+      ctx,
+    );
+    const second = await useCase.execute(
+      { postId: 'post-1', reason: 'hate' },
+      ctx,
+    );
 
     expect(second.reportId).toBe(first.reportId);
     expect(second.duplicate).toBe(true);
@@ -176,7 +211,11 @@ describe('BlockUserUseCase', () => {
   it('blocks a user and publishes UserBlocked', async () => {
     const blocks = new InMemoryUserBlockRepository();
     const { bus, received } = makeBus();
-    const useCase = new BlockUserUseCase(blocks, new FakeUserReader([target]), bus);
+    const useCase = new BlockUserUseCase(
+      blocks,
+      new FakeUserReader([target]),
+      bus,
+    );
 
     const result = await useCase.execute(target.id, ctx);
 
@@ -193,7 +232,9 @@ describe('BlockUserUseCase', () => {
       new FakeUserReader([me]),
       bus,
     );
-    await expect(useCase.execute('viewer', ctx)).rejects.toThrow(ValidationError);
+    await expect(useCase.execute('viewer', ctx)).rejects.toThrow(
+      ValidationError,
+    );
   });
 
   it('rejects a missing user', async () => {
@@ -209,7 +250,11 @@ describe('BlockUserUseCase', () => {
   it('is idempotent when already blocked', async () => {
     const blocks = new InMemoryUserBlockRepository();
     const { bus, received } = makeBus();
-    const useCase = new BlockUserUseCase(blocks, new FakeUserReader([target]), bus);
+    const useCase = new BlockUserUseCase(
+      blocks,
+      new FakeUserReader([target]),
+      bus,
+    );
     await useCase.execute(target.id, ctx);
     received.length = 0;
     await useCase.execute(target.id, ctx);
@@ -221,7 +266,11 @@ describe('UnblockUserUseCase', () => {
   it('unblocks and publishes UserUnblocked', async () => {
     const blocks = new InMemoryUserBlockRepository();
     const { bus, received } = makeBus();
-    const block = new BlockUserUseCase(blocks, new FakeUserReader([target]), bus);
+    const block = new BlockUserUseCase(
+      blocks,
+      new FakeUserReader([target]),
+      bus,
+    );
     const unblock = new UnblockUserUseCase(blocks, bus);
 
     await block.execute(target.id, ctx);

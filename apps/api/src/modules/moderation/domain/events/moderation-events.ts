@@ -1,4 +1,7 @@
-import { BaseDomainEvent, EventMetadata } from '../../../../shared/events/domain-event';
+import {
+  BaseDomainEvent,
+  EventMetadata,
+} from '../../../../shared/events/domain-event';
 import { ReportReason } from '../report-reason';
 
 export const MODERATION_EVENTS = {

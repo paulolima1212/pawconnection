@@ -142,7 +142,7 @@ export class PrismaPostRepository implements IPostRepository {
       authorId: c.authorId,
       body: c.content,
       createdAt: c.createdAt,
-      author: mapUserToSummary({ ...c.author, interests: [] } as never),
+      author: mapUserToSummary({ ...c.author, interests: [] }),
     }));
   }
 
@@ -164,7 +164,7 @@ export class PrismaPostRepository implements IPostRepository {
       authorId: comment.authorId,
       body: comment.content,
       createdAt: comment.createdAt,
-      author: mapUserToSummary({ ...comment.author, interests: [] } as never),
+      author: mapUserToSummary({ ...comment.author, interests: [] }),
     };
   }
 }

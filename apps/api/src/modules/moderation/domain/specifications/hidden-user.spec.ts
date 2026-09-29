@@ -23,9 +23,9 @@ describe('VisibleAuthorSpec', () => {
 describe('PartiesNotBlockedSpec', () => {
   it('rejects requests involving a hidden user', () => {
     const spec = new PartiesNotBlockedSpec(new Set(['blocked-1']));
-    expect(
-      spec.isSatisfiedBy({ senderId: 'me', recipientId: 'friend' }),
-    ).toBe(true);
+    expect(spec.isSatisfiedBy({ senderId: 'me', recipientId: 'friend' })).toBe(
+      true,
+    );
     expect(
       spec.isSatisfiedBy({ senderId: 'blocked-1', recipientId: 'me' }),
     ).toBe(false);

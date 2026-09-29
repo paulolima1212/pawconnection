@@ -42,7 +42,7 @@ export class PrismaCommentRepository implements ICommentRepository {
   ) {}
 
   private mapAuthor(author: CommentRow['author']): UserSummary {
-    const summary = mapUserToSummary({ ...author, interests: [] } as never);
+    const summary = mapUserToSummary({ ...author, interests: [] });
     return {
       ...summary,
       photoUrl: this.supabase.normalizePublicUrl(summary.photoUrl),
@@ -155,7 +155,9 @@ export class PrismaCommentRepository implements ICommentRepository {
     return depth;
   }
 
-  private orderByOf(order: CommentOrder): Prisma.CommentOrderByWithRelationInput[] {
+  private orderByOf(
+    order: CommentOrder,
+  ): Prisma.CommentOrderByWithRelationInput[] {
     const dir: Prisma.SortOrder = order === 'newest' ? 'desc' : 'asc';
     return [{ createdAt: dir }, { id: dir }];
   }
@@ -173,18 +175,19 @@ export class PrismaCommentRepository implements ICommentRepository {
       },
       orderBy: this.orderByOf(options.order),
       take,
-      ...(options.cursor
-        ? { cursor: { id: options.cursor }, skip: 1 }
-        : {}),
+      ...(options.cursor ? { cursor: { id: options.cursor }, skip: 1 } : {}),
     });
 
     const hasMore = rows.length > options.limit;
     const items = rows.slice(0, options.limit).map((r) => this.toReadModel(r));
-    const nextCursor = hasMore ? items[items.length - 1]?.id ?? null : null;
+    const nextCursor = hasMore ? (items[items.length - 1]?.id ?? null) : null;
     return { items, nextCursor };
   }
 
-  listTopLevel(postId: string, options: ListCommentsOptions): Promise<CommentPage> {
+  listTopLevel(
+    postId: string,
+    options: ListCommentsOptions,
+  ): Promise<CommentPage> {
     return this.listPage(
       { postId, parentCommentId: null, status: { in: LISTABLE_STATUSES } },
       options,

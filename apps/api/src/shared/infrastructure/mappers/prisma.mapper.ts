@@ -17,9 +17,7 @@ import {
   AppTemperament,
   AppVaccinated,
   ConnectionRequestEntity,
-  ConnectionTypeValue,
   PetProfile,
-  RequestStatusValue,
   UserEntity,
   UserSummary,
 } from '../../domain/types';
@@ -55,18 +53,23 @@ const connectionIntentToApp: Record<ConnectionIntent, AppConnectionIntent> = {
   MeetPeople: AppConnectionIntent.MeetPeople,
 };
 
-const connectionIntentToPrisma: Record<AppConnectionIntent, ConnectionIntent> = {
-  [AppConnectionIntent.Friendship]: ConnectionIntent.Friendship,
-  [AppConnectionIntent.Relationship]: ConnectionIntent.Relationship,
-  [AppConnectionIntent.CasualDating]: ConnectionIntent.CasualDating,
-  [AppConnectionIntent.MeetPeople]: ConnectionIntent.MeetPeople,
-};
+const connectionIntentToPrisma: Record<AppConnectionIntent, ConnectionIntent> =
+  {
+    [AppConnectionIntent.Friendship]: ConnectionIntent.Friendship,
+    [AppConnectionIntent.Relationship]: ConnectionIntent.Relationship,
+    [AppConnectionIntent.CasualDating]: ConnectionIntent.CasualDating,
+    [AppConnectionIntent.MeetPeople]: ConnectionIntent.MeetPeople,
+  };
 
-export function mapConnectionIntentToApp(intent: ConnectionIntent): AppConnectionIntent {
+export function mapConnectionIntentToApp(
+  intent: ConnectionIntent,
+): AppConnectionIntent {
   return connectionIntentToApp[intent];
 }
 
-export function mapConnectionIntentToPrisma(intent: AppConnectionIntent): ConnectionIntent {
+export function mapConnectionIntentToPrisma(
+  intent: AppConnectionIntent,
+): ConnectionIntent {
   return connectionIntentToPrisma[intent];
 }
 
@@ -75,7 +78,7 @@ export function mapGenderToApp(gender: Gender): AppGender {
 }
 
 export function mapGenderToPrisma(gender: AppGender): Gender {
-  return gender as Gender;
+  return gender;
 }
 
 export function mapTemperamentToApp(t: Temperament): AppTemperament {
@@ -83,14 +86,16 @@ export function mapTemperamentToApp(t: Temperament): AppTemperament {
 }
 
 export function mapTemperamentToPrisma(t: AppTemperament): Temperament {
-  return t as Temperament;
+  return t;
 }
 
 export function mapTemperamentsToApp(values: Temperament[]): AppTemperament[] {
   return values.map(mapTemperamentToApp);
 }
 
-export function mapTemperamentsToPrisma(values: AppTemperament[]): Temperament[] {
+export function mapTemperamentsToPrisma(
+  values: AppTemperament[],
+): Temperament[] {
   return values.map(mapTemperamentToPrisma);
 }
 
@@ -99,7 +104,7 @@ export function mapVaccinatedToApp(v: Vaccinated): AppVaccinated {
 }
 
 export function mapVaccinatedToPrisma(v: AppVaccinated): Vaccinated {
-  return v as Vaccinated;
+  return v;
 }
 
 export function mapDesexedToApp(v: Desexed): AppDesexed {
@@ -107,7 +112,7 @@ export function mapDesexedToApp(v: Desexed): AppDesexed {
 }
 
 export function mapDesexedToPrisma(v: AppDesexed): Desexed {
-  return v as Desexed;
+  return v;
 }
 
 export function resolveGalleryUrls(
@@ -135,6 +140,7 @@ export function mapPetToDomain(
     photoUrl: photoUrls[0] ?? pet.photoUrl,
     photoUrls,
     temperament: mapTemperamentsToApp(pet.temperament),
+    customTemperament: pet.customTemperament,
     vaccinated: mapVaccinatedToApp(pet.vaccinated),
     desexed: mapDesexedToApp(pet.desexed),
     gender: mapGenderToApp(pet.gender),
@@ -162,6 +168,9 @@ export function mapUserToDomain(user: UserWithRelations): UserEntity {
     fullName: user.fullName,
     handle: user.handle,
     age: user.age,
+    birthDate: user.birthDate
+      ? user.birthDate.toISOString().slice(0, 10)
+      : null,
     gender: mapGenderToApp(user.gender),
     location: user.location,
     latitude: user.latitude,
@@ -209,8 +218,8 @@ export function mapConnectionRequestToDomain(
     id: request.id,
     senderId: request.senderId,
     recipientId: request.recipientId,
-    type: request.type as ConnectionTypeValue,
-    status: request.status as RequestStatusValue,
+    type: request.type,
+    status: request.status,
     createdAt: request.createdAt,
     updatedAt: request.updatedAt,
     sender: request.sender ? mapUserToSummary(request.sender) : undefined,

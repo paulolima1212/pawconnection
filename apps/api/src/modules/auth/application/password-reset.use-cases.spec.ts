@@ -63,7 +63,10 @@ class InMemoryUsers implements IUserRepository {
   async completeOnboarding(): Promise<UserEntity> {
     throw new Error('not used');
   }
-  async updatePasswordHash(userId: string, passwordHash: string): Promise<void> {
+  async updatePasswordHash(
+    userId: string,
+    passwordHash: string,
+  ): Promise<void> {
     const user = this.byId.get(userId);
     if (user) user.passwordHash = passwordHash;
   }
@@ -108,7 +111,9 @@ class InMemoryResetTokens implements IPasswordResetTokenRepository {
         item.usedAt === null &&
         item.expiresAt.getTime() > Date.now(),
     );
-    return row ? { id: row.id, userId: row.userId, expiresAt: row.expiresAt } : null;
+    return row
+      ? { id: row.id, userId: row.userId, expiresAt: row.expiresAt }
+      : null;
   }
 
   async markUsed(id: string): Promise<void> {
@@ -118,8 +123,12 @@ class InMemoryResetTokens implements IPasswordResetTokenRepository {
 }
 
 class FakeEmail implements IEmailSender {
-  readonly sent: Array<{ to: string; subject: string; text: string; html?: string }> =
-    [];
+  readonly sent: Array<{
+    to: string;
+    subject: string;
+    text: string;
+    html?: string;
+  }> = [];
   failWith: Error | null = null;
 
   async send(message: {
@@ -242,14 +251,39 @@ describe('ResetPasswordUseCase', () => {
     });
     const useCase = new ResetPasswordUseCase(users, tokens);
 
-    const result = await useCase.execute({ token: raw, password: 'newpassword' });
+    const result = await useCase.execute({
+      token: raw,
+      password: 'Newpassword1!',
+    });
 
     expect(result.message).toContain('Password updated');
     expect(tokens.rows).toHaveLength(0);
     const updated = await users.findById(user.id);
     expect(updated?.passwordHash).not.toBe('old-hash');
-    expect(await bcrypt.compare('newpassword', updated?.passwordHash ?? '')).toBe(
-      true,
-    );
+    expect(
+      await bcrypt.compare('Newpassword1!', updated?.passwordHash ?? ''),
+    ).toBe(true);
+  });
+
+  it('rejects a password that misses a special character', async () => {
+    const users = new InMemoryUsers();
+    const tokens = new InMemoryResetTokens();
+    const user = await users.create({
+      email: 'owner@paw.test',
+      passwordHash: 'old-hash',
+      fullName: 'Owner',
+      handle: 'owner',
+    });
+    const raw = 'b'.repeat(64);
+    await tokens.create({
+      userId: user.id,
+      tokenHash: hashPasswordResetToken(raw),
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    const useCase = new ResetPasswordUseCase(users, tokens);
+
+    await expect(
+      useCase.execute({ token: raw, password: 'Newpassword1' }),
+    ).rejects.toThrow(ValidationError);
   });
 });

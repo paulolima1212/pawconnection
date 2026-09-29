@@ -1,14 +1,27 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { ForbiddenError, NotFoundError, ValidationError } from '../../../shared/domain/result';
+import {
+  ForbiddenError,
+  NotFoundError,
+  ValidationError,
+} from '../../../shared/domain/result';
 import { EVENT_BUS, IEventBus } from '../../../shared/events/event-bus';
 import { EventMetadata } from '../../../shared/events/domain-event';
 import { Conversation } from '../domain/entities/conversation.entity';
 import { Message } from '../domain/entities/message.entity';
 import { MessageReadEvent } from '../domain/events/chat-events';
-import { isConversationParticipant, otherParticipantId } from '../domain/participant-pair';
+import {
+  isConversationParticipant,
+  otherParticipantId,
+} from '../domain/participant-pair';
 import { CHAT_POLICY, IChatPolicy } from '../domain/ports/chat-policy.port';
-import { CHAT_USER_READER, IChatUserReader } from '../domain/ports/user-reader.port';
-import { CHAT_BLOCK_READER, IChatBlockReader } from '../domain/ports/block-reader.port';
+import {
+  CHAT_USER_READER,
+  IChatUserReader,
+} from '../domain/ports/user-reader.port';
+import {
+  CHAT_BLOCK_READER,
+  IChatBlockReader,
+} from '../domain/ports/block-reader.port';
 import {
   CHAT_REPOSITORY,
   IChatRepository,
@@ -29,10 +42,17 @@ export interface ChatRequestContext {
 }
 
 function metaOf(ctx: ChatRequestContext): EventMetadata {
-  return { correlationId: ctx.correlationId, userId: ctx.userId, source: 'chat' };
+  return {
+    correlationId: ctx.correlationId,
+    userId: ctx.userId,
+    source: 'chat',
+  };
 }
 
-async function flushEvents(bus: IEventBus, entity: Conversation | Message): Promise<void> {
+async function flushEvents(
+  bus: IEventBus,
+  entity: Conversation | Message,
+): Promise<void> {
   const events = entity.pullEvents();
   if (events.length) await bus.publishAll(events);
 }
@@ -119,16 +139,24 @@ export class GetConversationUseCase {
     const list = await this.repo.listConversationsForUser(ctx.userId, 100);
     const found = list.find((c) => c.id === conversationId);
     if (!found) throw new NotFoundError('Conversation not found');
-    const theyBlockedMe = await this.blocks.isBlockedBy(found.otherUser.id, ctx.userId);
+    const theyBlockedMe = await this.blocks.isBlockedBy(
+      found.otherUser.id,
+      ctx.userId,
+    );
     if (theyBlockedMe) throw new NotFoundError('Conversation not found');
-    const blockedByMe = await this.blocks.isBlockedBy(ctx.userId, found.otherUser.id);
+    const blockedByMe = await this.blocks.isBlockedBy(
+      ctx.userId,
+      found.otherUser.id,
+    );
     return toConversationResponse(found, blockedByMe);
   }
 }
 
 @Injectable()
 export class ListMessagesUseCase {
-  constructor(@Inject(CHAT_REPOSITORY) private readonly repo: IChatRepository) {}
+  constructor(
+    @Inject(CHAT_REPOSITORY) private readonly repo: IChatRepository,
+  ) {}
 
   async execute(
     conversationId: string,
@@ -138,10 +166,16 @@ export class ListMessagesUseCase {
     const conversation = await this.repo.findConversationById(conversationId);
     if (!conversation) throw new NotFoundError('Conversation not found');
     if (!isConversationParticipant(conversation.toState(), ctx.userId)) {
-      throw new ForbiddenError('You are not a participant in this conversation');
+      throw new ForbiddenError(
+        'You are not a participant in this conversation',
+      );
     }
 
-    const page = await this.repo.listMessages(conversationId, ctx.userId, options);
+    const page = await this.repo.listMessages(
+      conversationId,
+      ctx.userId,
+      options,
+    );
     return {
       items: page.items.map(toMessageResponse),
       nextCursor: page.nextCursor,
@@ -169,11 +203,15 @@ export class SendMessageUseCase {
     },
     ctx: ChatRequestContext,
   ): Promise<MessageResponseDto> {
-    const conversation = await this.repo.findConversationById(input.conversationId);
+    const conversation = await this.repo.findConversationById(
+      input.conversationId,
+    );
     if (!conversation) throw new NotFoundError('Conversation not found');
     const state = conversation.toState();
     if (!isConversationParticipant(state, ctx.userId)) {
-      throw new ForbiddenError('You are not a participant in this conversation');
+      throw new ForbiddenError(
+        'You are not a participant in this conversation',
+      );
     }
 
     const recipientId = otherParticipantId(state, ctx.userId);
@@ -182,7 +220,9 @@ export class SendMessageUseCase {
     if (input.replyToMessageId) {
       const parent = await this.repo.findMessageById(input.replyToMessageId);
       if (!parent || parent.conversationId !== input.conversationId) {
-        throw new ValidationError('Reply target must belong to this conversation');
+        throw new ValidationError(
+          'Reply target must belong to this conversation',
+        );
       }
     }
 
@@ -192,9 +232,13 @@ export class SendMessageUseCase {
         input.clientMessageId,
       );
       if (dup) {
-        const page = await this.repo.listMessages(input.conversationId, ctx.userId, {
-          limit: 1,
-        });
+        const page = await this.repo.listMessages(
+          input.conversationId,
+          ctx.userId,
+          {
+            limit: 1,
+          },
+        );
         const hit = page.items.find((m) => m.id === dup.id);
         if (hit) return toMessageResponse(hit);
       }
@@ -226,7 +270,10 @@ export class SendMessageUseCase {
       correlationId: ctx.correlationId,
     });
 
-    const saved = await this.repo.findMessageReadModelById(message.id, ctx.userId);
+    const saved = await this.repo.findMessageReadModelById(
+      message.id,
+      ctx.userId,
+    );
     if (!saved) throw new NotFoundError('Message could not be loaded');
     return toMessageResponse(saved);
   }
@@ -252,17 +299,31 @@ export class ToggleMessageReactionUseCase {
     const message = await this.repo.findMessageById(messageId);
     if (!message) throw new NotFoundError('Message not found');
 
-    const conversation = await this.repo.findConversationById(message.conversationId);
-    if (!conversation || !isConversationParticipant(conversation.toState(), ctx.userId)) {
-      throw new ForbiddenError('You are not a participant in this conversation');
+    const conversation = await this.repo.findConversationById(
+      message.conversationId,
+    );
+    if (
+      !conversation ||
+      !isConversationParticipant(conversation.toState(), ctx.userId)
+    ) {
+      throw new ForbiddenError(
+        'You are not a participant in this conversation',
+      );
     }
 
-    const before = await this.repo.findMessageReadModelById(messageId, ctx.userId);
+    const before = await this.repo.findMessageReadModelById(
+      messageId,
+      ctx.userId,
+    );
     const priorEmoji = before?.reactions.find((reaction) =>
       reaction.userIds.includes(ctx.userId),
     )?.emoji;
 
-    const updated = await this.repo.toggleMessageReaction(messageId, ctx.userId, emoji);
+    const updated = await this.repo.toggleMessageReaction(
+      messageId,
+      ctx.userId,
+      emoji,
+    );
     if (!updated) throw new NotFoundError('Message could not be loaded');
 
     let reactionChange: 'added' | 'removed' | 'changed';
@@ -311,16 +372,27 @@ export class EditMessageUseCase {
     const message = await this.repo.findMessageById(messageId);
     if (!message) throw new NotFoundError('Message not found');
 
-    const conversation = await this.repo.findConversationById(message.conversationId);
-    if (!conversation || !isConversationParticipant(conversation.toState(), ctx.userId)) {
-      throw new ForbiddenError('You are not a participant in this conversation');
+    const conversation = await this.repo.findConversationById(
+      message.conversationId,
+    );
+    if (
+      !conversation ||
+      !isConversationParticipant(conversation.toState(), ctx.userId)
+    ) {
+      throw new ForbiddenError(
+        'You are not a participant in this conversation',
+      );
     }
 
     message.edit(content, ctx.userId, metaOf(ctx));
     await this.repo.saveMessage(message);
     await flushEvents(this.bus, message);
 
-    const page = await this.repo.listMessages(message.conversationId, ctx.userId, { limit: 50 });
+    const page = await this.repo.listMessages(
+      message.conversationId,
+      ctx.userId,
+      { limit: 50 },
+    );
     const updated = page.items.find((m) => m.id === messageId);
     if (!updated) throw new NotFoundError('Message could not be loaded');
     return toMessageResponse(updated);
@@ -334,20 +406,34 @@ export class DeleteMessageUseCase {
     @Inject(EVENT_BUS) private readonly bus: IEventBus,
   ) {}
 
-  async execute(messageId: string, ctx: ChatRequestContext): Promise<MessageResponseDto> {
+  async execute(
+    messageId: string,
+    ctx: ChatRequestContext,
+  ): Promise<MessageResponseDto> {
     const message = await this.repo.findMessageById(messageId);
     if (!message) throw new NotFoundError('Message not found');
 
-    const conversation = await this.repo.findConversationById(message.conversationId);
-    if (!conversation || !isConversationParticipant(conversation.toState(), ctx.userId)) {
-      throw new ForbiddenError('You are not a participant in this conversation');
+    const conversation = await this.repo.findConversationById(
+      message.conversationId,
+    );
+    if (
+      !conversation ||
+      !isConversationParticipant(conversation.toState(), ctx.userId)
+    ) {
+      throw new ForbiddenError(
+        'You are not a participant in this conversation',
+      );
     }
 
     message.softDelete(ctx.userId, metaOf(ctx));
     await this.repo.saveMessage(message);
     await flushEvents(this.bus, message);
 
-    const page = await this.repo.listMessages(message.conversationId, ctx.userId, { limit: 50 });
+    const page = await this.repo.listMessages(
+      message.conversationId,
+      ctx.userId,
+      { limit: 50 },
+    );
     const updated = page.items.find((m) => m.id === messageId);
     if (!updated) throw new NotFoundError('Message could not be loaded');
     return toMessageResponse(updated);
@@ -361,11 +447,16 @@ export class MarkConversationReadUseCase {
     @Inject(EVENT_BUS) private readonly bus: IEventBus,
   ) {}
 
-  async execute(conversationId: string, ctx: ChatRequestContext): Promise<{ marked: number }> {
+  async execute(
+    conversationId: string,
+    ctx: ChatRequestContext,
+  ): Promise<{ marked: number }> {
     const conversation = await this.repo.findConversationById(conversationId);
     if (!conversation) throw new NotFoundError('Conversation not found');
     if (!isConversationParticipant(conversation.toState(), ctx.userId)) {
-      throw new ForbiddenError('You are not a participant in this conversation');
+      throw new ForbiddenError(
+        'You are not a participant in this conversation',
+      );
     }
 
     const ids = await this.repo.markMessagesRead(conversationId, ctx.userId);

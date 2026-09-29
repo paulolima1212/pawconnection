@@ -1,5 +1,8 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { DomainEvent, serializeEvent } from '../../../../shared/events/domain-event';
+import {
+  DomainEvent,
+  serializeEvent,
+} from '../../../../shared/events/domain-event';
 import { IEventHandler } from '../../../../shared/events/event-bus';
 import { toMessageResponse } from '../../application/chat.mapper';
 import { CHAT_EVENTS } from '../../domain/events/chat-events';
@@ -59,20 +62,27 @@ export class ChatRealtimeBroadcastHandler implements IEventHandler {
       case CHAT_EVENTS.MESSAGE_UPDATED: {
         const messageId = payload.messageId as string;
         const conversationId = payload.conversationId as string;
-        const conversation = await this.repo.findConversationById(conversationId);
+        const conversation =
+          await this.repo.findConversationById(conversationId);
         if (!conversation) break;
         const state = conversation.toState();
         const participants = [state.participantOneId, state.participantTwoId];
         const activity = {
           kind: 'reaction' as const,
-          reactionChange: payload.reactionChange as 'added' | 'removed' | 'changed',
+          reactionChange: payload.reactionChange as
+            | 'added'
+            | 'removed'
+            | 'changed',
           actorUserId: payload.actorUserId as string,
           actorName: payload.actorName as string,
           messageOwnerId: payload.messageOwnerId as string,
           emoji: payload.emoji as string,
         };
         for (const userId of participants) {
-          const model = await this.repo.findMessageReadModelById(messageId, userId);
+          const model = await this.repo.findMessageReadModelById(
+            messageId,
+            userId,
+          );
           if (!model) continue;
           this.realtime.emitToUser(userId, {
             type: 'message_updated',

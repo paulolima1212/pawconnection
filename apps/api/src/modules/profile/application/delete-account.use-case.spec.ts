@@ -148,7 +148,9 @@ describe('DeleteAccountUseCase', () => {
     const { bus } = makeBus();
     const useCase = new DeleteAccountUseCase(repo, cleaner, bus);
 
-    await expect(useCase.execute('missing')).rejects.toBeInstanceOf(NotFoundError);
+    await expect(useCase.execute('missing')).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
     expect(cleaner.removed).toEqual([]);
   });
 

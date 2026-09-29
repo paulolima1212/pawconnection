@@ -10,6 +10,7 @@ datasource db {
 enum Gender {
   Male
   Female
+  Other
 }
 
 enum Temperament {
@@ -19,16 +20,19 @@ enum Temperament {
   Energetic
   Shy
   Friendly
+  Custom
 }
 
 enum Vaccinated {
   Yes
   No
+  PreferNotToSay
 }
 
 enum Desexed {
   Yes
   No
+  PreferNotToSay
 }
 
 enum Interest {
@@ -109,6 +113,8 @@ model User {
   fullName           String
   handle             String   @unique
   age                Int?
+  /// Calendar date of birth (UTC date). Age is derived from this when set.
+  birthDate          DateTime?
   gender             Gender   @default(Male)
   location           String?
   latitude           Float?
@@ -201,6 +207,8 @@ model Pet {
   bio             String?
   photoUrl        String?
   temperament     Temperament[] @default([Happy])
+  /// Free text used when temperament includes Custom. Predefined values stay on temperament.
+  customTemperament String?
   vaccinated      Vaccinated  @default(Yes)
   desexed         Desexed     @default(No)
   gender          Gender      @default(Male)

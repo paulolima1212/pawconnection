@@ -1,7 +1,9 @@
 import { CompositeSpecification } from '../../../../shared/domain/specification';
 
 /** True when the candidate id is not in the viewer's hidden (blocked) set. */
-export class VisibleToViewerSpec extends CompositeSpecification<{ id: string }> {
+export class VisibleToViewerSpec extends CompositeSpecification<{
+  id: string;
+}> {
   constructor(private readonly hiddenUserIds: ReadonlySet<string>) {
     super();
   }
@@ -11,7 +13,9 @@ export class VisibleToViewerSpec extends CompositeSpecification<{ id: string }> 
   }
 }
 
-export class VisibleAuthorSpec extends CompositeSpecification<{ authorId: string }> {
+export class VisibleAuthorSpec extends CompositeSpecification<{
+  authorId: string;
+}> {
   constructor(private readonly hiddenUserIds: ReadonlySet<string>) {
     super();
   }

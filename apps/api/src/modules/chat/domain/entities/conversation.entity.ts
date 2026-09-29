@@ -45,7 +45,11 @@ export class Conversation {
     return this.state.updatedAt;
   }
 
-  static create(participantA: string, participantB: string, metadata: EventMetadata): Conversation {
+  static create(
+    participantA: string,
+    participantB: string,
+    metadata: EventMetadata,
+  ): Conversation {
     const pair = canonicalParticipantPair(participantA, participantB);
     const now = new Date();
     const conversation = new Conversation({
@@ -89,10 +93,14 @@ export class Conversation {
   }
 
   pullEvents(): import('../../../../shared/events/domain-event').DomainEvent[] {
-    return this._events.splice(0) as import('../../../../shared/events/domain-event').DomainEvent[];
+    return this._events.splice(
+      0,
+    ) as import('../../../../shared/events/domain-event').DomainEvent[];
   }
 
-  private record(event: import('../../../../shared/events/domain-event').DomainEvent): void {
+  private record(
+    event: import('../../../../shared/events/domain-event').DomainEvent,
+  ): void {
     this._events.push(event);
   }
 }

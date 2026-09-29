@@ -8,7 +8,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { IsArray, IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
+import {
+  IsArray,
+  IsOptional,
+  IsString,
+  IsUrl,
+  MaxLength,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/presentation/jwt-auth.guard';
 import {
@@ -59,13 +65,25 @@ export class FeedController {
 
   @Get('posts')
   @ApiQuery({ name: 'radiusKm', required: false, type: Number })
-  @ApiQuery({ name: 'scope', required: false, enum: ['all', 'friends', 'mine'] })
+  @ApiQuery({
+    name: 'scope',
+    required: false,
+    enum: ['all', 'friends', 'mine'],
+  })
   @ApiQuery({ name: 'q', required: false, description: 'Post body text' })
   @ApiQuery({ name: 'city', required: false })
   @ApiQuery({ name: 'author', required: false })
-  @ApiQuery({ name: 'petGender', required: false, enum: ['Male', 'Female'] })
+  @ApiQuery({
+    name: 'petGender',
+    required: false,
+    enum: ['Male', 'Female', 'Other'],
+  })
   @ApiQuery({ name: 'petAge', required: false, type: Number })
-  @ApiQuery({ name: 'petSize', required: false, enum: ['small', 'medium', 'large'] })
+  @ApiQuery({
+    name: 'petSize',
+    required: false,
+    enum: ['small', 'medium', 'large'],
+  })
   posts(
     @CurrentUser() user: AuthUserPayload,
     @Query('radiusKm') radiusKm?: string,
@@ -77,7 +95,8 @@ export class FeedController {
     @Query('petAge') petAge?: string,
     @Query('petSize') petSize?: 'small' | 'medium' | 'large',
   ) {
-    const parsedAge = petAge != null && petAge !== '' ? Number(petAge) : undefined;
+    const parsedAge =
+      petAge != null && petAge !== '' ? Number(petAge) : undefined;
     return this.listPosts.execute(user.userId, {
       radiusKm: radiusKm ? Number(radiusKm) : undefined,
       scope,
@@ -85,7 +104,8 @@ export class FeedController {
       city,
       author,
       petGender,
-      petAge: parsedAge != null && !Number.isNaN(parsedAge) ? parsedAge : undefined,
+      petAge:
+        parsedAge != null && !Number.isNaN(parsedAge) ? parsedAge : undefined,
       petSize: petSize,
     });
   }

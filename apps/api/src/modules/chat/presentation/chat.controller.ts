@@ -38,7 +38,10 @@ import {
   UpdateMessageDto,
 } from './chat.dto';
 
-function ctx(user: AuthUserPayload, correlationId?: string): ChatRequestContext {
+function ctx(
+  user: AuthUserPayload,
+  correlationId?: string,
+): ChatRequestContext {
   return { userId: user.userId, correlationId };
 }
 
@@ -92,7 +95,10 @@ export class ChatController {
   @Get('conversations')
   @SkipThrottle()
   @ApiOperation({ summary: 'List conversations for current user' })
-  list(@CurrentUser() user: AuthUserPayload, @CorrelationId() correlationId: string) {
+  list(
+    @CurrentUser() user: AuthUserPayload,
+    @CorrelationId() correlationId: string,
+  ) {
     return this.listConversations.execute(ctx(user, correlationId));
   }
 
@@ -104,7 +110,10 @@ export class ChatController {
     @CorrelationId() correlationId: string,
     @Param('conversationId') conversationId: string,
   ) {
-    return this.getConversation.execute(conversationId, ctx(user, correlationId));
+    return this.getConversation.execute(
+      conversationId,
+      ctx(user, correlationId),
+    );
   }
 
   @Get('conversations/:conversationId/messages')
@@ -154,7 +163,11 @@ export class ChatController {
     @Param('messageId') messageId: string,
     @Body() dto: ToggleMessageReactionDto,
   ) {
-    return this.toggleReaction.execute(messageId, dto.emoji, ctx(user, correlationId));
+    return this.toggleReaction.execute(
+      messageId,
+      dto.emoji,
+      ctx(user, correlationId),
+    );
   }
 
   @Post('conversations/:conversationId/read')
@@ -178,7 +191,11 @@ export class ChatController {
     @Param('messageId') messageId: string,
     @Body() dto: UpdateMessageDto,
   ) {
-    return this.editMessage.execute(messageId, dto.content, ctx(user, correlationId));
+    return this.editMessage.execute(
+      messageId,
+      dto.content,
+      ctx(user, correlationId),
+    );
   }
 
   @Delete('messages/:messageId')

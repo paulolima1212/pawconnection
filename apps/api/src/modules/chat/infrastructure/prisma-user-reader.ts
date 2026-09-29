@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
 import { SupabaseService } from '../../../shared/infrastructure/supabase/supabase.service';
-import { IChatUserReader, ChatUserSnapshot } from '../domain/ports/user-reader.port';
+import {
+  IChatUserReader,
+  ChatUserSnapshot,
+} from '../domain/ports/user-reader.port';
 
 @Injectable()
 export class PrismaChatUserReader implements IChatUserReader {

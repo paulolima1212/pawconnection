@@ -113,7 +113,10 @@ export class CommentController {
     @CorrelationId() correlationId: string,
     @Param('commentId') commentId: string,
   ) {
-    return this.deleteComment.execute({ commentId }, this.ctx(user, correlationId));
+    return this.deleteComment.execute(
+      { commentId },
+      this.ctx(user, correlationId),
+    );
   }
 
   @Get('posts/:postId/comments')

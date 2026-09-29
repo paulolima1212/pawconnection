@@ -100,7 +100,9 @@ export class ListDogFriendlyPlacesUseCase {
     const candidates = hits.filter((hit) => {
       if (seen.has(hit.id)) return false;
       seen.add(hit.id);
-      return matchesIncludedTypes(hit, includedTypes) && isDogFriendlyPlace(hit);
+      return (
+        matchesIncludedTypes(hit, includedTypes) && isDogFriendlyPlace(hit)
+      );
     });
 
     const ranked = rankDogFriendlyPlaces(

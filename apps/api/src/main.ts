@@ -16,7 +16,8 @@ function isLocalDevOrigin(origin: string): boolean {
     if (hostname === 'localhost' || hostname === '127.0.0.1') return true;
     if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
     if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
-    if (/^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+    if (/^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname))
+      return true;
     const tailscale = /^100\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/.exec(hostname);
     if (tailscale) {
       const second = Number(tailscale[1]);
@@ -31,7 +32,10 @@ function isLocalDevOrigin(origin: string): boolean {
 function parseCorsOrigins():
   | boolean
   | string[]
-  | ((origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => void) {
+  | ((
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => void) {
   const raw = process.env.CORS_ORIGINS?.trim();
   if (!raw) return true;
 
@@ -85,7 +89,8 @@ async function bootstrap() {
   app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads/' });
 
   const publicApiUrl =
-    process.env.PUBLIC_API_URL ?? `http://localhost:${process.env.PORT ?? 3001}`;
+    process.env.PUBLIC_API_URL ??
+    `http://localhost:${process.env.PORT ?? 3001}`;
 
   if (!isProduction) {
     const config = new DocumentBuilder()
