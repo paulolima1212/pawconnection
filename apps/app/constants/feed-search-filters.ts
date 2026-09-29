@@ -22,6 +22,7 @@ export const FEED_PET_GENDER_FILTER_OPTIONS = [
   { value: '' as const, label: 'Any gender' },
   { value: 'Male' as const, label: 'Male' },
   { value: 'Female' as const, label: 'Female' },
+  { value: 'Other' as const, label: 'Other' },
 ];
 
 export const FEED_PET_SIZE_FILTER_OPTIONS = [

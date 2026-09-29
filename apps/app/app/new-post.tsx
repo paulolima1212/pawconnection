@@ -47,9 +47,8 @@ export default function NewPostScreen() {
   const [pickingPhotos, setPickingPhotos] = useState(false);
   const pickingRef = useRef(false);
 
-  const dogName = draft.dogName.trim() || 'Pluto';
-  const humanFirst =
-    draft.fullName.trim().split(/\s+/)[0] || draft.fullName.trim() || 'Jefferson';
+  const dogName = draft.dogName.trim() || 'Your dog';
+  const humanFirst = draft.fullName.trim().split(/\s+/)[0] || draft.fullName.trim() || 'you';
   const dogPhoto = useMemo(
     () => resolveMediaDisplayUrl(draft.dogPhotoUri) ?? IMG_DOG_FALLBACK,
     [draft.dogPhotoUri],

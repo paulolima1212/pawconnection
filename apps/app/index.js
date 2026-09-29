@@ -4,7 +4,7 @@ import 'react-native-reanimated';
 import * as SplashScreen from 'expo-splash-screen';
 import 'expo-router/entry';
 
-/** Safety net if root layout never mounts (e.g. slow bootstrap). */
+/** Safety net if the intro never hides the native splash. */
 setTimeout(() => {
   void SplashScreen.hideAsync().catch(() => {});
-}, 4_000);
+}, 15_000);

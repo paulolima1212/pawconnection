@@ -10,6 +10,13 @@ export function updateMyMapLocation(latitude: number, longitude: number) {
   });
 }
 
+export async function searchLocalities(query: string): Promise<string[]> {
+  const result = await apiRequest<{ suggestions: string[] }>(
+    `/map/localities?q=${encodeURIComponent(query)}`,
+  );
+  return result.suggestions ?? [];
+}
+
 export function listMapUsers() {
   return apiRequest<MapUserPinApi[]>('/map/users');
 }

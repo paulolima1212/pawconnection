@@ -5,10 +5,14 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BirthdayField } from '@/components/paw/birthday-field';
 import { FieldInput } from '@/components/paw/field-input';
+import { PasswordField } from '@/components/paw/password-field';
+import { PasswordRequirements } from '@/components/paw/password-requirements';
 import { KeyboardAwareFormScroll } from '@/components/paw/keyboard-aware-form-scroll';
 import { GenderSelector } from '@/components/paw/gender-selector';
 import { PawLogo } from '@/components/paw/paw-logo';
+import { LocationAutocomplete } from '@/components/paw/location-autocomplete';
 import { ProfilePhotoSlot } from '@/components/paw/profile-photo-slot';
 import { FIGMA_SETUP_YOU } from '@/constants/paw-figma-assets';
 import { PawColors, PawFontSize, PawLayout } from '@/constants/paw-styles';
@@ -17,6 +21,8 @@ import { useProfileOnboarding } from '@/context/profile-onboarding';
 import { ApiError } from '@/lib/api/client';
 import { getApiBaseUrl } from '@/lib/api/config';
 import { isValidHandle, sanitizeHandleInput } from '@/lib/handle';
+import { confirmPasswordMessage, isPasswordValid, passwordsMatch } from '@/lib/password-policy';
+import { ageFromBirthdayIso } from '@/lib/pet-birthday';
 
 export default function SetupYouScreen() {
   const insets = useSafeAreaInsets();
@@ -24,13 +30,16 @@ export default function SetupYouScreen() {
   const { draft, setDraft, registerAndSyncOwner, syncPetToApi } = useProfileOnboarding();
   const { showTooltip } = usePawTooltip();
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [saving, setSaving] = useState(false);
+  const passwordConfirmation = confirmPasswordMessage(password, confirmPassword);
 
   const canComplete =
     draft.fullName.trim().length > 0 &&
     draft.email.trim().length > 0 &&
     isValidHandle(draft.handle) &&
-    password.length >= 6;
+    isPasswordValid(password) &&
+    passwordsMatch(password, confirmPassword);
 
   const onBack = () => {
     if (router.canGoBack()) router.back();
@@ -124,30 +133,51 @@ export default function SetupYouScreen() {
             />
           </LabeledBlock>
           <LabeledBlock label="Password">
-            <FieldInput
-              placeholder="Create a password (min 6 characters)"
+            <PasswordField
+              purpose="new"
+              tone="gray"
+              placeholder="Create a password"
               value={password}
               onChangeText={setPassword}
-              secureTextEntry
             />
+            <PasswordRequirements password={password} />
           </LabeledBlock>
-          <LabeledBlock label="Age">
-            <FieldInput
-              placeholder="Age"
-              value={draft.age}
-              onChangeText={(t) => setDraft({ age: t })}
-              keyboardType="number-pad"
+          <LabeledBlock label="Confirm password">
+            <PasswordField
+              purpose="new"
+              tone="gray"
+              placeholder="Confirm your password"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+            />
+            {passwordConfirmation ? (
+              <Text style={styles.passwordMismatch}>{passwordConfirmation}</Text>
+            ) : null}
+          </LabeledBlock>
+          <LabeledBlock label="Date of birth">
+            <BirthdayField
+              kind="owner"
+              value={draft.ownerBirthDate}
+              onChangeIso={(iso) =>
+                setDraft({
+                  ownerBirthDate: iso,
+                  age: iso ? String(ageFromBirthdayIso(iso) ?? '') : '',
+                })
+              }
             />
           </LabeledBlock>
           <LabeledBlock label="Gender">
             <GenderSelector value={draft.humanGender} onChange={(v) => setDraft({ humanGender: v })} />
           </LabeledBlock>
-          <LabeledBlock label="Location">
-            <FieldInput
-              placeholder="Enter your suburb"
+          <LabeledBlock label="City or neighborhood">
+            <LocationAutocomplete
               value={draft.location}
               onChangeText={(t) => setDraft({ location: t })}
             />
+            <Text style={styles.thinHint}>
+              Type only the city or neighborhood. Suggestions fill in the rest, for example Santa
+              Catarina, São Gonçalo - RJ - Brasil.
+            </Text>
           </LabeledBlock>
           <View style={styles.bioBlock}>
             <Text style={styles.label}>About you</Text>
@@ -266,6 +296,12 @@ const styles = StyleSheet.create({
     fontWeight: '100',
     color: PawColors.black,
     marginTop: 4,
+  },
+  passwordMismatch: {
+    fontSize: PawFontSize.body,
+    fontWeight: '400',
+    color: PawColors.black,
+    marginTop: 8,
   },
   bioInput: {
     minHeight: 56,

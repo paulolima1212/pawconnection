@@ -20,6 +20,7 @@ type ProfileLabeledFieldInput = ProfileLabeledFieldBase & {
   keyboardType?: ComponentProps<typeof ProfileFieldInput>['keyboardType'];
   autoCapitalize?: ComponentProps<typeof ProfileFieldInput>['autoCapitalize'];
   autoCorrect?: boolean;
+  maxLength?: number;
   children?: never;
 };
 
@@ -51,6 +52,7 @@ export function ProfileLabeledField(props: ProfileLabeledFieldProps) {
           keyboardType={(props as ProfileLabeledFieldInput).keyboardType}
           autoCapitalize={(props as ProfileLabeledFieldInput).autoCapitalize}
           autoCorrect={(props as ProfileLabeledFieldInput).autoCorrect}
+          maxLength={(props as ProfileLabeledFieldInput).maxLength}
         />
       )}
     </View>

@@ -1,4 +1,5 @@
 import { apiRequest } from '@/lib/api/client';
+import type { ProfileConnection } from '@/lib/profile-connection';
 import type { InboxRequestApi } from '@/lib/api/types';
 
 export function listInboxRequests(params?: {
@@ -18,6 +19,10 @@ export function acceptInboxRequest(id: string) {
 
 export function rejectInboxRequest(id: string) {
   return apiRequest(`/inbox/requests/${id}/reject`, { method: 'POST' });
+}
+
+export function getConnectionWithUser(userId: string) {
+  return apiRequest<ProfileConnection>(`/inbox/connection/${userId}`);
 }
 
 export function createConnectionRequest(recipientId: string, lookingFor: string) {

@@ -89,10 +89,7 @@ function ProfileEditPhoto({
   accessibilityLabel,
   pickAccessibilityLabel,
 }: ProfileEditPhotoProps) {
-  const { pickPhoto, picking, sourceSheetVisible, onSelectSource } = useProfilePhotoPicker({
-    aspect: [1, 1],
-    allowsEditing: false,
-  });
+  const { pickPhoto, picking, sourceSheetVisible, onSelectSource } = useProfilePhotoPicker();
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const displayUri = useMemo(() => {

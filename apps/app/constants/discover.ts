@@ -2,7 +2,7 @@ import type { GenderValue, InterestId } from '@/context/profile-onboarding';
 import type { MapUserPinApi } from '@/lib/api/types';
 import { isHttpUrl } from '@/lib/api/media';
 
-export type DiscoverPetGender = 'Male' | 'Female';
+export type DiscoverPetGender = GenderValue;
 
 export type DiscoverPerson = {
   id: string;

@@ -10,12 +10,28 @@ import {
 
 import { useAuth } from '@/context/auth';
 import * as profileApi from '@/lib/api/profile';
-import { withTimeout } from '@/lib/api/client';
+import { ApiError, withTimeout } from '@/lib/api/client';
 import { profileMeToDraft } from '@/lib/api/profile-mapper';
 import type { ProfileMeResponse } from '@/lib/api/types';
 import { resolveRemoteUri, isHttpUrl } from '@/lib/api/media';
 import { isValidHandle } from '@/lib/handle';
-import { ageFromBirthdayIso } from '@/lib/pet-birthday';
+import { ageFromBirthdayIso, interpretBirthday, ownerBirthdayRules, petBirthdayRules } from '@/lib/pet-birthday';
+import { isPasswordValid, PASSWORD_POLICY_MESSAGE } from '@/lib/password-policy';
+import { profilePhotoPatch } from '@/lib/profile-photo';
+import {
+  customTemperamentError,
+  customTemperamentForApi,
+  declarationForApi,
+  genderForApi,
+  normalizeDesexedOptional,
+  normalizeGenderOptional,
+  normalizeTemperamentList,
+  normalizeVaccinatedOptional,
+  type DesexedValue,
+  type GenderValue,
+  type TemperamentValue,
+  type VaccinatedValue,
+} from '@/lib/profile-values';
 import { safeGetItem, safeRemoveItem, safeSetItem } from '@/lib/safe-async-storage';
 
 const STORAGE_DONE = 'paw_onboarding_complete_v1';
@@ -40,15 +56,13 @@ export const LOOKING_FOR_OPTIONS = INTEREST_OPTIONS;
 /** @deprecated Use InterestId */
 export type LookingForId = InterestId;
 
-export type GenderValue = 'Male' | 'Female';
-
-export const TEMPERAMENT_OPTIONS = ['Happy', 'Calm', 'Playful', 'Energetic', 'Shy', 'Friendly'] as const;
-export type TemperamentValue = (typeof TEMPERAMENT_OPTIONS)[number];
-
-export type VaccinatedValue = 'Yes' | 'No';
-
-/** Australian English: desexed (neutered/spayed). */
-export type DesexedValue = 'Yes' | 'No';
+export {
+  TEMPERAMENT_OPTIONS,
+  type DesexedValue,
+  type GenderValue,
+  type TemperamentValue,
+  type VaccinatedValue,
+} from '@/lib/profile-values';
 
 export type ProfileDraft = {
   interests: InterestId[];
@@ -57,6 +71,8 @@ export type ProfileDraft = {
   email: string;
   phone: string;
   age: string;
+  /** Owner date of birth YYYY-MM-DD. Age is derived from this. */
+  ownerBirthDate: string;
   humanGender: GenderValue | '';
   location: string;
   humanBio: string;
@@ -70,6 +86,7 @@ export type ProfileDraft = {
   breed: string;
   dogBio: string;
   temperament: TemperamentValue[];
+  customTemperament: string;
   vaccinated: VaccinatedValue | '';
   desexed: DesexedValue | '';
   dogGender: GenderValue | '';
@@ -105,56 +122,26 @@ function interestsFromLegacyDraft(parsed: Record<string, unknown>): InterestId[]
   return [...new Set(mapped)];
 }
 
-function normalizeGenderOptional(raw: unknown): GenderValue | '' {
-  const g = typeof raw === 'string' ? raw.trim() : '';
-  if (!g) return '';
-  if (g === 'Male' || g === 'male' || g === 'M' || g === 'Homem') return 'Male';
-  if (g === 'Female' || g === 'female' || g === 'F' || g === 'Mulher') return 'Female';
-  return '';
+/** The published API rejects owner birthDate until that field is deployed. Age still saves. */
+function ownerPayloadRejectedBirthDate(err: unknown): boolean {
+  return (
+    err instanceof ApiError &&
+    err.status === 400 &&
+    /birthDate/i.test(err.message) &&
+    /should not exist/i.test(err.message)
+  );
 }
 
-function normalizeGenderForApi(raw: GenderValue | ''): GenderValue {
-  return raw === 'Female' ? 'Female' : 'Male';
-}
-
-function normalizeTemperamentList(raw: unknown): TemperamentValue[] {
-  const list = Array.isArray(raw) ? raw : raw != null && raw !== '' ? [raw] : [];
-  const out: TemperamentValue[] = [];
-  for (const item of list) {
-    const s = typeof item === 'string' ? item.trim() : '';
-    if (!s) continue;
-    const found = TEMPERAMENT_OPTIONS.find((o) => o.toLowerCase() === s.toLowerCase());
-    if (found && !out.includes(found)) out.push(found);
+async function updateOwnerKeepingBirthDate(
+  body: Record<string, unknown>,
+): Promise<ProfileMeResponse> {
+  try {
+    return await profileApi.updateOwner(body);
+  } catch (err) {
+    if (body.birthDate == null || !ownerPayloadRejectedBirthDate(err)) throw err;
+    const { birthDate: _birthDate, ...withoutBirthDate } = body;
+    return profileApi.updateOwner(withoutBirthDate);
   }
-  return out;
-}
-
-function normalizeTemperamentForApi(raw: TemperamentValue[]): TemperamentValue[] {
-  return raw.length ? raw : [];
-}
-
-function normalizeVaccinatedOptional(raw: unknown): VaccinatedValue | '' {
-  const s = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
-  if (!s) return '';
-  if (s === 'no' || s === 'n' || s === 'false' || s === 'não' || s === 'nao') return 'No';
-  if (s === 'yes' || s === 'y' || s === 'true' || s === 'sim') return 'Yes';
-  return '';
-}
-
-function normalizeVaccinatedForApi(raw: VaccinatedValue | ''): VaccinatedValue {
-  return raw === 'No' ? 'No' : 'Yes';
-}
-
-function normalizeDesexedOptional(raw: unknown): DesexedValue | '' {
-  const s = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
-  if (!s) return '';
-  if (s === 'no' || s === 'n' || s === 'false' || s === 'não' || s === 'nao') return 'No';
-  if (s === 'yes' || s === 'y' || s === 'true' || s === 'sim') return 'Yes';
-  return '';
-}
-
-function normalizeDesexedForApi(raw: DesexedValue | ''): DesexedValue {
-  return raw === 'Yes' ? 'Yes' : 'No';
 }
 
 async function resolvePhotoUrlForApi(
@@ -192,6 +179,7 @@ const emptyDraft = (): ProfileDraft => ({
   email: '',
   phone: '',
   age: '',
+  ownerBirthDate: '',
   humanGender: '',
   location: '',
   humanBio: '',
@@ -203,6 +191,7 @@ const emptyDraft = (): ProfileDraft => ({
   breed: '',
   dogBio: '',
   temperament: [],
+  customTemperament: '',
   vaccinated: '',
   desexed: '',
   dogGender: '',
@@ -293,6 +282,8 @@ export function ProfileOnboardingProvider({ children }: { children: ReactNode })
           merged.desexed = normalizeDesexedOptional(merged.desexed);
           if (typeof merged.favoriteMeal !== 'string') merged.favoriteMeal = '';
           if (typeof merged.dogBirthday !== 'string') merged.dogBirthday = '';
+          if (typeof merged.ownerBirthDate !== 'string') merged.ownerBirthDate = '';
+          if (typeof merged.customTemperament !== 'string') merged.customTemperament = '';
           if (typeof merged.dogEnjoysOthers !== 'boolean') {
             merged.dogEnjoysOthers = Boolean(merged.favoritesThings?.trim());
           } else if (merged.favoritesThings?.trim()) {
@@ -310,7 +301,9 @@ export function ProfileOnboardingProvider({ children }: { children: ReactNode })
           if (cancelled) return;
           applyProfileResponse(profile);
         } else {
-          setOnboardingComplete(doneRaw === 'true');
+          // A previous account on this device must not skip signup for the next person.
+          setOnboardingComplete(false);
+          if (doneRaw === 'true') void safeRemoveItem(STORAGE_DONE);
         }
       } catch {
         if (!cancelled) setOnboardingComplete((await safeGetItem(STORAGE_DONE)) === 'true');
@@ -403,8 +396,15 @@ export function ProfileOnboardingProvider({ children }: { children: ReactNode })
       const email = draft.email.trim();
       const fullName = draft.fullName.trim();
       const handle = draft.handle.trim();
-      if (!email || !fullName || password.length < 6) {
-        throw new Error('Email, name and password (min 6 chars) are required.');
+      if (!email || !fullName || !password) {
+        throw new Error('Email, name and password are required.');
+      }
+      if (!isPasswordValid(password)) {
+        throw new Error(PASSWORD_POLICY_MESSAGE);
+      }
+      const ownerBirthIssue = interpretBirthday(draft.ownerBirthDate, ownerBirthdayRules());
+      if (draft.ownerBirthDate.trim() && (ownerBirthIssue.error || !ownerBirthIssue.iso)) {
+        throw new Error(ownerBirthIssue.error ?? 'Enter a valid date of birth.');
       }
       if (!isValidHandle(handle)) {
         throw new Error('Choose an @ handle with 3–20 letters, numbers, or underscores.');
@@ -424,14 +424,19 @@ export function ProfileOnboardingProvider({ children }: { children: ReactNode })
         }
       }
 
-      const age = draft.age.trim() ? Number.parseInt(draft.age, 10) : undefined;
+      const ownerAge = draft.ownerBirthDate
+        ? ageFromBirthdayIso(draft.ownerBirthDate)
+        : Number.parseInt(draft.age, 10);
 
-      const profile = await profileApi.updateOwner({
+      const profile = await updateOwnerKeepingBirthDate({
         fullName,
         email,
         phone: draft.phone.trim() || undefined,
-        age: Number.isFinite(age) ? age : undefined,
-        gender: normalizeGenderForApi(draft.humanGender),
+        ...(draft.ownerBirthDate.trim() ? { birthDate: draft.ownerBirthDate.trim() } : {}),
+        age: Number.isFinite(ownerAge) ? ownerAge : undefined,
+        ...(genderForApi(draft.humanGender)
+          ? { gender: genderForApi(draft.humanGender) }
+          : {}),
         location: draft.location.trim() || undefined,
         bio: draft.humanBio.trim() || undefined,
         photoUrl: humanPhotoUrl,
@@ -452,13 +457,22 @@ export function ProfileOnboardingProvider({ children }: { children: ReactNode })
         options?.humanPhotoUri !== undefined ? options.humanPhotoUri : draft.humanPhotoUri;
       const throwOnPhotoUploadError = options?.throwOnPhotoUploadError ?? false;
       const humanPhotoUrl = await resolvePhotoUrlForApi(humanPhotoUri, throwOnPhotoUploadError);
-      const age = draft.age.trim() ? Number.parseInt(draft.age, 10) : undefined;
-      const profile = await profileApi.updateOwner({
+      const ownerBirthIssue = interpretBirthday(draft.ownerBirthDate, ownerBirthdayRules());
+      if (draft.ownerBirthDate.trim() && (ownerBirthIssue.error || !ownerBirthIssue.iso)) {
+        throw new Error(ownerBirthIssue.error ?? 'Enter a valid date of birth.');
+      }
+      const ownerAge = draft.ownerBirthDate.trim()
+        ? ageFromBirthdayIso(draft.ownerBirthDate)
+        : Number.parseInt(draft.age, 10);
+      const profile = await updateOwnerKeepingBirthDate({
         fullName: draft.fullName.trim() || undefined,
         email: draft.email.trim() || undefined,
         phone: draft.phone.trim() || undefined,
-        age: Number.isFinite(age) ? age : undefined,
-        ...(draft.humanGender ? { gender: draft.humanGender } : {}),
+        ...(draft.ownerBirthDate.trim() ? { birthDate: draft.ownerBirthDate.trim() } : {}),
+        age: Number.isFinite(ownerAge) ? ownerAge : undefined,
+        ...(genderForApi(draft.humanGender)
+          ? { gender: genderForApi(draft.humanGender) }
+          : {}),
         location: draft.location.trim() || undefined,
         bio: draft.humanBio.trim() || undefined,
         photoUrl: humanPhotoUrl,
@@ -480,21 +494,35 @@ export function ProfileOnboardingProvider({ children }: { children: ReactNode })
         options?.dogPhotoUri !== undefined ? options.dogPhotoUri : draft.dogPhotoUri;
       const throwOnPhotoUploadError = options?.throwOnPhotoUploadError ?? false;
       const dogPhotoUrl = await resolvePhotoUrlForApi(dogPhotoUri, throwOnPhotoUploadError);
-      const birthday = draft.dogBirthday.trim() || undefined;
-      const ageFromBirthday = ageFromBirthdayIso(birthday);
+      const birthday = draft.dogBirthday.trim();
+      if (birthday) {
+        const issue = interpretBirthday(birthday, petBirthdayRules());
+        if (issue.error || !issue.iso) {
+          throw new Error(issue.error ?? 'Enter a valid date of birth.');
+        }
+      } else if (draft.dogAge.trim()) {
+        const legacyAge = Number.parseInt(draft.dogAge, 10);
+        if (!Number.isInteger(legacyAge) || legacyAge < 0 || legacyAge > 16) {
+          throw new Error('Dog age must be between 0 and 16 years.');
+        }
+      }
+      const temperamentError = customTemperamentError(draft.temperament, draft.customTemperament);
+      if (temperamentError) throw new Error(temperamentError);
+      const ageFromBirthday = birthday ? ageFromBirthdayIso(birthday) : undefined;
       const legacyAge = draft.dogAge.trim() ? Number.parseInt(draft.dogAge, 10) : undefined;
       const age = ageFromBirthday ?? (Number.isFinite(legacyAge) ? legacyAge : undefined);
       const profile = await profileApi.updatePet({
         name: draft.dogName.trim() || undefined,
-        birthDate: birthday,
+        birthDate: birthday || null,
         age,
         breed: draft.breed.trim() || undefined,
         bio: draft.dogBio.trim() || undefined,
         photoUrl: dogPhotoUrl,
-        temperament: normalizeTemperamentForApi(draft.temperament),
-        vaccinated: normalizeVaccinatedForApi(draft.vaccinated),
-        desexed: normalizeDesexedForApi(draft.desexed),
-        gender: normalizeGenderForApi(draft.dogGender),
+        temperament: draft.temperament,
+        customTemperament: customTemperamentForApi(draft.temperament, draft.customTemperament),
+        vaccinated: declarationForApi(draft.vaccinated),
+        desexed: declarationForApi(draft.desexed),
+        gender: genderForApi(draft.dogGender),
         favoritesThings: draft.dogEnjoysOthers
           ? draft.favoritesThings.trim() || undefined
           : '',
@@ -514,12 +542,21 @@ export function ProfileOnboardingProvider({ children }: { children: ReactNode })
 
   const syncPhotoToApi = useCallback(
     async (field: 'dog' | 'human', uri: string): Promise<ProfileMeResponse | undefined> => {
-      if (field === 'dog') {
-        return syncPetToApi({ dogPhotoUri: uri, throwOnPhotoUploadError: true });
+      if (!isAuthenticated) return undefined;
+      const remoteUrl = await resolvePhotoUrlForApi(uri, true);
+      if (!remoteUrl) {
+        throw new Error('Could not upload profile photo.');
       }
-      return syncOwnerToApi({ humanPhotoUri: uri, throwOnPhotoUploadError: true });
+      const body = profilePhotoPatch(remoteUrl);
+      const profile =
+        field === 'dog'
+          ? await profileApi.updatePet(body)
+          : await profileApi.updateOwner(body);
+      applyProfileResponse(profile);
+      setDraft(field === 'dog' ? { dogPhotoUri: remoteUrl } : { humanPhotoUri: remoteUrl });
+      return profile;
     },
-    [syncOwnerToApi, syncPetToApi],
+    [isAuthenticated, applyProfileResponse, setDraft],
   );
 
   const completeOnboarding = useCallback(async () => {

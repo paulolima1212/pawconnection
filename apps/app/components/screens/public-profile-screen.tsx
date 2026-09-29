@@ -16,11 +16,19 @@ import { PublicProfileHero } from '@/components/paw/public-profile-hero';
 import { BlockUserConfirmSheet } from '@/components/paw/block-user-confirm-sheet';
 import { PawColors, PawFontSize, PawLayout } from '@/constants/paw-styles';
 import { useAuth } from '@/context/auth';
+import { CONNECTION_INTENT_FRIENDSHIP } from '@/context/profile-onboarding';
 import { tooltipMessageFromError, usePawTooltip } from '@/context/paw-tooltip';
+import { formatDeclarationStatus, formatGender, formatTemperamentList } from '@/lib/profile-labels';
 import * as chatApi from '@/lib/api/chat';
+import * as inboxApi from '@/lib/api/inbox';
 import * as profileApi from '@/lib/api/profile';
 import * as moderationApi from '@/lib/api/moderation';
 import type { ProfileMeResponse } from '@/lib/api/types';
+import {
+  connectButtonEnabled,
+  connectButtonLabel,
+  type ProfileConnectionStatus,
+} from '@/lib/profile-connection';
 
 type PublicProfileTab = 'pet' | 'owner';
 
@@ -47,17 +55,39 @@ export function PublicProfileScreen({ handle }: PublicProfileScreenProps) {
   const [blockOpen, setBlockOpen] = useState(false);
   const [blocking, setBlocking] = useState(false);
   const [blockedByMe, setBlockedByMe] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<ProfileConnectionStatus>('none');
+  const [connectionRequestId, setConnectionRequestId] = useState<string | null>(null);
+  const [connectionReady, setConnectionReady] = useState(false);
+  const [connecting, setConnecting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setConnectionReady(false);
 
     void (async () => {
       try {
         const data = await profileApi.getPublicProfile(handle);
-        if (!cancelled) {
-          setProfile(data);
-          setBlockedByMe(Boolean(data.blockedByMe));
+        if (cancelled) return;
+        setProfile(data);
+        setBlockedByMe(Boolean(data.blockedByMe));
+        const viewingSomeoneElse = Boolean(data.id && userId && data.id !== userId);
+        if (isAuthenticated && viewingSomeoneElse && data.id) {
+          try {
+            const connection = await inboxApi.getConnectionWithUser(data.id);
+            if (!cancelled) {
+              setConnectionStatus(connection.status);
+              setConnectionRequestId(connection.requestId);
+            }
+          } catch {
+            if (!cancelled) {
+              setConnectionStatus('none');
+              setConnectionRequestId(null);
+            }
+          }
+        } else if (!cancelled) {
+          setConnectionStatus('none');
+          setConnectionRequestId(null);
         }
       } catch (err) {
         if (!cancelled) {
@@ -71,6 +101,7 @@ export function PublicProfileScreen({ handle }: PublicProfileScreenProps) {
         }
       } finally {
         if (!cancelled) {
+          setConnectionReady(true);
           setLoading(false);
         }
       }
@@ -79,7 +110,7 @@ export function PublicProfileScreen({ handle }: PublicProfileScreenProps) {
     return () => {
       cancelled = true;
     };
-  }, [handle, router]);
+  }, [handle, isAuthenticated, router, userId]);
 
   const pet = profile?.pet;
   const owner = profile?.owner;
@@ -135,6 +166,52 @@ export function PublicProfileScreen({ handle }: PublicProfileScreenProps) {
 
   const isOwnProfile = Boolean(profile?.id && userId && profile.id === userId);
   const blockName = ownerFirst;
+  const showConnect = Boolean(profile && !isOwnProfile && !blockedByMe);
+  const connectQuiet = connectionStatus === 'outgoing' || connectionStatus === 'connected';
+
+  const onConnect = async () => {
+    if (!isAuthenticated) {
+      showTooltip({
+        title: 'Sign in required',
+        message: 'Log in to send a connection request.',
+        variant: 'info',
+      });
+      return;
+    }
+    if (!profile?.id || blockedByMe || !connectButtonEnabled(connectionStatus)) return;
+    setConnecting(true);
+    try {
+      if (connectionStatus === 'incoming' && connectionRequestId) {
+        await inboxApi.acceptInboxRequest(connectionRequestId);
+        setConnectionStatus('connected');
+        showTooltip({
+          title: 'Connected',
+          message: `You and ${ownerFirst} are now connected.`,
+          variant: 'success',
+        });
+        return;
+      }
+      const created = await inboxApi.createConnectionRequest(
+        profile.id,
+        CONNECTION_INTENT_FRIENDSHIP,
+      );
+      setConnectionStatus('outgoing');
+      setConnectionRequestId(created.id);
+      showTooltip({
+        title: 'Request sent',
+        message: `${ownerFirst} can accept your connection request.`,
+        variant: 'success',
+      });
+    } catch (err) {
+      showTooltip({
+        title: 'Could not connect',
+        message: tooltipMessageFromError(err, 'Please try again.'),
+        variant: 'error',
+      });
+    } finally {
+      setConnecting(false);
+    }
+  };
 
   const confirmBlock = async () => {
     if (!profile?.id) return;
@@ -250,6 +327,34 @@ export function PublicProfileScreen({ handle }: PublicProfileScreenProps) {
             ownerPhotoUrl={owner?.photoUrl}
           />
 
+          {showConnect ? (
+            <View style={styles.connectWrap}>
+              {!isAuthenticated || connectionReady ? (
+                <Pressable
+                  onPress={() => void onConnect()}
+                  disabled={
+                    connecting ||
+                    (isAuthenticated && !connectButtonEnabled(connectionStatus))
+                  }
+                  style={[styles.connectBtn, connectQuiet && styles.connectBtnQuiet]}
+                  accessibilityRole="button"
+                  accessibilityLabel={connectButtonLabel(
+                    isAuthenticated ? connectionStatus : 'none',
+                  )}>
+                  {connecting ? (
+                    <ActivityIndicator color={PawColors.black} />
+                  ) : (
+                    <Text style={[styles.connectText, connectQuiet && styles.connectTextQuiet]}>
+                      {connectButtonLabel(isAuthenticated ? connectionStatus : 'none')}
+                    </Text>
+                  )}
+                </Pressable>
+              ) : (
+                <ActivityIndicator color={PawColors.peachBorder} />
+              )}
+            </View>
+          ) : null}
+
           {!isOwnProfile && isAuthenticated ? (
             <View style={styles.moderationRow}>
               {blockedByMe ? (
@@ -298,25 +403,21 @@ export function PublicProfileScreen({ handle }: PublicProfileScreenProps) {
                 <PublicProfileSectionCard title="Details">
                   <PublicProfileDetailRow icon="tag" label="Breed" value={pet?.breed ?? ''} />
                   <PublicProfileDetailRow icon="calendar" label="Age" value={formatAge(pet?.age)} />
-                  <PublicProfileDetailRow icon="heart" label="Gender" value={pet?.gender ?? ''} />
+                  <PublicProfileDetailRow icon="heart" label="Gender" value={formatGender(pet?.gender)} />
                   <PublicProfileDetailRow
                     icon="smile"
                     label="Temperament"
-                    value={
-                      Array.isArray(pet?.temperament)
-                        ? pet.temperament.join(', ')
-                        : (pet?.temperament ?? '')
-                    }
+                    value={formatTemperamentList(pet?.temperament, pet?.customTemperament)}
                   />
                   <PublicProfileDetailRow
                     icon="shield"
                     label="Vaccinated"
-                    value={pet?.vaccinated ?? ''}
+                    value={formatDeclarationStatus(pet?.vaccinated)}
                   />
                   <PublicProfileDetailRow
                     icon="heart"
                     label="Desexed"
-                    value={pet?.desexed ?? ''}
+                    value={formatDeclarationStatus(pet?.desexed)}
                   />
                 </PublicProfileSectionCard>
               ) : null}
@@ -355,7 +456,7 @@ export function PublicProfileScreen({ handle }: PublicProfileScreenProps) {
               <PublicProfileSectionCard title="Details">
                 <PublicProfileDetailRow icon="user" label="Full name" value={ownerName} />
                 <PublicProfileDetailRow icon="calendar" label="Age" value={formatAge(owner?.age)} />
-                <PublicProfileDetailRow icon="users" label="Gender" value={owner?.gender ?? ''} />
+                <PublicProfileDetailRow icon="users" label="Gender" value={formatGender(owner?.gender)} />
                 {owner?.location ? (
                   <PublicProfileDetailRow icon="map-pin" label="Location" value={owner.location} />
                 ) : null}
@@ -422,6 +523,33 @@ const styles = StyleSheet.create({
   },
   unblockCircle: {
     backgroundColor: PawColors.peachBorder,
+  },
+  connectWrap: {
+    paddingHorizontal: PawLayout.horizontalPadding,
+    paddingTop: 16,
+    alignItems: 'center',
+  },
+  connectBtn: {
+    minHeight: 50,
+    width: '100%',
+    borderRadius: PawLayout.borderRadiusField,
+    borderWidth: 3,
+    borderColor: PawColors.black,
+    backgroundColor: PawColors.peachBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  connectBtnQuiet: {
+    backgroundColor: PawColors.fieldWhite,
+  },
+  connectText: {
+    fontSize: PawFontSize.body,
+    fontWeight: '800',
+    color: PawColors.black,
+  },
+  connectTextQuiet: {
+    fontWeight: '700',
   },
   moderationRow: {
     paddingHorizontal: PawLayout.horizontalPadding,

@@ -1,6 +1,7 @@
 import type { ProfileDraft, TemperamentValue } from '@/context/profile-onboarding';
 import { resolveMediaUrl } from '@/lib/api/media';
 import type { ProfileMeResponse } from '@/lib/api/types';
+import { ageFromBirthdayIso } from '@/lib/pet-birthday';
 
 export function profileMeToDraft(dto: ProfileMeResponse, prev: ProfileDraft): ProfileDraft {
   const interestSet = new Set([
@@ -23,6 +24,7 @@ export function profileMeToDraft(dto: ProfileMeResponse, prev: ProfileDraft): Pr
     email: dto.owner.email ?? prev.email,
     phone: dto.owner.phone ?? prev.phone,
     age: dto.owner.age != null ? String(dto.owner.age) : prev.age,
+    ownerBirthDate: dto.owner.birthDate ?? prev.ownerBirthDate,
     humanGender: dto.owner.gender ?? prev.humanGender ?? '',
     location: dto.owner.location ?? prev.location,
     humanBio: dto.owner.bio ?? prev.humanBio,
@@ -41,6 +43,7 @@ export function profileMeToDraft(dto: ProfileMeResponse, prev: ProfileDraft): Pr
       : dto.pet?.temperament
         ? [dto.pet.temperament as TemperamentValue]
         : prev.temperament,
+    customTemperament: dto.pet?.customTemperament ?? prev.customTemperament,
     vaccinated: dto.pet?.vaccinated ?? prev.vaccinated ?? '',
     desexed: dto.pet?.desexed ?? prev.desexed ?? '',
     dogGender: dto.pet?.gender ?? prev.dogGender ?? '',
@@ -56,11 +59,16 @@ export function profileMeToDraft(dto: ProfileMeResponse, prev: ProfileDraft): Pr
 }
 
 export function draftToOwnerPayload(draft: ProfileDraft) {
-  const age = draft.age.trim() ? Number.parseInt(draft.age, 10) : undefined;
+  const derived = draft.ownerBirthDate.trim()
+    ? ageFromBirthdayIso(draft.ownerBirthDate)
+    : undefined;
+  const typed = draft.age.trim() ? Number.parseInt(draft.age, 10) : undefined;
+  const age = derived ?? typed;
   return {
     fullName: draft.fullName.trim() || undefined,
     email: draft.email.trim() || undefined,
     phone: draft.phone.trim() || undefined,
+    birthDate: draft.ownerBirthDate.trim() || undefined,
     age: Number.isFinite(age) ? age : undefined,
     gender: draft.humanGender || undefined,
     location: draft.location.trim() || undefined,
@@ -72,16 +80,7 @@ export function draftToOwnerPayload(draft: ProfileDraft) {
 
 export function draftToPetPayload(draft: ProfileDraft) {
   const birthday = draft.dogBirthday.trim() || undefined;
-  const ageFromBirthday = birthday
-    ? (() => {
-        const [y, m, d] = birthday.split('-').map(Number);
-        if (!y || !m || !d) return undefined;
-        const now = new Date();
-        let age = now.getFullYear() - y;
-        if (now.getMonth() + 1 < m || (now.getMonth() + 1 === m && now.getDate() < d)) age -= 1;
-        return age >= 0 ? age : undefined;
-      })()
-    : undefined;
+  const ageFromBirthday = birthday ? ageFromBirthdayIso(birthday) : undefined;
   const legacyAge = draft.dogAge.trim() ? Number.parseInt(draft.dogAge, 10) : undefined;
   return {
     name: draft.dogName.trim() || undefined,
@@ -91,6 +90,9 @@ export function draftToPetPayload(draft: ProfileDraft) {
     bio: draft.dogBio.trim() || undefined,
     photoUrl: draft.dogPhotoUri?.startsWith('http') ? draft.dogPhotoUri : undefined,
     temperament: draft.temperament,
+    customTemperament: draft.temperament.includes('Custom')
+      ? draft.customTemperament.trim() || undefined
+      : '',
     vaccinated: draft.vaccinated || undefined,
     desexed: draft.desexed || undefined,
     gender: draft.dogGender || undefined,

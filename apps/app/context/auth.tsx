@@ -10,9 +10,8 @@ import {
 
 import * as authApi from '@/lib/api/auth';
 import { setApiAuthToken, withTimeout } from '@/lib/api/client';
-import { safeGetItem, safeRemoveItem, safeSetItem } from '@/lib/safe-async-storage';
-
-const STORAGE_TOKEN = 'paw_auth_token_v1';
+import { saveLastAccount, type LastAccount } from '@/lib/last-account';
+import { clearAuthToken, readAuthToken, writeAuthToken } from '@/lib/secure-token';
 
 type AuthContextValue = {
   hydrated: boolean;
@@ -35,7 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     (async () => {
       try {
-        const stored = await safeGetItem(STORAGE_TOKEN);
+        const stored = await readAuthToken();
         if (cancelled) return;
         if (stored) {
           setToken(stored);
@@ -44,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const me = await withTimeout(authApi.getAuthMe(), 10_000, 'Auth session');
             if (!cancelled) setUserId(me.id);
           } catch {
-            await safeRemoveItem(STORAGE_TOKEN);
+            await clearAuthToken();
             if (!cancelled) {
               setToken(null);
               setApiAuthToken(null);
@@ -60,38 +59,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const persistToken = useCallback(async (next: string | null) => {
-    setToken(next);
-    setApiAuthToken(next);
-    if (next) {
-      await safeSetItem(STORAGE_TOKEN, next);
-      const me = await authApi.getAuthMe();
-      setUserId(me.id);
-    } else {
-      await safeRemoveItem(STORAGE_TOKEN);
-      setUserId(null);
-    }
-  }, []);
+  const persistSession = useCallback(
+    async (
+      next: string | null,
+      account?: { id: string; email?: string | null; fullName: string; photoUrl?: string | null },
+    ) => {
+      setToken(next);
+      setApiAuthToken(next);
+      if (next) {
+        await writeAuthToken(next);
+        if (account?.id) setUserId(account.id);
+        if (account?.id && account.email && account.fullName) {
+          const remembered: LastAccount = {
+            userId: account.id,
+            email: account.email,
+            displayName: account.fullName,
+            photoUrl: account.photoUrl ?? null,
+          };
+          await saveLastAccount(remembered);
+        }
+        try {
+          const me = await authApi.getAuthMe();
+          setUserId(me.id);
+        } catch {
+          if (!account?.id) {
+            throw new Error('Signed in, but the session could not be confirmed.');
+          }
+        }
+      } else {
+        await clearAuthToken();
+        setUserId(null);
+      }
+    },
+    [],
+  );
 
   const login = useCallback(
     async (email: string, password: string) => {
-      const res = await authApi.login({ email, password });
-      await persistToken(res.accessToken);
+      const res = await authApi.login({ email: email.trim().toLowerCase(), password });
+      await persistSession(res.accessToken, res.user);
     },
-    [persistToken],
+    [persistSession],
   );
 
   const register = useCallback(
     async (email: string, password: string, fullName: string, handle: string) => {
-      const res = await authApi.register({ email, password, fullName, handle });
-      await persistToken(res.accessToken);
+      const res = await authApi.register({
+        email: email.trim().toLowerCase(),
+        password,
+        fullName,
+        handle,
+      });
+      await persistSession(res.accessToken, res.user);
     },
-    [persistToken],
+    [persistSession],
   );
 
   const logout = useCallback(async () => {
-    await persistToken(null);
-  }, [persistToken]);
+    await persistSession(null);
+  }, [persistSession]);
 
   const value = useMemo(
     () => ({

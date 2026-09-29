@@ -7,6 +7,34 @@
 
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
+export type BirthdayRules = {
+  minAge: number;
+  maxAge: number;
+};
+
+export function petBirthdayRules(): BirthdayRules {
+  return { minAge: 0, maxAge: 16 };
+}
+
+export function ownerBirthdayRules(): BirthdayRules {
+  return { minAge: 1, maxAge: 120 };
+}
+
+export function birthdayBounds(rules: BirthdayRules, now = new Date()): {
+  minimumDate: Date;
+  maximumDate: Date;
+} {
+  const maximumDate = new Date(now);
+  maximumDate.setHours(0, 0, 0, 0);
+  maximumDate.setFullYear(maximumDate.getFullYear() - rules.minAge);
+
+  const minimumDate = new Date(now);
+  minimumDate.setHours(0, 0, 0, 0);
+  minimumDate.setFullYear(minimumDate.getFullYear() - (rules.maxAge + 1));
+  minimumDate.setDate(minimumDate.getDate() + 1);
+  return { minimumDate, maximumDate };
+}
+
 /** Format stored ISO date (YYYY-MM-DD) as DD/MM/YYYY for inputs. */
 export function formatBirthdayDisplay(iso: string | null | undefined): string {
   if (!iso) return '';
@@ -19,27 +47,68 @@ export function formatBirthdayDisplay(iso: string | null | undefined): string {
  * Normalize typed birthday text to YYYY-MM-DD when complete and valid.
  * Accepts DD/MM/YYYY, DD-MM-YYYY, or YYYY-MM-DD.
  */
-export function parseBirthdayInput(raw: string): string | null {
-  const trimmed = raw.trim();
-  if (!trimmed) return null;
+export function parseBirthdayInput(
+  raw: string,
+  rules: BirthdayRules = petBirthdayRules(),
+  now = new Date(),
+): string | null {
+  return interpretBirthday(raw, rules, now).iso;
+}
 
-  const iso = ISO_DATE.exec(trimmed);
+export function interpretBirthday(
+  raw: string,
+  rules: BirthdayRules = petBirthdayRules(),
+  now = new Date(),
+): { iso: string | null; error: string | null } {
+  const trimmed = raw.trim();
+  if (!trimmed) return { iso: null, error: null };
+  if (!isCompleteBirthdayText(trimmed)) return { iso: null, error: null };
+
+  const iso = calendarIso(trimmed);
+  if (!iso) return { iso: null, error: 'Enter a valid date.' };
+
+  const age = ageFromBirthdayIso(iso, now);
+  if (age == null) return { iso: null, error: 'Enter a valid date.' };
+  if (age < 0) return { iso: null, error: 'Date of birth cannot be in the future.' };
+  if (age < rules.minAge) {
+    return {
+      iso: null,
+      error:
+        rules.minAge === 1
+          ? 'Owner must be at least 1 year old.'
+          : `Age must be at least ${rules.minAge}.`,
+    };
+  }
+  if (age > rules.maxAge) {
+    return {
+      iso: null,
+      error:
+        rules.maxAge === 16
+          ? 'Dog age must be between 0 and 16 years.'
+          : `Age must be ${rules.maxAge} or under.`,
+    };
+  }
+  return { iso, error: null };
+}
+
+function isCompleteBirthdayText(raw: string): boolean {
+  return ISO_DATE.test(raw) || /^\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{4}$/.test(raw);
+}
+
+function calendarIso(raw: string): string | null {
+  const iso = ISO_DATE.exec(raw);
   if (iso) {
     return isValidCalendarDate(+iso[1], +iso[2], +iso[3])
       ? `${iso[1]}-${iso[2]}-${iso[3]}`
       : null;
   }
-
-  const dmy = /^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/.exec(trimmed);
-  if (dmy) {
-    const day = Number.parseInt(dmy[1], 10);
-    const month = Number.parseInt(dmy[2], 10);
-    const year = Number.parseInt(dmy[3], 10);
-    if (!isValidCalendarDate(year, month, day)) return null;
-    return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-  }
-
-  return null;
+  const dmy = /^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/.exec(raw);
+  if (!dmy) return null;
+  const day = Number.parseInt(dmy[1], 10);
+  const month = Number.parseInt(dmy[2], 10);
+  const year = Number.parseInt(dmy[3], 10);
+  if (!isValidCalendarDate(year, month, day)) return null;
+  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
 /** Mask progressive typing toward DD/MM/YYYY (digits only). */
@@ -63,12 +132,11 @@ export function ageFromBirthdayIso(iso: string | null | undefined, now = new Dat
   const hadBirthday =
     now.getMonth() + 1 > month || (now.getMonth() + 1 === month && now.getDate() >= day);
   if (!hadBirthday) age -= 1;
-  if (age < 0 || age > 40) return undefined;
   return age;
 }
 
 function isValidCalendarDate(year: number, month: number, day: number): boolean {
-  if (year < 1990 || year > new Date().getFullYear()) return false;
+  if (year < 1900 || year > 9999) return false;
   if (month < 1 || month > 12) return false;
   if (day < 1 || day > 31) return false;
   const d = new Date(year, month - 1, day);
