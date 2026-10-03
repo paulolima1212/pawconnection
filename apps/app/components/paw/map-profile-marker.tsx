@@ -1,6 +1,5 @@
-import { Image } from 'expo-image';
-import { useCallback, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { Image, Platform, StyleSheet, View } from 'react-native';
 import { Marker } from 'react-native-maps';
 
 import { PawColors } from '@/constants/paw-styles';
@@ -8,6 +7,8 @@ import { resolveMediaDisplayUrl } from '@/lib/api/media';
 import type { MapCoords } from '@/hooks/use-discovery-map';
 
 const MARKER_SIZE = 46;
+/** Stop snapshotting even if the image never finishes, so Android does not crash. */
+const TRACKING_FALLBACK_MS = 800;
 const DEFAULT_PET_AVATAR =
   'https://www.figma.com/api/mcp/asset/ddcd8fa6-d1af-4e2f-9d65-23d82344bad6';
 export type MapProfileMarkerProps = {
@@ -46,6 +47,13 @@ export function MapProfileMarker({
     setTracksViewChanges(false);
   }, []);
 
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    setTracksViewChanges(true);
+    const timer = setTimeout(stopTracking, TRACKING_FALLBACK_MS);
+    return () => clearTimeout(timer);
+  }, [photoUri, stopTracking]);
+
   return (
     <Marker
       coordinate={coordinate}
@@ -53,26 +61,19 @@ export function MapProfileMarker({
       tracksViewChanges={tracksViewChanges}
       onPress={onPress}
       accessibilityLabel={accessibilityLabel}>
-      <Pressable
-        onPress={onPress}
-        style={styles.hit}
-        accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel}
-        accessibilityHint="Opens this user's profile">
-        <View style={[styles.ring, ringStyle]}>
+      <View style={styles.hit} collapsable={false}>
+        <View style={[styles.ring, ringStyle]} collapsable={false}>
           <Image
             source={{ uri: photoUri }}
             style={styles.photo}
-            contentFit="cover"
-            recyclingKey={photoUri}
+            resizeMode="cover"
+            fadeDuration={0}
             onLoad={stopTracking}
-            onError={() => {
-              stopTracking();
-            }}
+            onError={stopTracking}
           />
         </View>
         <View style={[styles.pointer, variant === 'self' ? styles.pointerSelf : styles.pointerOther]} />
-      </Pressable>
+      </View>
     </Marker>
   );
 }
