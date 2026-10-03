@@ -111,6 +111,7 @@ export function FeedDiscoveryMap({
 }: FeedDiscoveryMapProps) {
   const router = useRouter();
   const mapRef = useRef<MapView | null>(null);
+  const [mapReady, setMapReady] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<MapPlacePinApi | null>(null);
   const {
     permission,
@@ -141,9 +142,9 @@ export function FeedDiscoveryMap({
   }, [placeCategory, radiusKm]);
 
   useEffect(() => {
-    if (!active || !myCoords || !mapRef.current) return;
+    if (!mapReady || !active || !myCoords || !mapRef.current) return;
     mapRef.current.animateToRegion(regionFromCoords(myCoords), 600);
-  }, [active, myCoords?.latitude, myCoords?.longitude]);
+  }, [mapReady, active, myCoords?.latitude, myCoords?.longitude]);
 
   if (Platform.OS === 'web') {
     return (
@@ -178,6 +179,7 @@ export function FeedDiscoveryMap({
         style={styles.map}
         provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT}
         initialRegion={initialRegion}
+        onMapReady={() => setMapReady(true)}
         showsMyLocationButton
         showsCompass
         accessibilityLabel="Dog-friendly places map">

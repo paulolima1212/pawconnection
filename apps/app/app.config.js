@@ -1,6 +1,12 @@
 const googleMapsAndroidApiKey = process.env.GOOGLE_MAPS_ANDROID_API_KEY?.trim() ?? '';
 const isProductionBuild = process.env.EAS_BUILD_PROFILE === 'production';
 
+if (process.env.EAS_BUILD === 'true' && !googleMapsAndroidApiKey) {
+  throw new Error(
+    'GOOGLE_MAPS_ANDROID_API_KEY is required for EAS builds. Without it, opening the map crashes on Android.',
+  );
+}
+
 /** @param {{ config: import('expo/config').ExpoConfig }} params */
 module.exports = ({ config }) => {
   const plugins = (config.plugins ?? []).map((plugin) => {
