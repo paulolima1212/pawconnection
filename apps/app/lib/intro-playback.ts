@@ -1,5 +1,5 @@
-/** Composition length of paw-connection-intro.lottie.json (210 frames at 30 fps). */
-export const INTRO_DURATION_MS = 7_000;
+/** On-screen length of paw-connection-intro.lottie.json (210 frames at 52.5 fps). */
+export const INTRO_DURATION_MS = 4_000;
 
 /** Enters the app if the animation never loads or never reports completion. */
 export const INTRO_FAILSAFE_MS = 15_000;
