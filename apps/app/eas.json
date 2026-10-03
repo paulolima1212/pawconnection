@@ -38,6 +38,13 @@
         "track": "internal",
         "releaseStatus": "completed"
       }
+    },
+    "alpha": {
+      "android": {
+        "serviceAccountKeyPath": "./docs/pawconnection-c12277b288da.json",
+        "track": "alpha",
+        "releaseStatus": "completed"
+      }
     }
   }
 }
