@@ -4,6 +4,11 @@ import { describe, it } from 'node:test';
 import { INTRO_DURATION_MS, shouldCompleteIntro } from './intro-playback';
 
 describe('intro playback completion', () => {
+  it('stays between 3 and 5 seconds', () => {
+    assert.ok(INTRO_DURATION_MS >= 3_000);
+    assert.ok(INTRO_DURATION_MS <= 5_000);
+  });
+
   it('waits until the composition has finished', () => {
     assert.equal(shouldCompleteIntro(0, false), false);
     assert.equal(shouldCompleteIntro(INTRO_DURATION_MS - 201, false), false);
