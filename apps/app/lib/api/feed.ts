@@ -30,11 +30,24 @@ export function listFeedPosts(params?: ListFeedPostsParams) {
   return apiRequest<FeedPostApi[]>(`/feed/posts${qs ? `?${qs}` : ''}`);
 }
 
-export function createFeedPost(body: string | undefined, imageUrls: string[]) {
+export function createFeedPost(
+  body: string | undefined,
+  imageUrls: string[],
+  visibility?: 'public' | 'friends' | 'private',
+) {
   return apiRequest<FeedPostApi>('/feed/posts', {
     method: 'POST',
-    body: { body, imageUrls },
+    body: { body, imageUrls, visibility },
   });
+}
+
+export function listFriendsFeed(cursor?: string | null) {
+  const query = new URLSearchParams();
+  if (cursor) query.set('cursor', cursor);
+  const qs = query.toString();
+  return apiRequest<{ items: FeedPostApi[]; nextCursor: string | null; hasMore: boolean }>(
+    `/feed/friends${qs ? `?${qs}` : ''}`,
+  );
 }
 
 export function togglePostLike(postId: string) {

@@ -1,4 +1,8 @@
 import {
+  authorizeAccept,
+  authorizeCancel,
+  authorizeDecline,
+  authorizeUnfriend,
   connectionWithUser,
   planCreateConnection,
   type ConnectionPairRow,
@@ -7,7 +11,10 @@ import {
 const viewer = 'viewer';
 const other = 'other';
 
-function row(partial: Partial<ConnectionPairRow> & Pick<ConnectionPairRow, 'id' | 'status'>): ConnectionPairRow {
+function row(
+  partial: Partial<ConnectionPairRow> &
+    Pick<ConnectionPairRow, 'id' | 'status'>,
+): ConnectionPairRow {
   return {
     senderId: viewer,
     recipientId: other,
@@ -18,7 +25,10 @@ function row(partial: Partial<ConnectionPairRow> & Pick<ConnectionPairRow, 'id' 
 
 describe('connectionWithUser', () => {
   it('GivenNoRequest_WhenViewingProfile_ThenStatusIsNone', () => {
-    expect(connectionWithUser(viewer, [])).toEqual({ status: 'none', requestId: null });
+    expect(connectionWithUser(viewer, [])).toEqual({
+      status: 'none',
+      requestId: null,
+    });
   });
 
   it('GivenOutgoingPending_WhenViewingProfile_ThenStatusIsOutgoing', () => {
@@ -30,7 +40,12 @@ describe('connectionWithUser', () => {
   it('GivenIncomingPending_WhenViewingProfile_ThenStatusIsIncoming', () => {
     expect(
       connectionWithUser(viewer, [
-        row({ id: 'req-2', status: 'pending', senderId: other, recipientId: viewer }),
+        row({
+          id: 'req-2',
+          status: 'pending',
+          senderId: other,
+          recipientId: viewer,
+        }),
       ]),
     ).toEqual({ status: 'incoming', requestId: 'req-2' });
   });
@@ -38,13 +53,20 @@ describe('connectionWithUser', () => {
   it('GivenAcceptedRequest_WhenViewingProfile_ThenStatusIsConnected', () => {
     expect(
       connectionWithUser(viewer, [
-        row({ id: 'req-3', status: 'accepted', senderId: other, recipientId: viewer }),
+        row({
+          id: 'req-3',
+          status: 'accepted',
+          senderId: other,
+          recipientId: viewer,
+        }),
       ]),
     ).toEqual({ status: 'connected', requestId: 'req-3' });
   });
 
   it('GivenOnlyRejectedRequest_WhenViewingProfile_ThenStatusIsNone', () => {
-    expect(connectionWithUser(viewer, [row({ id: 'req-4', status: 'rejected' })])).toEqual({
+    expect(
+      connectionWithUser(viewer, [row({ id: 'req-4', status: 'rejected' })]),
+    ).toEqual({
       status: 'none',
       requestId: null,
     });
@@ -53,32 +75,80 @@ describe('connectionWithUser', () => {
 
 describe('planCreateConnection', () => {
   it('GivenNoRequest_WhenConnecting_ThenCreates', () => {
-    expect(planCreateConnection(viewer, 'friendship', [])).toEqual({ kind: 'create' });
+    expect(planCreateConnection(viewer, 'friendship', [])).toEqual({
+      kind: 'create',
+    });
   });
 
   it('GivenOutgoingPending_WhenConnecting_ThenReturnsExisting', () => {
     expect(
-      planCreateConnection(viewer, 'friendship', [row({ id: 'req-1', status: 'pending' })]),
+      planCreateConnection(viewer, 'friendship', [
+        row({ id: 'req-1', status: 'pending' }),
+      ]),
     ).toEqual({ kind: 'return', id: 'req-1' });
   });
 
   it('GivenRejectedOutgoing_WhenConnecting_ThenReopens', () => {
     expect(
-      planCreateConnection(viewer, 'friendship', [row({ id: 'req-4', status: 'rejected' })]),
+      planCreateConnection(viewer, 'friendship', [
+        row({ id: 'req-4', status: 'rejected' }),
+      ]),
     ).toEqual({ kind: 'reopen', id: 'req-4' });
   });
 
   it('GivenAlreadyConnected_WhenConnecting_ThenConflicts', () => {
     expect(
-      planCreateConnection(viewer, 'friendship', [row({ id: 'req-3', status: 'accepted' })]),
+      planCreateConnection(viewer, 'friendship', [
+        row({ id: 'req-3', status: 'accepted' }),
+      ]),
     ).toEqual({ kind: 'conflict', message: 'Already connected' });
   });
 
-  it('GivenIncomingPending_WhenConnecting_ThenConflicts', () => {
+  it('GivenIncomingPending_WhenConnecting_ThenSurfacesExistingRequest', () => {
     expect(
       planCreateConnection(viewer, 'friendship', [
-        row({ id: 'req-2', status: 'pending', senderId: other, recipientId: viewer }),
+        row({
+          id: 'req-2',
+          status: 'pending',
+          senderId: other,
+          recipientId: viewer,
+        }),
       ]),
-    ).toEqual({ kind: 'conflict', message: 'This person already sent you a request' });
+    ).toEqual({ kind: 'surface-incoming', id: 'req-2' });
+  });
+
+  it('GivenCancelledOutgoing_WhenConnecting_ThenReopens', () => {
+    expect(
+      planCreateConnection(viewer, 'friendship', [
+        row({ id: 'req-5', status: 'cancelled' }),
+      ]),
+    ).toEqual({ kind: 'reopen', id: 'req-5' });
+  });
+});
+
+describe('friendship action authorization', () => {
+  const pending = row({ id: 'req-1', status: 'pending' });
+  const incoming = row({
+    id: 'req-2',
+    status: 'pending',
+    senderId: other,
+    recipientId: viewer,
+  });
+  const accepted = row({ id: 'req-3', status: 'accepted' });
+
+  it('only the recipient accepts or declines a pending request', () => {
+    expect(authorizeAccept(pending, other)).toBe('ok');
+    expect(authorizeAccept(pending, viewer)).toBe('forbidden');
+    expect(authorizeAccept(accepted, other)).toBe('not-pending');
+    expect(authorizeDecline(incoming, viewer)).toBe('ok');
+    expect(authorizeDecline(incoming, other)).toBe('forbidden');
+  });
+
+  it('only the sender cancels, and either friend can unfriend', () => {
+    expect(authorizeCancel(pending, viewer)).toBe('ok');
+    expect(authorizeCancel(pending, other)).toBe('forbidden');
+    expect(authorizeUnfriend(accepted, viewer)).toBe('ok');
+    expect(authorizeUnfriend(accepted, other)).toBe('ok');
+    expect(authorizeUnfriend(pending, viewer)).toBe('not-friends');
   });
 });

@@ -104,6 +104,7 @@ export default function RootLayout() {
               <Stack.Screen name="setup-dog" />
               <Stack.Screen name="new-post" />
               <Stack.Screen name="user/[handle]" />
+              <Stack.Screen name="friends" />
               <Stack.Screen name="chat/[conversationId]" />
               <Stack.Screen name="easy-qr" />
             </Stack>

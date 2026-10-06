@@ -10,6 +10,7 @@ import {
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import {
   IsArray,
+  IsIn,
   IsOptional,
   IsString,
   IsUrl,
@@ -26,6 +27,7 @@ import {
   AddPostCommentUseCase,
   CreateFeedPostUseCase,
   ListFeedPostsUseCase,
+  ListFriendsFeedUseCase,
   ListPostCommentsUseCase,
   TogglePostLikeUseCase,
 } from '../application/feed.use-cases';
@@ -36,6 +38,11 @@ class CreatePostDto {
   @IsString()
   @MaxLength(2000)
   body?: string;
+
+  @ApiPropertyOptional({ enum: ['public', 'friends', 'private'] })
+  @IsOptional()
+  @IsIn(['public', 'friends', 'private'])
+  visibility?: 'public' | 'friends' | 'private';
 
   @ApiProperty({ type: [String] })
   @IsArray()
@@ -61,7 +68,21 @@ export class FeedController {
     private readonly toggleLike: TogglePostLikeUseCase,
     private readonly listComments: ListPostCommentsUseCase,
     private readonly addComment: AddPostCommentUseCase,
+    private readonly friendsFeed: ListFriendsFeedUseCase,
   ) {}
+
+  @Get('friends')
+  friends(
+    @CurrentUser() user: AuthUserPayload,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.friendsFeed.execute(
+      user.userId,
+      cursor,
+      limit ? Number(limit) : undefined,
+    );
+  }
 
   @Get('posts')
   @ApiQuery({ name: 'radiusKm', required: false, type: Number })
@@ -112,7 +133,12 @@ export class FeedController {
 
   @Post('posts')
   create(@CurrentUser() user: AuthUserPayload, @Body() dto: CreatePostDto) {
-    return this.createPost.execute(user.userId, dto.body, dto.imageUrls);
+    return this.createPost.execute(
+      user.userId,
+      dto.body,
+      dto.imageUrls,
+      dto.visibility,
+    );
   }
 
   @Post('posts/:id/like')

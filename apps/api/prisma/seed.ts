@@ -117,6 +117,9 @@ async function main() {
     },
   });
 
+  const pair = (a: string, b: string) =>
+    a < b ? { userLowId: a, userHighId: b } : { userLowId: b, userHighId: a };
+
   await prisma.connectionRequest.upsert({
     where: {
       senderId_recipientId_type: {
@@ -128,6 +131,7 @@ async function main() {
     create: {
       senderId: sarah.id,
       recipientId: neo.id,
+      ...pair(sarah.id, neo.id),
       type: 'friendship',
       status: 'pending',
     },
@@ -145,6 +149,7 @@ async function main() {
     create: {
       senderId: jefferson.id,
       recipientId: neo.id,
+      ...pair(jefferson.id, neo.id),
       type: 'friendship',
       status: 'pending',
     },

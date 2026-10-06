@@ -70,7 +70,7 @@ export type InboxRequestApi = {
   senderId: string;
   recipientId: string;
   type: 'romance' | 'friendship' | 'request';
-  status: 'pending' | 'accepted' | 'rejected';
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled' | 'removed';
   createdAt: string;
   sender?: {
     id: string;
@@ -79,6 +79,7 @@ export type InboxRequestApi = {
     photoUrl?: string | null;
     petName?: string | null;
     petPhotoUrl?: string | null;
+    petBreed?: string | null;
   };
   recipient?: {
     id: string;
@@ -87,6 +88,7 @@ export type InboxRequestApi = {
     photoUrl?: string | null;
     petName?: string | null;
     petPhotoUrl?: string | null;
+    petBreed?: string | null;
   };
 };
 

@@ -3,7 +3,8 @@ import { Pressable, ScrollView, StyleSheet } from 'react-native';
 
 import { FeedImageLightbox } from '@/components/paw/feed-image-lightbox';
 import { RemoteMediaImage } from '@/components/paw/remote-media-image';
-import { PawColors } from '@/constants/paw-styles';
+import { PawColors, PawLayout } from '@/constants/paw-styles';
+import { useContentWidth } from '@/hooks/use-content-width';
 import { resolvePostImageUrls } from '@/lib/api/media';
 
 type FeedPostImagesProps = {
@@ -12,8 +13,11 @@ type FeedPostImagesProps = {
 
 export function FeedPostImages({ imageUrls }: FeedPostImagesProps) {
   const urls = useMemo(() => resolvePostImageUrls(imageUrls), [imageUrls]);
+  const contentWidth = useContentWidth();
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const photoStyle = { width: contentWidth, height: contentWidth };
+  const bleedStyle = [styles.bleed, { width: contentWidth }];
 
   if (!urls.length) return null;
 
@@ -27,9 +31,10 @@ export function FeedPostImages({ imageUrls }: FeedPostImagesProps) {
       <>
         <Pressable
           onPress={() => openAt(0)}
+          style={bleedStyle}
           accessibilityRole="imagebutton"
           accessibilityLabel="View post photo full screen">
-          <RemoteMediaImage uri={urls[0]} style={styles.single} contentFit="cover" />
+          <RemoteMediaImage uri={urls[0]} style={[styles.photo, photoStyle]} contentFit="cover" />
         </Pressable>
         <FeedImageLightbox
           visible={lightboxOpen}
@@ -45,16 +50,17 @@ export function FeedPostImages({ imageUrls }: FeedPostImagesProps) {
     <>
       <ScrollView
         horizontal
+        pagingEnabled
         showsHorizontalScrollIndicator={false}
         nestedScrollEnabled
-        contentContainerStyle={styles.row}>
+        style={bleedStyle}>
         {urls.map((uri, index) => (
           <Pressable
             key={`${uri}-${index}`}
             onPress={() => openAt(index)}
             accessibilityRole="imagebutton"
             accessibilityLabel={`View photo ${index + 1} of ${urls.length} full screen`}>
-            <RemoteMediaImage uri={uri} style={styles.thumb} contentFit="cover" />
+            <RemoteMediaImage uri={uri} style={[styles.photo, photoStyle]} contentFit="cover" />
           </Pressable>
         ))}
       </ScrollView>
@@ -69,24 +75,10 @@ export function FeedPostImages({ imageUrls }: FeedPostImagesProps) {
 }
 
 const styles = StyleSheet.create({
-  single: {
-    alignSelf: 'stretch',
-    width: '100%',
-    height: 220,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: PawColors.black,
-    backgroundColor: PawColors.fieldGray,
+  bleed: {
+    marginHorizontal: -PawLayout.horizontalPadding,
   },
-  row: {
-    gap: 8,
-  },
-  thumb: {
-    width: 160,
-    height: 160,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: PawColors.black,
+  photo: {
     backgroundColor: PawColors.fieldGray,
   },
 });
