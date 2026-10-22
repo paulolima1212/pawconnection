@@ -22,7 +22,7 @@
       }
     },
     "android": {
-      "versionCode": 25,
+      "versionCode": 26,
       "package": "com.plima1212.pawconnection",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
