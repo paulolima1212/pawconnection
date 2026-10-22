@@ -4,7 +4,7 @@
 
 - Application ID: `com.plima1212.pawconnection`
 - Release version: `1.0.17`
-- Android versionCode: remote on EAS (production autoIncrement). Play production already has `21` from 1.0.16; the next production-profile build is `22`
+- Android versionCode: remote on EAS (production autoIncrement). Play production has `21` from 1.0.16. Alpha `22` (1.0.17) shipped 4 KB-aligned 32-bit native libraries. The next production-profile build is `23`, limited to `arm64-v8a` and `x86_64`, which are 16 KB aligned
 - iOS buildNumber: `10`
 - Expo SDK 54 / Android target API 36
 - Production artifact: Android App Bundle

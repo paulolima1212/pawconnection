@@ -22,7 +22,7 @@
       }
     },
     "android": {
-      "versionCode": 22,
+      "versionCode": 23,
       "package": "com.plima1212.pawconnection",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
@@ -79,7 +79,8 @@
         "android": {
           "usesCleartextTraffic": true,
           "enableMinifyInReleaseBuilds": true,
-          "enablePngCrunchInReleaseBuilds": false
+          "enablePngCrunchInReleaseBuilds": false,
+          "buildArchs": ["arm64-v8a", "x86_64"]
         }
         }
       ]
