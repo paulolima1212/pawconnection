@@ -4,7 +4,7 @@
 
 - Application ID: `com.plima1212.pawconnection`
 - Release version: `1.0.17`
-- Android versionCode: remote on EAS (production autoIncrement). Alpha `24` cannot roll out: it shipped only `arm64-v8a` and `x86_64`, so existing 32-bit installs cannot upgrade. The next build is `25` and includes `armeabi-v7a`, `arm64-v8a`, `x86`, and `x86_64`. 16 KB alignment still applies to the 64-bit libraries.
+- Android versionCode: remote on EAS (production autoIncrement). Alpha `25` includes `armeabi-v7a`, `arm64-v8a`, `x86`, and `x86_64`, so existing 32-bit installs can upgrade. 16 KB alignment still applies to the 64-bit libraries. Alpha `24` could not roll out because it shipped only 64-bit ABIs.
 - iOS buildNumber: `10`
 - Expo SDK 54 / Android target API 36
 - Production artifact: Android App Bundle
