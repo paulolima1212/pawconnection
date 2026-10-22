@@ -3,13 +3,12 @@
 ## Current Android release configuration
 
 - Application ID: `com.plima1212.pawconnection`
-- Release version: `1.0.7`
-- Android versionCode: `10` (EAS production autoIncrement; Play already has `10` from 1.0.6)
+- Release version: `1.0.17`
+- Android versionCode: remote on EAS (production autoIncrement). Play production already has `21` from 1.0.16; the next production-profile build is `22`
 - iOS buildNumber: `10`
 - Expo SDK 54 / Android target API 36
 - Production artifact: Android App Bundle
-- EAS production version code: remote and automatically incremented (next expected: 11)
-- Initial automated submission: internal track, draft status
+- Store track for 1.0.17: `alpha` (`npm run submit:android:alpha`), because 1.0.16 is already on production
 - Production API, app and storage endpoints: HTTPS
 - Cleartext traffic: disabled in production builds
 
@@ -85,7 +84,10 @@ After the first manual upload and service-account setup:
 
 ```bash
 npm run submit:android:production
+npm run submit:android:alpha
 ```
+
+`submit:android:production` sends the latest AAB to the internal track. `submit:android:alpha` sends it to the alpha track.
 
 ## Public legal pages
 

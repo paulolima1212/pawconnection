@@ -2,7 +2,7 @@
   "expo": {
     "name": "Paw Connection",
     "slug": "paw-connection",
-    "version": "1.0.16",
+    "version": "1.0.17",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "pawconnection",
@@ -22,7 +22,7 @@
       }
     },
     "android": {
-      "versionCode": 18,
+      "versionCode": 22,
       "package": "com.plima1212.pawconnection",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
