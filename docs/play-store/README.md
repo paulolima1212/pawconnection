@@ -3,12 +3,12 @@
 ## Current Android release configuration
 
 - Application ID: `com.plima1212.pawconnection`
-- Release version: `1.0.17`
-- Android versionCode: remote on EAS (production autoIncrement). Alpha `26` replaces `25`, which Play already consumed. It includes `armeabi-v7a`, `arm64-v8a`, `x86`, and `x86_64`. 16 KB alignment still applies to the 64-bit libraries.
+- Release version: `1.0.18`
+- Android versionCode: remote on EAS (production autoIncrement). Open testing receives `27`. The bundle keeps `armeabi-v7a`, `arm64-v8a`, `x86`, and `x86_64`. 16 KB alignment still applies to the 64-bit libraries.
 - iOS buildNumber: `10`
 - Expo SDK 54 / Android target API 36
 - Production artifact: Android App Bundle
-- Store track for 1.0.17: `alpha` (`npm run submit:android:alpha`), because 1.0.16 is already on production
+- Store track for 1.0.18: open testing (`npm run submit:android:open`, Play track `beta`)
 - Production API, app and storage endpoints: HTTPS
 - Cleartext traffic: disabled in production builds
 
@@ -85,9 +85,10 @@ After the first manual upload and service-account setup:
 ```bash
 npm run submit:android:production
 npm run submit:android:alpha
+npm run submit:android:open
 ```
 
-`submit:android:production` sends the latest AAB to the internal track. `submit:android:alpha` sends it to the alpha track.
+`submit:android:production` sends the latest AAB to the internal track. `submit:android:alpha` sends it to closed testing. `submit:android:open` sends it to open testing.
 
 ## Public legal pages
 
