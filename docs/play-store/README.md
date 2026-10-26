@@ -3,12 +3,12 @@
 ## Current Android release configuration
 
 - Application ID: `com.plima1212.pawconnection`
-- Release version: `1.0.18`
-- Android versionCode: remote on EAS (production autoIncrement). Open testing receives `27`. The bundle keeps `armeabi-v7a`, `arm64-v8a`, `x86`, and `x86_64`. 16 KB alignment still applies to the 64-bit libraries.
+- Release version: `1.0.19`
+- Android versionCode: remote on EAS (production autoIncrement). Open testing receives `28`. The bundle keeps `armeabi-v7a`, `arm64-v8a`, `x86`, and `x86_64`. 16 KB alignment still applies to the 64-bit libraries.
 - iOS buildNumber: `10`
 - Expo SDK 54 / Android target API 36
 - Production artifact: Android App Bundle
-- Store track for 1.0.18: open testing (`npm run submit:android:open`, Play track `beta`)
+- Store track for 1.0.19: open testing (`npm run submit:android:open`, Play track `beta`)
 - Production API, app and storage endpoints: HTTPS
 - Cleartext traffic: disabled in production builds
 
