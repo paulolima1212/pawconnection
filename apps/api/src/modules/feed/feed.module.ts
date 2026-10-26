@@ -7,10 +7,12 @@ import { PrismaPostRepository } from './infrastructure/prisma-post.repository';
 import {
   AddPostCommentUseCase,
   CreateFeedPostUseCase,
+  DeleteFeedPostUseCase,
   ListFeedPostsUseCase,
   ListFriendsFeedUseCase,
   ListPostCommentsUseCase,
   TogglePostLikeUseCase,
+  UpdateFeedPostUseCase,
 } from './application/feed.use-cases';
 import { FeedController } from './presentation/feed.controller';
 
@@ -21,6 +23,8 @@ import { FeedController } from './presentation/feed.controller';
     { provide: POST_REPOSITORY, useClass: PrismaPostRepository },
     ListFeedPostsUseCase,
     CreateFeedPostUseCase,
+    UpdateFeedPostUseCase,
+    DeleteFeedPostUseCase,
     TogglePostLikeUseCase,
     ListPostCommentsUseCase,
     AddPostCommentUseCase,

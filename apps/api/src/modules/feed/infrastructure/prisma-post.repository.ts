@@ -4,6 +4,7 @@ import { SupabaseService } from '../../../shared/infrastructure/supabase/supabas
 import { mapUserToSummary } from '../../../shared/infrastructure/mappers/prisma.mapper';
 import { NotFoundError } from '../../../shared/domain/result';
 import { CommentEntity, PostEntity } from '../../../shared/domain/types';
+import { FeedPostSnapshot } from '../domain/feed-post';
 import { IPostRepository } from '../domain/repositories/post.repository';
 
 @Injectable()
@@ -173,6 +174,60 @@ export class PrismaPostRepository implements IPostRepository {
       },
     });
     return this.mapPost(post, authorId);
+  }
+
+  async findSnapshot(postId: string): Promise<FeedPostSnapshot | null> {
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+      select: {
+        id: true,
+        authorId: true,
+        body: true,
+        visibility: true,
+        images: { orderBy: { sortOrder: 'asc' }, select: { url: true } },
+      },
+    });
+    if (!post) return null;
+    return {
+      id: post.id,
+      authorId: post.authorId,
+      body: post.body,
+      imageUrls: post.images.map((image) => image.url),
+      visibility: post.visibility,
+    };
+  }
+
+  async updatePost(
+    next: FeedPostSnapshot,
+    actorId: string,
+  ): Promise<PostEntity> {
+    const post = await this.prisma.$transaction(async (tx) => {
+      await tx.postImage.deleteMany({ where: { postId: next.id } });
+      return tx.post.update({
+        where: { id: next.id },
+        data: {
+          body: next.body,
+          visibility: next.visibility,
+          images: {
+            create: next.imageUrls.map((url, index) => ({
+              url,
+              sortOrder: index,
+            })),
+          },
+        },
+        include: {
+          images: true,
+          likes: true,
+          comments: { select: { id: true } },
+          author: { include: { pet: true } },
+        },
+      });
+    });
+    return this.mapPost(post, actorId);
+  }
+
+  async deletePost(postId: string): Promise<void> {
+    await this.prisma.post.delete({ where: { id: postId } });
   }
 
   async toggleLike(postId: string, userId: string) {

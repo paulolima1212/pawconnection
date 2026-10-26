@@ -41,6 +41,24 @@ export function createFeedPost(
   });
 }
 
+export function updateFeedPost(
+  postId: string,
+  body: string | undefined,
+  imageUrls: string[],
+  visibility?: 'public' | 'friends' | 'private',
+) {
+  return apiRequest<FeedPostApi>(`/feed/posts/${postId}`, {
+    method: 'PATCH',
+    body: { body, imageUrls, visibility },
+  });
+}
+
+export function deleteFeedPost(postId: string) {
+  return apiRequest<{ id: string }>(`/feed/posts/${postId}`, {
+    method: 'DELETE',
+  });
+}
+
 export function listFriendsFeed(cursor?: string | null) {
   const query = new URLSearchParams();
   if (cursor) query.set('cursor', cursor);
