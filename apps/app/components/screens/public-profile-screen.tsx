@@ -27,8 +27,13 @@ import type { ProfileMeResponse } from '@/lib/api/types';
 import {
   connectButtonEnabled,
   connectButtonLabel,
+  showCancelRequest,
+  showDeclineRequest,
+  showUnfriend,
+  unfriendConfirmMessage,
   type ProfileConnectionStatus,
 } from '@/lib/profile-connection';
+import { mutualFriendsLabel } from '@/lib/friendship-copy';
 
 type PublicProfileTab = 'pet' | 'owner';
 
@@ -59,6 +64,8 @@ export function PublicProfileScreen({ handle }: PublicProfileScreenProps) {
   const [connectionRequestId, setConnectionRequestId] = useState<string | null>(null);
   const [connectionReady, setConnectionReady] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [confirmUnfriend, setConfirmUnfriend] = useState(false);
+  const [mutualCount, setMutualCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,6 +85,12 @@ export function PublicProfileScreen({ handle }: PublicProfileScreenProps) {
             if (!cancelled) {
               setConnectionStatus(connection.status);
               setConnectionRequestId(connection.requestId);
+            }
+            try {
+              const mutual = await inboxApi.listMutualFriends(data.id);
+              if (!cancelled) setMutualCount(mutual.total);
+            } catch {
+              if (!cancelled) setMutualCount(0);
             }
           } catch {
             if (!cancelled) {
@@ -166,7 +179,9 @@ export function PublicProfileScreen({ handle }: PublicProfileScreenProps) {
 
   const isOwnProfile = Boolean(profile?.id && userId && profile.id === userId);
   const blockName = ownerFirst;
-  const showConnect = Boolean(profile && !isOwnProfile && !blockedByMe);
+  const showConnect = Boolean(
+    profile && !isOwnProfile && !blockedByMe && connectionStatus !== 'blocked',
+  );
   const connectQuiet = connectionStatus === 'outgoing' || connectionStatus === 'connected';
 
   const onConnect = async () => {
@@ -195,16 +210,74 @@ export function PublicProfileScreen({ handle }: PublicProfileScreenProps) {
         profile.id,
         CONNECTION_INTENT_FRIENDSHIP,
       );
-      setConnectionStatus('outgoing');
+      const incoming = created.recipientId === userId;
+      setConnectionStatus(incoming ? 'incoming' : 'outgoing');
       setConnectionRequestId(created.id);
       showTooltip({
-        title: 'Request sent',
-        message: `${ownerFirst} can accept your connection request.`,
+        title: incoming ? 'Request waiting' : 'Request sent',
+        message: incoming
+          ? `${ownerFirst} already sent you a friend request.`
+          : `${ownerFirst} can accept your friend request.`,
         variant: 'success',
       });
     } catch (err) {
       showTooltip({
         title: 'Could not connect',
+        message: tooltipMessageFromError(err, 'Please try again.'),
+        variant: 'error',
+      });
+    } finally {
+      setConnecting(false);
+    }
+  };
+
+  const onCancelRequest = async () => {
+    if (!connectionRequestId) return;
+    setConnecting(true);
+    try {
+      await inboxApi.cancelInboxRequest(connectionRequestId);
+      setConnectionStatus('none');
+      setConnectionRequestId(null);
+    } catch (err) {
+      showTooltip({
+        title: 'Could not cancel',
+        message: tooltipMessageFromError(err, 'Please try again.'),
+        variant: 'error',
+      });
+    } finally {
+      setConnecting(false);
+    }
+  };
+
+  const onDeclineRequest = async () => {
+    if (!connectionRequestId) return;
+    setConnecting(true);
+    try {
+      await inboxApi.rejectInboxRequest(connectionRequestId);
+      setConnectionStatus('none');
+      setConnectionRequestId(null);
+    } catch (err) {
+      showTooltip({
+        title: 'Could not decline',
+        message: tooltipMessageFromError(err, 'Please try again.'),
+        variant: 'error',
+      });
+    } finally {
+      setConnecting(false);
+    }
+  };
+
+  const onUnfriend = async () => {
+    if (!profile?.id) return;
+    setConnecting(true);
+    try {
+      await inboxApi.removeFriend(profile.id);
+      setConnectionStatus('none');
+      setConnectionRequestId(null);
+      setConfirmUnfriend(false);
+    } catch (err) {
+      showTooltip({
+        title: 'Could not remove friend',
         message: tooltipMessageFromError(err, 'Please try again.'),
         variant: 'error',
       });
@@ -329,29 +402,83 @@ export function PublicProfileScreen({ handle }: PublicProfileScreenProps) {
 
           {showConnect ? (
             <View style={styles.connectWrap}>
+              {mutualCount > 0 ? (
+                <Text style={styles.mutualText}>{mutualFriendsLabel(mutualCount)}</Text>
+              ) : null}
               {!isAuthenticated || connectionReady ? (
-                <Pressable
-                  onPress={() => void onConnect()}
-                  disabled={
-                    connecting ||
-                    (isAuthenticated && !connectButtonEnabled(connectionStatus))
-                  }
-                  style={[styles.connectBtn, connectQuiet && styles.connectBtnQuiet]}
-                  accessibilityRole="button"
-                  accessibilityLabel={connectButtonLabel(
-                    isAuthenticated ? connectionStatus : 'none',
-                  )}>
-                  {connecting ? (
-                    <ActivityIndicator color={PawColors.black} />
-                  ) : (
-                    <Text style={[styles.connectText, connectQuiet && styles.connectTextQuiet]}>
-                      {connectButtonLabel(isAuthenticated ? connectionStatus : 'none')}
-                    </Text>
-                  )}
-                </Pressable>
+                <View style={styles.connectActions}>
+                  <Pressable
+                    onPress={() => void onConnect()}
+                    disabled={
+                      connecting ||
+                      (isAuthenticated && !connectButtonEnabled(connectionStatus))
+                    }
+                    style={[styles.connectBtn, connectQuiet && styles.connectBtnQuiet]}
+                    accessibilityRole="button"
+                    accessibilityLabel={connectButtonLabel(
+                      isAuthenticated ? connectionStatus : 'none',
+                    )}>
+                    {connecting ? (
+                      <ActivityIndicator color={PawColors.black} />
+                    ) : (
+                      <Text style={[styles.connectText, connectQuiet && styles.connectTextQuiet]}>
+                        {connectButtonLabel(isAuthenticated ? connectionStatus : 'none')}
+                      </Text>
+                    )}
+                  </Pressable>
+                  {showCancelRequest(connectionStatus) ? (
+                    <Pressable
+                      onPress={() => void onCancelRequest()}
+                      disabled={connecting}
+                      style={styles.secondaryBtn}
+                      accessibilityRole="button"
+                      accessibilityLabel="Cancel request">
+                      <Text style={styles.secondaryText}>Cancel</Text>
+                    </Pressable>
+                  ) : null}
+                  {showDeclineRequest(connectionStatus) ? (
+                    <Pressable
+                      onPress={() => void onDeclineRequest()}
+                      disabled={connecting}
+                      style={styles.secondaryBtn}
+                      accessibilityRole="button"
+                      accessibilityLabel="Decline friend request">
+                      <Text style={styles.secondaryText}>Decline</Text>
+                    </Pressable>
+                  ) : null}
+                  {showUnfriend(connectionStatus) ? (
+                    <Pressable
+                      onPress={() => setConfirmUnfriend(true)}
+                      disabled={connecting}
+                      style={styles.secondaryBtn}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Unfriend ${ownerFirst}`}>
+                      <Text style={styles.secondaryText}>Unfriend</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
               ) : (
                 <ActivityIndicator color={PawColors.peachBorder} />
               )}
+              {confirmUnfriend ? (
+                <View style={styles.confirmBox}>
+                  <Text style={styles.confirmText}>{unfriendConfirmMessage(ownerFirst)}</Text>
+                  <Pressable
+                    onPress={() => void onUnfriend()}
+                    style={styles.secondaryBtn}
+                    accessibilityRole="button"
+                    accessibilityLabel="Confirm remove friend">
+                    <Text style={styles.secondaryText}>Remove</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setConfirmUnfriend(false)}
+                    style={styles.secondaryBtn}
+                    accessibilityRole="button"
+                    accessibilityLabel="Keep friend">
+                    <Text style={styles.secondaryText}>Keep</Text>
+                  </Pressable>
+                </View>
+              ) : null}
             </View>
           ) : null}
 
@@ -528,6 +655,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: PawLayout.horizontalPadding,
     paddingTop: 16,
     alignItems: 'center',
+    gap: 8,
+  },
+  connectActions: {
+    width: '100%',
+    gap: 8,
+  },
+  mutualText: {
+    fontSize: PawFontSize.caption,
+    color: PawColors.black,
+  },
+  secondaryBtn: {
+    minHeight: 44,
+    paddingHorizontal: 14,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: PawColors.black,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryText: {
+    fontSize: PawFontSize.caption,
+    fontWeight: '700',
+    color: PawColors.black,
+  },
+  confirmBox: {
+    width: '100%',
+    gap: 8,
+  },
+  confirmText: {
+    fontSize: PawFontSize.body,
+    color: PawColors.black,
   },
   connectBtn: {
     minHeight: 50,

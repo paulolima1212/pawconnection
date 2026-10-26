@@ -1,4 +1,9 @@
-export type ProfileConnectionStatus = 'none' | 'outgoing' | 'incoming' | 'connected';
+export type ProfileConnectionStatus =
+  | 'none'
+  | 'outgoing'
+  | 'incoming'
+  | 'connected'
+  | 'blocked';
 
 export type ProfileConnection = {
   status: ProfileConnectionStatus;
@@ -12,13 +17,31 @@ export function connectButtonLabel(status: ProfileConnectionStatus): string {
     case 'incoming':
       return 'Accept';
     case 'connected':
-      return 'Connected';
+      return 'Friends';
+    case 'blocked':
+      return 'Blocked';
     default:
-      return 'Connect';
+      return 'Add Friend';
   }
 }
 
-/** Connect sends a request. Accept confirms one that was received. */
+/** Add Friend sends a request. Accept confirms one that was received. */
 export function connectButtonEnabled(status: ProfileConnectionStatus): boolean {
   return status === 'none' || status === 'incoming';
+}
+
+export function showCancelRequest(status: ProfileConnectionStatus): boolean {
+  return status === 'outgoing';
+}
+
+export function showDeclineRequest(status: ProfileConnectionStatus): boolean {
+  return status === 'incoming';
+}
+
+export function showUnfriend(status: ProfileConnectionStatus): boolean {
+  return status === 'connected';
+}
+
+export function unfriendConfirmMessage(name: string): string {
+  return `Remove ${name} from your friends?`;
 }

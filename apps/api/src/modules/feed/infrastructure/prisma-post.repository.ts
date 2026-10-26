@@ -18,6 +18,7 @@ export class PrismaPostRepository implements IPostRepository {
       id: string;
       authorId: string;
       body: string | null;
+      visibility?: 'public' | 'friends' | 'private';
       createdAt: Date;
       updatedAt: Date;
       images: { url: string; sortOrder: number }[];
@@ -45,6 +46,7 @@ export class PrismaPostRepository implements IPostRepository {
       id: post.id,
       authorId: post.authorId,
       body: post.body,
+      visibility: post.visibility ?? 'public',
       imageUrls: post.images
         .sort((a, b) => a.sortOrder - b.sortOrder)
         .map((i) => this.supabase.normalizePublicUrl(i.url) ?? i.url),
@@ -84,15 +86,78 @@ export class PrismaPostRepository implements IPostRepository {
     return post?.authorId ?? null;
   }
 
+  async findAccess(postId: string) {
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+      select: { authorId: true, visibility: true },
+    });
+    return post;
+  }
+
+  async listFriendsFeed(
+    userId: string,
+    friendIds: string[],
+    cursor: string | null,
+    limit: number,
+  ) {
+    const cursorPost = cursor
+      ? await this.prisma.post.findUnique({
+          where: { id: cursor },
+          select: { id: true, createdAt: true },
+        })
+      : null;
+    const posts = await this.prisma.post.findMany({
+      where: {
+        AND: [
+          {
+            OR: [
+              {
+                authorId: { in: friendIds },
+                visibility: { in: ['public', 'friends'] },
+              },
+              { authorId: userId, visibility: { in: ['public', 'friends'] } },
+            ],
+          },
+          cursorPost
+            ? {
+                OR: [
+                  { createdAt: { lt: cursorPost.createdAt } },
+                  {
+                    createdAt: cursorPost.createdAt,
+                    id: { lt: cursorPost.id },
+                  },
+                ],
+              }
+            : {},
+        ],
+      },
+      include: {
+        images: true,
+        likes: true,
+        comments: { select: { id: true } },
+        author: { include: { pet: true } },
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+    });
+    const hasMore = posts.length > limit;
+    return {
+      items: posts.slice(0, limit).map((post) => this.mapPost(post, userId)),
+      hasMore,
+    };
+  }
+
   async createPost(
     authorId: string,
     body: string | undefined,
     imageUrls: string[],
+    visibility: 'public' | 'friends' | 'private' = 'public',
   ): Promise<PostEntity> {
     const post = await this.prisma.post.create({
       data: {
         authorId,
         body,
+        visibility,
         images: {
           create: imageUrls.slice(0, 8).map((url, index) => ({
             url,

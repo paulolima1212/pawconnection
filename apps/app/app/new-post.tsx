@@ -44,6 +44,7 @@ export default function NewPostScreen() {
   const [body, setBody] = useState('');
   const [imageUris, setImageUris] = useState<string[]>([]);
   const [publishing, setPublishing] = useState(false);
+  const [visibility, setVisibility] = useState<'public' | 'friends' | 'private'>('public');
   const [pickingPhotos, setPickingPhotos] = useState(false);
   const pickingRef = useRef(false);
 
@@ -122,7 +123,7 @@ export default function NewPostScreen() {
         const remote = await resolveRemoteUri(uri);
         if (remote && isHttpUrl(remote)) imageUrls.push(remote);
       }
-      const post = await feedApi.createFeedPost(body.trim() || undefined, imageUrls);
+      const post = await feedApi.createFeedPost(body.trim() || undefined, imageUrls, visibility);
       notifyPostCreated(mergeAuthorPhotoSources(post, profileAfterSync, draft));
       router.back();
     } catch (err) {
@@ -137,6 +138,7 @@ export default function NewPostScreen() {
     }
   }, [
     canPublish,
+    visibility,
     publishing,
     body,
     imageUris,
@@ -246,6 +248,23 @@ export default function NewPostScreen() {
               <Text style={styles.addPhotosHint}>Tap to select photos from your gallery</Text>
             </Pressable>
           )}
+        </View>
+
+        <View style={styles.visibilityRow}>
+          {(['public', 'friends', 'private'] as const).map((option) => (
+            <Pressable
+              key={option}
+              onPress={() => setVisibility(option)}
+              style={styles.visibilityChip}
+              accessibilityRole="button"
+              accessibilityState={{ selected: visibility === option }}
+              accessibilityLabel={`Post visibility ${option}`}>
+              <Text style={styles.visibilityText}>
+                {visibility === option ? '✓ ' : ''}
+                {option === 'public' ? 'Public' : option === 'friends' ? 'Friends' : 'Private'}
+              </Text>
+            </Pressable>
+          ))}
         </View>
 
         <View style={styles.tipBox}>
@@ -469,6 +488,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderStyle: 'dashed',
+  },
+  visibilityRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  visibilityChip: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: PawColors.black,
+    borderRadius: 22,
+  },
+  visibilityText: {
+    fontSize: PawFontSize.caption,
+    fontWeight: '700',
+    color: PawColors.black,
   },
   tipBox: {
     marginTop: 20,

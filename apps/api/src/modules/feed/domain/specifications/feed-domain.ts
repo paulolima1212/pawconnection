@@ -29,13 +29,19 @@ export class PostScopeSpec extends CompositeSpecification<PostEntity> {
   constructor(
     private readonly scope: FeedScope,
     private readonly userId: string,
+    private readonly friendIds: ReadonlySet<string> = new Set(),
   ) {
     super();
   }
 
   isSatisfiedBy(post: PostEntity): boolean {
-    if (this.scope === 'all') return true;
+    const visibility = post.visibility ?? 'public';
+    const isFriend =
+      post.authorId === this.userId || this.friendIds.has(post.authorId);
+    if (visibility === 'private' && post.authorId !== this.userId) return false;
+    if (visibility === 'friends' && !isFriend) return false;
     if (this.scope === 'mine') return post.authorId === this.userId;
+    if (this.scope === 'friends') return isFriend;
     return true;
   }
 }

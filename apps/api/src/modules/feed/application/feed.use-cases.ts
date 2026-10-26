@@ -26,6 +26,12 @@ import {
   IPostRepository,
   POST_REPOSITORY,
 } from '../domain/repositories/post.repository';
+import {
+  CONNECTION_REQUEST_REPOSITORY,
+  IConnectionRequestRepository,
+} from '../../connections/domain/repositories/connection-request.repository';
+import { canViewPost } from '../../connections/domain/friendship-graph';
+import { PostVisibilityValue } from '../../../shared/domain/types';
 
 export type ListFeedPostsQuery = FeedPostFilters & {
   radiusKm?: number;
@@ -39,6 +45,8 @@ export class ListFeedPostsUseCase {
     @Inject(USER_REPOSITORY) private readonly users: IUserRepository,
     @Inject(USER_BLOCK_READER) private readonly blocks: IUserBlockReader,
     @Inject(POST_REPORT_READER) private readonly reports: IPostReportReader,
+    @Inject(CONNECTION_REQUEST_REPOSITORY)
+    private readonly friendships: IConnectionRequestRepository,
   ) {}
 
   async execute(userId: string, query: ListFeedPostsQuery) {
@@ -58,8 +66,11 @@ export class ListFeedPostsUseCase {
       items = items.filter((p) => !reportedIds.has(p.id));
     }
 
+    const friendIds = new Set(
+      await this.friendships.listAcceptedFriendIds(userId),
+    );
     const scopeSpec = new PublishedPostsSpec().and(
-      new PostScopeSpec(query.scope ?? 'all', userId),
+      new PostScopeSpec(query.scope ?? 'all', userId, friendIds),
     );
     items = items.filter((p) => scopeSpec.isSatisfiedBy(p));
 
@@ -104,11 +115,49 @@ export class ListFeedPostsUseCase {
 export class CreateFeedPostUseCase {
   constructor(
     @Inject(POST_REPOSITORY) private readonly posts: IPostRepository,
+    @Inject(CONNECTION_REQUEST_REPOSITORY)
+    private readonly friendships: IConnectionRequestRepository,
   ) {}
 
-  execute(authorId: string, body: string | undefined, imageUrls: string[]) {
-    return this.posts.createPost(authorId, body, imageUrls);
+  async execute(
+    authorId: string,
+    body: string | undefined,
+    imageUrls: string[],
+    visibility?: PostVisibilityValue,
+  ) {
+    const privacy = await this.friendships.getPrivacy(authorId);
+    return this.posts.createPost(
+      authorId,
+      body,
+      imageUrls,
+      visibility ?? privacy?.defaultPostVisibility ?? 'public',
+    );
   }
+}
+
+async function assertPostVisible(
+  posts: IPostRepository,
+  friendships: IConnectionRequestRepository,
+  blocks: IUserBlockReader,
+  postId: string,
+  viewerId: string,
+) {
+  const access = await posts.findAccess(postId);
+  if (!access) throw new NotFoundError('Post not found');
+  const blocked = await blocks.isBlockedBetween(viewerId, access.authorId);
+  const friendIds = await friendships.listAcceptedFriendIds(viewerId);
+  if (
+    !canViewPost({
+      visibility: access.visibility ?? 'public',
+      viewerId,
+      authorId: access.authorId,
+      viewerIsFriend: friendIds.includes(access.authorId),
+      blocked,
+    })
+  ) {
+    throw new ForbiddenError('You cannot view this post');
+  }
+  return access;
 }
 
 @Injectable()
@@ -116,14 +165,18 @@ export class TogglePostLikeUseCase {
   constructor(
     @Inject(POST_REPOSITORY) private readonly posts: IPostRepository,
     @Inject(USER_BLOCK_READER) private readonly blocks: IUserBlockReader,
+    @Inject(CONNECTION_REQUEST_REPOSITORY)
+    private readonly friendships: IConnectionRequestRepository,
   ) {}
 
   async execute(postId: string, userId: string) {
-    const authorId = await this.posts.findAuthorId(postId);
-    if (!authorId) throw new NotFoundError('Post not found');
-    if (await this.blocks.isBlockedBetween(userId, authorId)) {
-      throw new ForbiddenError('You cannot interact with this post');
-    }
+    await assertPostVisible(
+      this.posts,
+      this.friendships,
+      this.blocks,
+      postId,
+      userId,
+    );
     return this.posts.toggleLike(postId, userId);
   }
 }
@@ -133,14 +186,18 @@ export class ListPostCommentsUseCase {
   constructor(
     @Inject(POST_REPOSITORY) private readonly posts: IPostRepository,
     @Inject(USER_BLOCK_READER) private readonly blocks: IUserBlockReader,
+    @Inject(CONNECTION_REQUEST_REPOSITORY)
+    private readonly friendships: IConnectionRequestRepository,
   ) {}
 
   async execute(postId: string, userId: string) {
-    const authorId = await this.posts.findAuthorId(postId);
-    if (!authorId) throw new NotFoundError('Post not found');
-    if (await this.blocks.isBlockedBetween(userId, authorId)) {
-      throw new ForbiddenError('You cannot interact with this post');
-    }
+    await assertPostVisible(
+      this.posts,
+      this.friendships,
+      this.blocks,
+      postId,
+      userId,
+    );
     const hiddenIds = new Set(await this.blocks.listHiddenUserIds(userId));
     const visibleAuthor = new VisibleAuthorSpec(hiddenIds);
     const comments = await this.posts.listComments(postId);
@@ -153,14 +210,53 @@ export class AddPostCommentUseCase {
   constructor(
     @Inject(POST_REPOSITORY) private readonly posts: IPostRepository,
     @Inject(USER_BLOCK_READER) private readonly blocks: IUserBlockReader,
+    @Inject(CONNECTION_REQUEST_REPOSITORY)
+    private readonly friendships: IConnectionRequestRepository,
   ) {}
 
   async execute(postId: string, authorId: string, body: string) {
-    const postAuthorId = await this.posts.findAuthorId(postId);
-    if (!postAuthorId) throw new NotFoundError('Post not found');
-    if (await this.blocks.isBlockedBetween(authorId, postAuthorId)) {
-      throw new ForbiddenError('You cannot interact with this post');
-    }
+    await assertPostVisible(
+      this.posts,
+      this.friendships,
+      this.blocks,
+      postId,
+      authorId,
+    );
     return this.posts.addComment(postId, authorId, body);
+  }
+}
+
+@Injectable()
+export class ListFriendsFeedUseCase {
+  constructor(
+    @Inject(POST_REPOSITORY) private readonly posts: IPostRepository,
+    @Inject(USER_BLOCK_READER) private readonly blocks: IUserBlockReader,
+    @Inject(POST_REPORT_READER) private readonly reports: IPostReportReader,
+    @Inject(CONNECTION_REQUEST_REPOSITORY)
+    private readonly friendships: IConnectionRequestRepository,
+  ) {}
+
+  async execute(userId: string, cursor?: string | null, limit?: number) {
+    const pageSize = Math.min(Math.max(limit ?? 20, 1), 50);
+    const friendIds = await this.friendships.listAcceptedFriendIds(userId);
+    const page = await this.posts.listFriendsFeed(
+      userId,
+      friendIds,
+      cursor ?? null,
+      pageSize,
+    );
+    const hidden = new Set(await this.blocks.listHiddenUserIds(userId));
+    const reported = new Set(
+      await this.reports.listHiddenPostIdsForViewer(userId),
+    );
+    const items = page.items.filter(
+      (post) => !hidden.has(post.authorId) && !reported.has(post.id),
+    );
+    const last = items[items.length - 1];
+    return {
+      items,
+      nextCursor: page.hasMore && last ? last.id : null,
+      hasMore: page.hasMore,
+    };
   }
 }

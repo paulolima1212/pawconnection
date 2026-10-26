@@ -51,7 +51,16 @@ export enum AppDesexed {
 }
 
 export type ConnectionTypeValue = 'romance' | 'friendship' | 'request';
-export type RequestStatusValue = 'pending' | 'accepted' | 'rejected';
+export type RequestStatusValue =
+  | 'pending'
+  | 'accepted'
+  | 'rejected'
+  | 'cancelled'
+  | 'removed';
+
+export type PostVisibilityValue = 'public' | 'friends' | 'private';
+export type FriendRequestPolicyValue = 'everyone' | 'friends_of_friends' | 'nobody';
+export type FriendsListVisibilityValue = 'everyone' | 'friends' | 'only_me';
 export type RequestDirection = 'incoming' | 'outgoing';
 
 export interface OwnerProfile {
@@ -124,6 +133,7 @@ export interface ConnectionRequestEntity {
   status: RequestStatusValue;
   createdAt: Date;
   updatedAt: Date;
+  acceptedAt?: Date | null;
   sender?: UserSummary;
   recipient?: UserSummary;
 }
@@ -145,6 +155,7 @@ export interface PostEntity {
   id: string;
   authorId: string;
   body?: string | null;
+  visibility?: PostVisibilityValue;
   imageUrls: string[];
   likeCount: number;
   commentCount: number;

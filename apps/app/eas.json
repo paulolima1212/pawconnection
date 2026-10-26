@@ -45,6 +45,13 @@
         "track": "alpha",
         "releaseStatus": "completed"
       }
+    },
+    "open": {
+      "android": {
+        "serviceAccountKeyPath": "./docs/pawconnection-c12277b288da.json",
+        "track": "beta",
+        "releaseStatus": "completed"
+      }
     }
   }
 }

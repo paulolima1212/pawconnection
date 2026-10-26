@@ -75,10 +75,10 @@ export function SocialFeedScreen() {
   const router = useRouter();
   const { logout, userId } = useAuth();
   const { showTooltip } = usePawTooltip();
-  const scrollPaddingBottom = useKeyboardAwareBottomPadding(24);
   const { refreshNonce, pendingPost, clearPendingPost } = useFeedPosts();
   const { draft, handle: myHandle, resetOnboardingForDev } = useProfileOnboarding();
   const [viewMode, setViewMode] = useState<FeedMapMode>('feed');
+  const scrollPaddingBottom = useKeyboardAwareBottomPadding(viewMode === 'feed' ? 72 : 24);
   const [search, setSearch] = useState('');
   const [searchFilters, setSearchFilters] = useState<FeedSearchFilters>(EMPTY_FEED_SEARCH_FILTERS);
   const [filtersSheetOpen, setFiltersSheetOpen] = useState(false);
@@ -87,6 +87,8 @@ export function SocialFeedScreen() {
   const [postScope, setPostScope] = useState<FeedPostScope>('all');
   const [placeFilter, setPlaceFilter] = useState<MapPlaceFilter>('forYou');
   const [posts, setPosts] = useState<FeedPostApi[]>([]);
+  const [friendsCursor, setFriendsCursor] = useState<string | null>(null);
+  const [friendsHasMore, setFriendsHasMore] = useState(false);
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [commentsPost, setCommentsPost] = useState<FeedPostApi | null>(null);
@@ -112,29 +114,49 @@ export function SocialFeedScreen() {
     return [pendingPost, ...withoutDup];
   }, [pendingPost]);
 
+  const friendsFeedOnly =
+    postScope === 'friends' &&
+    !search.trim() &&
+    !selectedCity &&
+    !radiusKm &&
+    activeFilterCount === 0;
+
   const loadPosts = useCallback(
-    async (options?: { silent?: boolean }) => {
+    async (options?: { silent?: boolean; cursor?: string | null }) => {
       const silent = options?.silent ?? false;
-      if (!silent) setLoadingPosts(true);
+      const paging = Boolean(options?.cursor);
+      if (!silent && !paging) setLoadingPosts(true);
       try {
-        const data = await feedApi.listFeedPosts(
-          buildListFeedPostsParams({
-            searchText: search,
-            searchFilters,
-            selectedCity,
-            radiusKm,
-            postScope,
-          }),
-        );
-        setPosts(mergePosts(data));
-        clearPendingPost();
+        if (friendsFeedOnly) {
+          const page = await feedApi.listFriendsFeed(options?.cursor);
+          setPosts((current) =>
+            paging ? [...current, ...page.items] : mergePosts(page.items),
+          );
+          setFriendsCursor(page.nextCursor);
+          setFriendsHasMore(page.hasMore);
+        } else {
+          const data = await feedApi.listFeedPosts(
+            buildListFeedPostsParams({
+              searchText: search,
+              searchFilters,
+              selectedCity,
+              radiusKm,
+              postScope,
+            }),
+          );
+          setPosts(mergePosts(data));
+          setFriendsCursor(null);
+          setFriendsHasMore(false);
+        }
+        if (!paging) clearPendingPost();
       } catch {
-        setPosts(pendingPost ? [pendingPost] : []);
+        if (!paging) setPosts(pendingPost ? [pendingPost] : []);
       } finally {
-        if (!silent) setLoadingPosts(false);
+        if (!silent && !paging) setLoadingPosts(false);
       }
     },
     [
+      friendsFeedOnly,
       radiusKm,
       postScope,
       search,
@@ -366,15 +388,6 @@ export function SocialFeedScreen() {
           />
         ) : (
           <>
-            <Pressable
-              style={styles.newPost}
-              onPress={() => router.push('/new-post')}
-              accessibilityRole="button"
-              accessibilityLabel="New post">
-              <Feather name="plus" size={24} color={PawColors.black} />
-              <Text style={styles.newPostText}>New post</Text>
-            </Pressable>
-
             {loadingPosts ? (
               <Text style={styles.emptyFeed}>Loading posts…</Text>
             ) : posts.length === 0 ? (
@@ -446,6 +459,15 @@ export function SocialFeedScreen() {
                 );
               })
             )}
+            {friendsHasMore ? (
+              <Pressable
+                onPress={() => void loadPosts({ silent: true, cursor: friendsCursor })}
+                style={styles.loadMore}
+                accessibilityRole="button"
+                accessibilityLabel="Load more posts from friends">
+                <Text style={styles.loadMoreText}>Load more</Text>
+              </Pressable>
+            ) : null}
           </>
         )}
 
@@ -462,6 +484,17 @@ export function SocialFeedScreen() {
         ) : null}
         <View style={{ height: 24 }} />
       </ScrollView>
+
+      {viewMode === 'feed' ? (
+        <Pressable
+          style={styles.newPost}
+          onPress={() => router.push('/new-post')}
+          accessibilityRole="button"
+          accessibilityLabel="New post">
+          <Feather name="plus" size={18} color={PawColors.black} />
+          <Text style={styles.newPostText}>Post</Text>
+        </Pressable>
+      ) : null}
 
       {commentsPost ? (
         <PostCommentsSheet
@@ -610,40 +643,41 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   newPost: {
-    marginTop: 16,
+    position: 'absolute',
+    right: 16,
+    bottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
+    gap: 6,
     backgroundColor: PawColors.peachBorder,
-    borderWidth: 3,
+    borderWidth: 2,
     borderColor: PawColors.black,
-    borderRadius: PawLayout.borderRadiusField,
-    height: 50,
+    borderRadius: PawLayout.borderRadiusPill,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
   },
   newPostText: {
-    fontSize: PawFontSize.body,
-    fontWeight: '800',
+    fontSize: PawFontSize.caption,
+    fontWeight: '700',
     color: PawColors.black,
   },
   post: {
-    marginTop: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: PawColors.black,
-    backgroundColor: PawColors.whiteCard,
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    gap: 12,
+    marginTop: 8,
+    paddingTop: 8,
+    paddingBottom: 10,
+    gap: 6,
+    overflow: 'visible',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(0,0,0,0.15)',
   },
   postHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
   },
   postNames: {
     flex: 1,
-    gap: 4,
+    gap: 0,
   },
   dogName: {
     fontSize: PawFontSize.body,
@@ -651,7 +685,7 @@ const styles = StyleSheet.create({
     color: PawColors.black,
   },
   ownerName: {
-    fontSize: PawFontSize.body,
+    fontSize: PawFontSize.caption,
     fontWeight: '400',
     color: PawColors.chipGray,
   },
@@ -665,7 +699,6 @@ const styles = StyleSheet.create({
     fontSize: PawFontSize.body,
     fontWeight: '300',
     color: PawColors.textMuted,
-    textAlign: 'justify',
     lineHeight: PawLineHeight.body,
   },
   postFooter: {
@@ -704,6 +737,18 @@ const styles = StyleSheet.create({
     fontWeight: '300',
     color: PawColors.textMuted,
     textDecorationLine: 'underline',
+  },
+  loadMore: {
+    alignSelf: 'center',
+    marginTop: 16,
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  loadMoreText: {
+    fontSize: PawFontSize.body,
+    fontWeight: '700',
+    color: PawColors.black,
   },
   emptyFeed: {
     marginTop: 24,

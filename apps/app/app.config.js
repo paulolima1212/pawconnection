@@ -36,6 +36,11 @@ module.exports = ({ config }) => {
         },
       },
     },
-    plugins: [...plugins, './plugins/with-google-maps.js', './plugins/with-crop-image-zoom.js'],
+    plugins: [
+      ...plugins,
+      './plugins/with-google-maps.js',
+      './plugins/with-crop-image-zoom.js',
+      './plugins/with-play-release-manifest.js',
+    ],
   };
 };

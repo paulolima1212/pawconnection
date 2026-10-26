@@ -222,6 +222,7 @@ export function mapConnectionRequestToDomain(
     status: request.status,
     createdAt: request.createdAt,
     updatedAt: request.updatedAt,
+    acceptedAt: 'acceptedAt' in request ? request.acceptedAt : null,
     sender: request.sender ? mapUserToSummary(request.sender) : undefined,
     recipient: request.recipient
       ? mapUserToSummary(request.recipient)

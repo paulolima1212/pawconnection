@@ -271,7 +271,14 @@ export function ProfileScreen() {
         <Text style={styles.headerTitle} accessibilityRole="header">
           Profile Settings
         </Text>
-        <View style={styles.headerIconBtn} />
+        <Pressable
+          onPress={() => router.push('/friends')}
+          hitSlop={12}
+          style={styles.headerIconBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Friends">
+          <Text style={styles.headerTitle}>Friends</Text>
+        </Pressable>
       </View>
 
       <View style={styles.scroll}>

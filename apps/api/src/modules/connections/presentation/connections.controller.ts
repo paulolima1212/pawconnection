@@ -1,8 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -19,12 +21,22 @@ import {
 } from '../../../shared/domain/types';
 import {
   AcceptConnectionRequestUseCase,
+  CancelConnectionRequestUseCase,
   CreateConnectionRequestUseCase,
   GetConnectionWithUserUseCase,
+  GetFriendshipPrivacyUseCase,
+  ListFriendSuggestionsUseCase,
+  ListFriendsUseCase,
   ListInboxRequestsUseCase,
+  ListMutualFriendsUseCase,
   RejectConnectionRequestUseCase,
+  RemoveFriendUseCase,
+  UpdateFriendshipPrivacyUseCase,
 } from '../application/connections.use-cases';
-import { CreateConnectionRequestDto } from './connections.dto';
+import {
+  CreateConnectionRequestDto,
+  UpdateFriendshipPrivacyDto,
+} from './connections.dto';
 
 @ApiTags('inbox')
 @Controller('inbox')
@@ -37,6 +49,13 @@ export class ConnectionsController {
     private readonly rejectRequest: RejectConnectionRequestUseCase,
     private readonly createRequest: CreateConnectionRequestUseCase,
     private readonly connectionWith: GetConnectionWithUserUseCase,
+    private readonly cancelRequest: CancelConnectionRequestUseCase,
+    private readonly removeFriend: RemoveFriendUseCase,
+    private readonly listFriends: ListFriendsUseCase,
+    private readonly listMutual: ListMutualFriendsUseCase,
+    private readonly suggestions: ListFriendSuggestionsUseCase,
+    private readonly getPrivacy: GetFriendshipPrivacyUseCase,
+    private readonly updatePrivacy: UpdateFriendshipPrivacyUseCase,
   ) {}
 
   @Get('connection/:userId')
@@ -86,5 +105,70 @@ export class ConnectionsController {
   @Post('requests/:id/reject')
   reject(@CurrentUser() user: AuthUserPayload, @Param('id') id: string) {
     return this.rejectRequest.execute(id, user.userId);
+  }
+
+  @Post('requests/:id/cancel')
+  cancel(@CurrentUser() user: AuthUserPayload, @Param('id') id: string) {
+    return this.cancelRequest.execute(id, user.userId);
+  }
+
+  @Delete('friends/:userId')
+  unfriend(
+    @CurrentUser() user: AuthUserPayload,
+    @Param('userId') userId: string,
+  ) {
+    return this.removeFriend.execute(user.userId, userId);
+  }
+
+  @Get('friends')
+  friends(
+    @CurrentUser() user: AuthUserPayload,
+    @Query('userId') userId?: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+    @Query('q') q?: string,
+  ) {
+    return this.listFriends.execute(user.userId, userId || user.userId, {
+      cursor,
+      limit: limit ? Number(limit) : undefined,
+      q,
+    });
+  }
+
+  @Get('friends/:userId/mutual')
+  mutual(
+    @CurrentUser() user: AuthUserPayload,
+    @Param('userId') userId: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.listMutual.execute(user.userId, userId, {
+      cursor,
+      limit: limit ? Number(limit) : undefined,
+    });
+  }
+
+  @Get('suggestions')
+  peopleYouMayKnow(
+    @CurrentUser() user: AuthUserPayload,
+    @Query('limit') limit?: string,
+  ) {
+    return this.suggestions.execute(
+      user.userId,
+      limit ? Number(limit) : undefined,
+    );
+  }
+
+  @Get('privacy')
+  privacy(@CurrentUser() user: AuthUserPayload) {
+    return this.getPrivacy.execute(user.userId);
+  }
+
+  @Patch('privacy')
+  savePrivacy(
+    @CurrentUser() user: AuthUserPayload,
+    @Body() dto: UpdateFriendshipPrivacyDto,
+  ) {
+    return this.updatePrivacy.execute(user.userId, dto);
   }
 }
