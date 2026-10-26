@@ -1,18 +1,34 @@
 import Feather from '@expo/vector-icons/Feather';
 import type { ComponentProps } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PawColors, PawFontSize, PawLayout, PawLineHeight } from '@/constants/paw-styles';
 
 export type PostSafetyAction = 'report' | 'block';
+export type OwnerPostAction = 'edit' | 'delete';
 
-type PostActionSheetProps = {
+type PostActionSheetBase = {
   visible: boolean;
   authorName: string;
   onClose: () => void;
+};
+
+type SafetyPostActionSheetProps = PostActionSheetBase & {
+  mode?: 'safety';
   onSelect: (action: PostSafetyAction) => void;
 };
+
+type OwnerPostActionSheetProps = PostActionSheetBase & {
+  mode: 'owner';
+  preview?: string;
+  confirmDelete?: boolean;
+  deleting?: boolean;
+  onSelect: (action: OwnerPostAction) => void;
+  onConfirmDelete: () => void;
+};
+
+type PostActionSheetProps = SafetyPostActionSheetProps | OwnerPostActionSheetProps;
 
 type ActionRowProps = {
   icon: ComponentProps<typeof Feather>['name'];
@@ -51,19 +67,23 @@ function ActionRow({ icon, label, hint, destructive, onPress }: ActionRowProps) 
   );
 }
 
-export function PostActionSheet({
-  visible,
-  authorName,
-  onClose,
-  onSelect,
-}: PostActionSheetProps) {
+export function PostActionSheet(props: PostActionSheetProps) {
+  const { visible, authorName, onClose } = props;
   const insets = useSafeAreaInsets();
+  const owner = props.mode === 'owner';
 
-  const pick = (action: PostSafetyAction) => {
+  const pickSafety = (action: PostSafetyAction) => {
+    if (props.mode === 'owner') return;
     // Parent hides this menu via `visible` when Report/Block opens.
     // Closing first used to unmount the target post and skip the next sheet.
-    onSelect(action);
+    props.onSelect(action);
   };
+
+  const preview = owner
+    ? (props.preview ?? '').length > 120
+      ? `${(props.preview ?? '').slice(0, 117)}…`
+      : props.preview || 'No text'
+    : '';
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -75,26 +95,77 @@ export function PostActionSheet({
         />
         <View style={[styles.sheet, { paddingBottom: Math.max(20, insets.bottom + 12) }]}>
           <View style={styles.handle} accessibilityElementsHidden />
-          <Text style={styles.title}>Post options</Text>
-          <Text style={styles.subtitle} numberOfLines={1}>
-            {authorName}
-          </Text>
-          <View style={styles.actionsCard}>
-            <ActionRow
-              icon="flag"
-              label="Report post"
-              hint="Tell us why this publication is a problem"
-              onPress={() => pick('report')}
-            />
-            <View style={styles.divider} />
-            <ActionRow
-              icon="slash"
-              label={`Block ${authorName}`}
-              hint="Hide their profile, posts, and messages"
-              destructive
-              onPress={() => pick('block')}
-            />
-          </View>
+          {owner && props.confirmDelete ? (
+            <>
+              <View style={styles.confirmIconWrap}>
+                <Feather name="trash-2" size={22} color={PawColors.destructive} />
+              </View>
+              <Text style={styles.title}>Delete this post?</Text>
+              <Text style={styles.subtitle}>
+                Likes and comments go away with it. This cannot be undone.
+              </Text>
+              <Pressable
+                onPress={props.onConfirmDelete}
+                disabled={props.deleting}
+                style={({ pressed }) => [
+                  styles.deleteBtn,
+                  pressed && !props.deleting && styles.deleteBtnPressed,
+                  props.deleting && styles.deleteBtnDisabled,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Confirm delete post">
+                {props.deleting ? (
+                  <ActivityIndicator color={PawColors.fieldWhite} />
+                ) : (
+                  <Text style={styles.deleteBtnText}>Delete post</Text>
+                )}
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <Text style={styles.title}>{owner ? 'Your post' : 'Post options'}</Text>
+              <Text style={styles.subtitle} numberOfLines={2}>
+                {owner ? preview : authorName}
+              </Text>
+              <View style={styles.actionsCard}>
+                {owner ? (
+                  <>
+                    <ActionRow
+                      icon="edit-2"
+                      label="Edit post"
+                      hint="Change the text, photos, or who can see it"
+                      onPress={() => props.onSelect('edit')}
+                    />
+                    <View style={styles.divider} />
+                    <ActionRow
+                      icon="trash-2"
+                      label="Delete post"
+                      hint="Remove it from the feed"
+                      destructive
+                      onPress={() => props.onSelect('delete')}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <ActionRow
+                      icon="flag"
+                      label="Report post"
+                      hint="Tell us why this publication is a problem"
+                      onPress={() => pickSafety('report')}
+                    />
+                    <View style={styles.divider} />
+                    <ActionRow
+                      icon="slash"
+                      label={`Block ${authorName}`}
+                      hint="Hide their profile, posts, and messages"
+                      destructive
+                      onPress={() => pickSafety('block')}
+                    />
+                  </>
+                )}
+              </View>
+            </>
+          )}
           <Pressable
             onPress={onClose}
             style={({ pressed }) => [styles.cancelBtn, pressed && styles.cancelBtnPressed]}
@@ -209,5 +280,31 @@ const styles = StyleSheet.create({
     fontSize: PawFontSize.body,
     fontWeight: '600',
     color: PawColors.black,
+  },
+  confirmIconWrap: {
+    alignSelf: 'center',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: PawColors.destructive,
+    backgroundColor: PawColors.destructiveMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  deleteBtn: {
+    minHeight: 50,
+    borderRadius: PawLayout.borderRadiusField,
+    backgroundColor: PawColors.destructive,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteBtnPressed: { opacity: 0.88 },
+  deleteBtnDisabled: { opacity: 0.6 },
+  deleteBtnText: {
+    fontSize: PawFontSize.body,
+    fontWeight: '600',
+    color: PawColors.fieldWhite,
   },
 });

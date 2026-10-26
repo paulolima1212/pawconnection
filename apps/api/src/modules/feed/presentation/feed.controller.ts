@@ -1,8 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -26,10 +28,12 @@ import { FeedScope } from '../domain/specifications/feed-domain';
 import {
   AddPostCommentUseCase,
   CreateFeedPostUseCase,
+  DeleteFeedPostUseCase,
   ListFeedPostsUseCase,
   ListFriendsFeedUseCase,
   ListPostCommentsUseCase,
   TogglePostLikeUseCase,
+  UpdateFeedPostUseCase,
 } from '../application/feed.use-cases';
 
 class CreatePostDto {
@@ -65,6 +69,8 @@ export class FeedController {
   constructor(
     private readonly listPosts: ListFeedPostsUseCase,
     private readonly createPost: CreateFeedPostUseCase,
+    private readonly updatePost: UpdateFeedPostUseCase,
+    private readonly deletePost: DeleteFeedPostUseCase,
     private readonly toggleLike: TogglePostLikeUseCase,
     private readonly listComments: ListPostCommentsUseCase,
     private readonly addComment: AddPostCommentUseCase,
@@ -139,6 +145,24 @@ export class FeedController {
       dto.imageUrls,
       dto.visibility,
     );
+  }
+
+  @Patch('posts/:id')
+  update(
+    @CurrentUser() user: AuthUserPayload,
+    @Param('id') id: string,
+    @Body() dto: CreatePostDto,
+  ) {
+    return this.updatePost.execute(id, user.userId, {
+      body: dto.body,
+      imageUrls: dto.imageUrls,
+      visibility: dto.visibility,
+    });
+  }
+
+  @Delete('posts/:id')
+  remove(@CurrentUser() user: AuthUserPayload, @Param('id') id: string) {
+    return this.deletePost.execute(id, user.userId);
   }
 
   @Post('posts/:id/like')

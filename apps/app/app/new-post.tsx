@@ -2,7 +2,7 @@ import Feather from '@expo/vector-icons/Feather';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Keyboard,
   Pressable,
@@ -37,14 +37,29 @@ const MAX_PHOTOS = 8;
 export default function NewPostScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { notifyPostCreated } = useFeedPosts();
+  const { notifyPostCreated, notifyPostUpdated, editingPost, clearPostEdit } = useFeedPosts();
   const { draft, syncOwnerToApi, syncPetToApi } = useProfileOnboarding();
   const { showTooltip } = usePawTooltip();
 
-  const [body, setBody] = useState('');
-  const [imageUris, setImageUris] = useState<string[]>([]);
+  const [body, setBody] = useState(editingPost?.body ?? '');
+  const [imageUris, setImageUris] = useState<string[]>(editingPost?.imageUrls ?? []);
   const [publishing, setPublishing] = useState(false);
-  const [visibility, setVisibility] = useState<'public' | 'friends' | 'private'>('public');
+  const [visibility, setVisibility] = useState<'public' | 'friends' | 'private'>(
+    editingPost?.visibility ?? 'public',
+  );
+  const editing = editingPost != null;
+
+  useEffect(() => {
+    if (!editingPost) {
+      setBody('');
+      setImageUris([]);
+      setVisibility('public');
+      return;
+    }
+    setBody(editingPost.body ?? '');
+    setImageUris(editingPost.imageUrls);
+    setVisibility(editingPost.visibility ?? 'public');
+  }, [editingPost]);
   const [pickingPhotos, setPickingPhotos] = useState(false);
   const pickingRef = useRef(false);
 
@@ -110,6 +125,21 @@ export default function NewPostScreen() {
     if (!canPublish || publishing) return;
     setPublishing(true);
     try {
+      const imageUrls: string[] = [];
+      for (const uri of imageUris) {
+        const remote = await resolveRemoteUri(uri);
+        if (remote && isHttpUrl(remote)) imageUrls.push(remote);
+      }
+      const text = body.trim() || undefined;
+
+      if (editingPost) {
+        const post = await feedApi.updateFeedPost(editingPost.id, text, imageUrls, visibility);
+        notifyPostUpdated(mergeAuthorPhotoSources(post, undefined, draft));
+        clearPostEdit();
+        router.back();
+        return;
+      }
+
       let profileAfterSync: Awaited<ReturnType<typeof syncPetToApi>> | undefined;
       if (draft.dogPhotoUri) {
         profileAfterSync = await syncPetToApi();
@@ -118,18 +148,18 @@ export default function NewPostScreen() {
         profileAfterSync = (await syncOwnerToApi()) ?? profileAfterSync;
       }
 
-      const imageUrls: string[] = [];
-      for (const uri of imageUris) {
-        const remote = await resolveRemoteUri(uri);
-        if (remote && isHttpUrl(remote)) imageUrls.push(remote);
-      }
-      const post = await feedApi.createFeedPost(body.trim() || undefined, imageUrls, visibility);
+      const post = await feedApi.createFeedPost(text, imageUrls, visibility);
       notifyPostCreated(mergeAuthorPhotoSources(post, profileAfterSync, draft));
       router.back();
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : 'Could not publish your post.';
+      const message =
+        err instanceof ApiError
+          ? err.message
+          : editingPost
+            ? 'Could not save your post.'
+            : 'Could not publish your post.';
       showTooltip({
-        title: 'Publish failed',
+        title: editingPost ? 'Save failed' : 'Publish failed',
         message: tooltipMessageFromError(err, message),
         variant: 'error',
       });
@@ -148,13 +178,19 @@ export default function NewPostScreen() {
     syncPetToApi,
     showTooltip,
     notifyPostCreated,
+    notifyPostUpdated,
+    editingPost,
+    clearPostEdit,
   ]);
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => {
+            clearPostEdit();
+            router.back();
+          }}
           hitSlop={12}
           style={styles.headerIconBtn}
           accessibilityRole="button"
@@ -162,7 +198,7 @@ export default function NewPostScreen() {
           <Feather name="arrow-left" size={22} color={PawColors.navLabelActive} />
         </Pressable>
         <Text style={styles.headerTitle} accessibilityRole="header">
-          New Post
+          {editing ? 'Edit Post' : 'New Post'}
         </Text>
         <View style={styles.headerIconBtn} />
       </View>
@@ -283,9 +319,11 @@ export default function NewPostScreen() {
           style={[styles.publishBtn, (!canPublish || publishing) && styles.publishBtnDisabled]}
           accessibilityRole="button"
           accessibilityState={{ disabled: !canPublish || publishing }}
-          accessibilityLabel="Publish post">
-          <Feather name="plus" size={18} color={PawColors.black} />
-          <Text style={styles.publishText}>{publishing ? 'Publishing…' : 'Publish Post'}</Text>
+          accessibilityLabel={editing ? 'Save post' : 'Publish post'}>
+          <Feather name={editing ? 'check' : 'plus'} size={18} color={PawColors.black} />
+          <Text style={styles.publishText}>
+            {publishing ? (editing ? 'Saving…' : 'Publishing…') : editing ? 'Save' : 'Publish Post'}
+          </Text>
         </Pressable>
       </View>
     </View>

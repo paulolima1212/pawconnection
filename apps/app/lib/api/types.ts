@@ -96,6 +96,7 @@ export type FeedPostApi = {
   id: string;
   authorId: string;
   body?: string | null;
+  visibility?: 'public' | 'friends' | 'private';
   imageUrls: string[];
   likeCount: number;
   commentCount: number;

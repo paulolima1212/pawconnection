@@ -44,6 +44,7 @@ import { BlockUserConfirmSheet } from '@/components/paw/block-user-confirm-sheet
 import { PawColors, PawFontSize, PawLayout, PawLineHeight } from '@/constants/paw-styles';
 import { useAuth } from '@/context/auth';
 import { useFeedPosts } from '@/context/feed-posts';
+import { isOwnPost } from '@/lib/own-post';
 import { useProfileOnboarding } from '@/context/profile-onboarding';
 import { tooltipMessageFromError, usePawTooltip } from '@/context/paw-tooltip';
 import { useFeedNearbyCities } from '@/hooks/use-feed-nearby-cities';
@@ -75,7 +76,16 @@ export function SocialFeedScreen() {
   const router = useRouter();
   const { logout, userId } = useAuth();
   const { showTooltip } = usePawTooltip();
-  const { refreshNonce, pendingPost, clearPendingPost } = useFeedPosts();
+  const {
+    refreshNonce,
+    pendingPost,
+    pendingUpdated,
+    pendingRemovedId,
+    clearPendingPost,
+    beginPostEdit,
+    clearPostEdit,
+    notifyPostDeleted,
+  } = useFeedPosts();
   const { draft, handle: myHandle, resetOnboardingForDev } = useProfileOnboarding();
   const [viewMode, setViewMode] = useState<FeedMapMode>('feed');
   const scrollPaddingBottom = useKeyboardAwareBottomPadding(viewMode === 'feed' ? 72 : 24);
@@ -99,6 +109,9 @@ export function SocialFeedScreen() {
   const safetyPost = safetyUi.target;
   const [reporting, setReporting] = useState(false);
   const [blocking, setBlocking] = useState(false);
+  const [ownerPost, setOwnerPost] = useState<FeedPostApi | null>(null);
+  const [confirmDeletePost, setConfirmDeletePost] = useState(false);
+  const [deletingPost, setDeletingPost] = useState(false);
   const activeFilterCount = countActiveFeedSearchFilters(searchFilters);
   const {
     permission: cityPermission,
@@ -109,10 +122,15 @@ export function SocialFeedScreen() {
   } = useFeedNearbyCities(radiusKm);
 
   const mergePosts = useCallback((fetched: FeedPostApi[]) => {
-    if (!pendingPost) return fetched;
-    const withoutDup = fetched.filter((p) => p.id !== pendingPost.id);
+    let items = fetched;
+    if (pendingRemovedId) items = items.filter((p) => p.id !== pendingRemovedId);
+    if (pendingUpdated) {
+      items = items.map((p) => (p.id === pendingUpdated.id ? { ...p, ...pendingUpdated } : p));
+    }
+    if (!pendingPost) return items;
+    const withoutDup = items.filter((p) => p.id !== pendingPost.id);
     return [pendingPost, ...withoutDup];
-  }, [pendingPost]);
+  }, [pendingPost, pendingUpdated, pendingRemovedId]);
 
   const friendsFeedOnly =
     postScope === 'friends' &&
@@ -187,6 +205,50 @@ export function SocialFeedScreen() {
       return [pendingPost, ...prev];
     });
   }, [pendingPost, viewMode]);
+
+  useEffect(() => {
+    if (!pendingUpdated || viewMode !== 'feed') return;
+    setPosts((prev) =>
+      prev.map((p) => (p.id === pendingUpdated.id ? { ...p, ...pendingUpdated } : p)),
+    );
+  }, [pendingUpdated, viewMode]);
+
+  useEffect(() => {
+    if (!pendingRemovedId || viewMode !== 'feed') return;
+    setPosts((prev) => prev.filter((p) => p.id !== pendingRemovedId));
+  }, [pendingRemovedId, viewMode]);
+
+  const closeOwnerMenu = () => {
+    if (deletingPost) return;
+    setOwnerPost(null);
+    setConfirmDeletePost(false);
+  };
+
+  const confirmDeleteOwnPost = async () => {
+    if (!ownerPost || deletingPost) return;
+    setDeletingPost(true);
+    try {
+      await feedApi.deleteFeedPost(ownerPost.id);
+      const removedId = ownerPost.id;
+      notifyPostDeleted(removedId);
+      setPosts((prev) => prev.filter((p) => p.id !== removedId));
+      setOwnerPost(null);
+      setConfirmDeletePost(false);
+      showTooltip({
+        title: 'Post deleted',
+        message: 'Your post was removed from the feed.',
+        variant: 'success',
+      });
+    } catch (err) {
+      showTooltip({
+        title: 'Could not delete',
+        message: tooltipMessageFromError(err, 'Please try again.'),
+        variant: 'error',
+      });
+    } finally {
+      setDeletingPost(false);
+    }
+  };
 
   const onRefresh = useCallback(() => {
     if (viewMode !== 'feed') return;
@@ -418,16 +480,21 @@ export function SocialFeedScreen() {
                         <Text style={styles.dogName}>{dogName}</Text>
                         <Text style={styles.ownerName}>{ownerName}</Text>
                       </View>
-                      {post.authorId !== userId && post.author?.id !== userId ? (
-                        <Pressable
-                          onPress={() => dispatchSafety({ type: 'openMenu', target: post })}
-                          hitSlop={8}
-                          style={styles.moreBtn}
-                          accessibilityRole="button"
-                          accessibilityLabel="Post options">
-                          <Feather name="more-vertical" size={20} color={PawColors.black} />
-                        </Pressable>
-                      ) : null}
+                      <Pressable
+                        onPress={() => {
+                          if (isOwnPost(post, userId)) {
+                            setConfirmDeletePost(false);
+                            setOwnerPost(post);
+                            return;
+                          }
+                          dispatchSafety({ type: 'openMenu', target: post });
+                        }}
+                        hitSlop={8}
+                        style={styles.moreBtn}
+                        accessibilityRole="button"
+                        accessibilityLabel={isOwnPost(post, userId) ? 'Your post options' : 'Post options'}>
+                        <Feather name="more-vertical" size={20} color={PawColors.black} />
+                      </Pressable>
                     </View>
                     {post.body ? <Text style={styles.postBody}>{post.body}</Text> : null}
                     <FeedPostImages imageUrls={post.imageUrls} />
@@ -488,7 +555,10 @@ export function SocialFeedScreen() {
       {viewMode === 'feed' ? (
         <Pressable
           style={styles.newPost}
-          onPress={() => router.push('/new-post')}
+          onPress={() => {
+            clearPostEdit();
+            router.push('/new-post');
+          }}
           accessibilityRole="button"
           accessibilityLabel="New post">
           <Feather name="plus" size={18} color={PawColors.black} />
@@ -520,6 +590,26 @@ export function SocialFeedScreen() {
           if (action === 'report') dispatchSafety({ type: 'selectReport' });
           if (action === 'block') dispatchSafety({ type: 'selectBlock' });
         }}
+      />
+      <PostActionSheet
+        mode="owner"
+        visible={ownerPost != null}
+        authorName="You"
+        preview={ownerPost?.body ?? ''}
+        confirmDelete={confirmDeletePost}
+        deleting={deletingPost}
+        onClose={closeOwnerMenu}
+        onSelect={(action) => {
+          if (action === 'edit' && ownerPost) {
+            beginPostEdit(ownerPost);
+            setOwnerPost(null);
+            setConfirmDeletePost(false);
+            router.push('/new-post');
+            return;
+          }
+          if (action === 'delete') setConfirmDeletePost(true);
+        }}
+        onConfirmDelete={() => void confirmDeleteOwnPost()}
       />
       <ReportPostSheet
         visible={isPostSafetyReportVisible(safetyUi)}

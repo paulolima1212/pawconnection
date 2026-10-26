@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   IUserRepository,
   USER_REPOSITORY,
@@ -13,6 +13,7 @@ import {
 } from '../../moderation/domain/ports/post-report-reader.port';
 import { VisibleAuthorSpec } from '../../moderation/domain/specifications/hidden-user';
 import { ForbiddenError, NotFoundError } from '../../../shared/domain/result';
+import { FeedPost, FeedPostEdit } from '../domain/feed-post';
 import {
   FeedPostFilters,
   FeedPostWithAuthorMeta,
@@ -132,6 +133,56 @@ export class CreateFeedPostUseCase {
       imageUrls,
       visibility ?? privacy?.defaultPostVisibility ?? 'public',
     );
+  }
+}
+
+@Injectable()
+export class UpdateFeedPostUseCase {
+  private readonly logger = new Logger(UpdateFeedPostUseCase.name);
+
+  constructor(
+    @Inject(POST_REPOSITORY) private readonly posts: IPostRepository,
+  ) {}
+
+  async execute(postId: string, actorId: string, change: FeedPostEdit) {
+    const snapshot = await this.posts.findSnapshot(postId);
+    if (!snapshot) throw new NotFoundError('Post not found');
+
+    const next = FeedPost.restore(snapshot).edit(actorId, change);
+    const updated = await this.posts.updatePost(next, actorId);
+
+    this.logger.log({
+      msg: 'feed.post_edited',
+      postId,
+      authorId: actorId,
+    });
+
+    return updated;
+  }
+}
+
+@Injectable()
+export class DeleteFeedPostUseCase {
+  private readonly logger = new Logger(DeleteFeedPostUseCase.name);
+
+  constructor(
+    @Inject(POST_REPOSITORY) private readonly posts: IPostRepository,
+  ) {}
+
+  async execute(postId: string, actorId: string) {
+    const snapshot = await this.posts.findSnapshot(postId);
+    if (!snapshot) throw new NotFoundError('Post not found');
+
+    FeedPost.restore(snapshot).assertDeletableBy(actorId);
+    await this.posts.deletePost(postId);
+
+    this.logger.log({
+      msg: 'feed.post_deleted',
+      postId,
+      authorId: actorId,
+    });
+
+    return { id: postId };
   }
 }
 

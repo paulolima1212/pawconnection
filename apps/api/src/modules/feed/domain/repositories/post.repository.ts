@@ -1,3 +1,4 @@
+import { FeedPostSnapshot } from '../feed-post';
 import {
   CommentEntity,
   PostEntity,
@@ -26,6 +27,9 @@ export interface IPostRepository {
     imageUrls: string[],
     visibility?: PostVisibilityValue,
   ): Promise<PostEntity>;
+  findSnapshot(postId: string): Promise<FeedPostSnapshot | null>;
+  updatePost(next: FeedPostSnapshot, actorId: string): Promise<PostEntity>;
+  deletePost(postId: string): Promise<void>;
   listFriendsFeed(
     userId: string,
     friendIds: string[],
