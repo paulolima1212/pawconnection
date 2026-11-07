@@ -81,7 +81,7 @@ paw-connection/
 Para começar rápido, crie só `apps/api` na raiz do projeto:
 
 ```text
-/opt/paw-connection/
+paw-connection/
 ├── app/                 # Expo (existente)
 ├── context/             # ProfileDraft (existente)
 ├── apps/

@@ -23,13 +23,8 @@ function isPrivateLanHost(host: string): boolean {
   );
 }
 
-/** Tailscale CGNAT range (100.64.0.0/10). */
-function isTailscaleHost(host: string): boolean {
-  return /^100\.(?:6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host);
-}
-
 function isDevReachableHost(host: string): boolean {
-  return isPrivateLanHost(host) || isTailscaleHost(host);
+  return isPrivateLanHost(host);
 }
 
 function configuredPointsToLocalhost(configured: string): boolean {
@@ -60,12 +55,10 @@ function getConfiguredApiUrl(): string {
   return trimUrl(fromEnv || extra?.apiUrl || '');
 }
 
-/** Host port of the LAN API (Docker maps 3011:3001; Nest watch uses 3001). */
+/** Host port of the LAN API (default: 3001). */
 function getLanApiPort(): string {
   const fromEnv = process.env.EXPO_PUBLIC_LAN_API_PORT?.trim();
   if (fromEnv && /^\d+$/.test(fromEnv)) return fromEnv;
-  const lanHost = getLanHost();
-  if (lanHost && isTailscaleHost(lanHost)) return '3011';
   const configured = getConfiguredApiUrl();
   if (configured) {
     try {
@@ -83,7 +76,7 @@ export function getAppBaseUrl(): string {
   if (fromEnv) return trimUrl(fromEnv);
   const extra = Constants.expoConfig?.extra as { appUrl?: string } | undefined;
   if (extra?.appUrl) return trimUrl(extra.appUrl);
-  return 'https://paw-app.lz-plima1212.online';
+  return 'http://localhost:8081';
 }
 
 /**
@@ -91,8 +84,8 @@ export function getAppBaseUrl(): string {
  * - Production builds always use EXPO_PUBLIC_API_URL.
  * - In Expo Go, use the remote URL from .env by default (works on any network).
  * - LAN backend (http://<metro-ip>:<port>) when EXPO_PUBLIC_USE_LAN_API=true,
- *   EXPO_PUBLIC_API_URL points at localhost, or Metro is reached via Tailscale (100.x).
- *   Tailscale defaults to 3011 (Docker host mapping). Override with EXPO_PUBLIC_LAN_API_PORT.
+ *   EXPO_PUBLIC_API_URL points at localhost, or Metro is reached on a private network.
+ *   Override port with EXPO_PUBLIC_LAN_API_PORT if needed.
  * - EXPO_PUBLIC_USE_REMOTE_API=true forces the remote URL (same as default with prod .env).
  */
 export function getApiBaseUrl(): string {
@@ -106,10 +99,7 @@ export function getApiBaseUrl(): string {
     !forceRemote &&
     lanHost &&
     isDevReachableHost(lanHost) &&
-    (forceLan ||
-      isTailscaleHost(lanHost) ||
-      !configured ||
-      configuredPointsToLocalhost(configured));
+    (forceLan || !configured || configuredPointsToLocalhost(configured));
 
   if (useLanInDev) {
     return `http://${lanHost}:${lanPort}`;
@@ -131,7 +121,7 @@ export function getSupabaseUrl(): string {
   if (fromEnv) return trimUrl(fromEnv);
   const extra = Constants.expoConfig?.extra as { supabaseUrl?: string } | undefined;
   if (extra?.supabaseUrl) return trimUrl(extra.supabaseUrl);
-  return 'https://supabase.lz-plima1212.online';
+  return 'http://localhost:8000';
 }
 
 export function getSupabaseStorageBucket(): string {

@@ -18,11 +18,6 @@ function isLocalDevOrigin(origin: string): boolean {
     if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
     if (/^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname))
       return true;
-    const tailscale = /^100\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/.exec(hostname);
-    if (tailscale) {
-      const second = Number(tailscale[1]);
-      return second >= 64 && second <= 127;
-    }
     return false;
   } catch {
     return false;
