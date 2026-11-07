@@ -1,0 +1,29 @@
+# Backups do Banco de Dados
+
+Esta pasta é para armazenar dumps SQL do banco de dados PostgreSQL.
+
+## Criar um backup
+
+```bash
+# Via docker-compose (postgres rodando)
+docker compose exec postgres pg_dump -U postgres -d paw_connection > backups/paw_connection_$(date +%Y%m%d_%H%M%S).sql
+
+# Ou se postgres estiver rodando localmente (não-docker)
+pg_dump -U postgres -d paw_connection > backups/paw_connection_$(date +%Y%m%d_%H%M%S).sql
+```
+
+## Restaurar um backup
+
+```bash
+# Via docker-compose
+docker compose exec -T postgres psql -U postgres -d paw_connection < backups/paw_connection_YYYYMMDD_HHMMSS.sql
+
+# Ou localmente
+psql -U postgres -d paw_connection < backups/paw_connection_YYYYMMDD_HHMMSS.sql
+```
+
+## Importante
+
+- **Nunca commite dumps SQL com dados reais de produção** no Git
+- Use esta pasta apenas localmente para backup/restore em desenvolvimento
+- Para produção, configure backups automáticos no seu provedor de banco (RDS, Supabase Cloud, etc.)

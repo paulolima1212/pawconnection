@@ -93,7 +93,7 @@ export class MediaController {
     return clean;
   }
 
-  /** Public image proxy (local disk or Supabase) for mobile clients on LAN/Tailscale. */
+  /** Public image proxy (local disk or Supabase) for mobile clients. */
   @Get('object')
   async serveObject(@Query('path') storagePath: string, @Res() res: Response) {
     if (!storagePath || storagePath.includes('..')) {

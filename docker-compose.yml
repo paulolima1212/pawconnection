@@ -1,0 +1,74 @@
+services:
+  # PostgreSQL database
+  postgres:
+    image: postgres:16-alpine
+    container_name: paw_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: paw
+      POSTGRES_DB: paw_connection
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Supabase (opcional — se não usar, comente esta seção e use apenas Postgres)
+  # Para Supabase self-hosted completo, veja: https://supabase.com/docs/guides/self-hosting/docker
+  # Esta é uma versão simplificada; para produção, use o compose oficial do Supabase.
+  # Se não precisar de Storage/Auth do Supabase, apenas use o postgres acima.
+  
+  # supabase-db:
+  #   image: supabase/postgres:15.1.0.147
+  #   container_name: paw_supabase_db
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_PASSWORD: your-super-secret-password
+  #     POSTGRES_DB: postgres
+  #   ports:
+  #     - "54321:5432"
+  #   volumes:
+  #     - supabase_db_data:/var/lib/postgresql/data
+
+  # supabase-api:
+  #   image: supabase/studio:latest
+  #   container_name: paw_supabase_studio
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8000:3000"
+  #   environment:
+  #     SUPABASE_URL: http://kong:8000
+  #     SUPABASE_ANON_KEY: your-anon-key
+  #     SUPABASE_SERVICE_ROLE_KEY: your-service-key
+  #   depends_on:
+  #     - supabase-db
+
+  # API backend (NestJS)
+  # Descomente se quiser rodar a API via Docker; caso contrário, rode localmente com npm run start:dev
+  # api:
+  #   build:
+  #     context: ./apps/api
+  #     dockerfile: Dockerfile
+  #   container_name: paw_api
+  #   restart: unless-stopped
+  #   env_file:
+  #     - ./apps/api/.env
+  #   environment:
+  #     DATABASE_URL: postgresql://postgres:paw@postgres:5432/paw_connection?schema=public
+  #     NODE_ENV: development
+  #   ports:
+  #     - "3001:3001"
+  #   volumes:
+  #     - ./apps/api/uploads:/app/uploads
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+
+volumes:
+  postgres_data:
+  # supabase_db_data:
